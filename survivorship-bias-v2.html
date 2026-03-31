@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>幸存者偏差 — 高级版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; overflow: hidden;
+  background: #050510; color: white; position: relative;
+  font-family: "PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Shared canvas layers */
+canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+#bg-canvas { z-index: 0; }
+#fx-canvas { z-index: 50; }
+
+.scene {
+  position: absolute; top: 0; left: 0;
+  width: 1080px; height: 1920px;
+  opacity: 0; z-index: 1; overflow: hidden;
+}
+
+/* ============ SCENE 1: HOOK ============ */
+#scene1 { background: transparent; }
+#scene1 .vignette {
+  position: absolute; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(5,5,16,0.85) 80%);
+}
+
+/* Floating icons that represent "success stories" */
+#scene1 .float-icons {
+  position: absolute; width: 100%; height: 100%;
+}
+#scene1 .float-icon {
+  position: absolute; font-size: 64px; opacity: 0;
+  filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+}
+
+#scene1 .center-eye {
+  position: absolute; top: 700px; left: 50%; transform: translateX(-50%);
+  opacity: 0;
+}
+
+#scene1 .hook-text {
+  position: absolute; top: 1050px; width: 100%; text-align: center;
+  padding: 0 80px; opacity: 0;
+}
+#scene1 .hook-text h1 {
+  font-size: 64px; font-weight: 900; line-height: 1.5;
+  background: linear-gradient(135deg, #ff6b6b, #ffa500, #ff6b6b);
+  background-size: 200% 200%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+#scene1 .hook-text p {
+  font-size: 34px; color: rgba(255,255,255,0.5); margin-top: 16px; line-height: 1.7;
+}
+
+#scene1 .title-reveal {
+  position: absolute; top: 1420px; left: 50%; transform: translateX(-50%);
+  opacity: 0;
+}
+#scene1 .title-reveal .title-inner {
+  font-size: 80px; font-weight: 900; letter-spacing: 12px;
+  background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  position: relative;
+}
+#scene1 .title-reveal .title-line {
+  position: absolute; bottom: -10px; left: 0; width: 0; height: 4px;
+  background: linear-gradient(90deg, #ef4444, #f97316);
+}
+
+/* ============ SCENE 2: WWII ============ */
+#scene2 { background: transparent; }
+
+#scene2 .war-overlay {
+  position: absolute; width: 100%; height: 100%;
+  background: linear-gradient(180deg, rgba(20,10,5,0.9) 0%, rgba(30,15,10,0.7) 50%, rgba(20,10,5,0.9) 100%);
+}
+
+#scene2 .year-text {
+  position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+  font-size: 200px; font-weight: 900; opacity: 0;
+  color: rgba(245,158,11,0.08);
+  letter-spacing: 20px;
+}
+
+#scene2 .scene-title {
+  position: absolute; top: 200px; width: 100%; text-align: center;
+  font-size: 48px; font-weight: 700; opacity: 0;
+  color: rgba(245,158,11,0.9);
+}
+
+/* Plane top-down view with proper detail */
+#scene2 .plane-group {
+  position: absolute; top: 380px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 600px; opacity: 0;
+}
+
+/* Heat map overlay on plane */
+#scene2 .heatmap-canvas {
+  position: absolute; top: 380px; left: 50%; transform: translateX(-50%);
+  z-index: 3; opacity: 0;
+}
+
+/* Decision bubbles */
+#scene2 .bubble {
+  position: absolute; left: 60px; right: 60px;
+  border-radius: 24px; padding: 36px 44px;
+  opacity: 0; transform: translateY(40px);
+}
+#scene2 .military-bubble {
+  top: 1050px;
+  background: rgba(239,68,68,0.06);
+  border: 1.5px solid rgba(239,68,68,0.25);
+}
+#scene2 .military-bubble::before {
+  content: ''; position: absolute; top: -12px; left: 60px;
+  width: 24px; height: 24px; background: rgba(239,68,68,0.06);
+  border-left: 1.5px solid rgba(239,68,68,0.25);
+  border-top: 1.5px solid rgba(239,68,68,0.25);
+  transform: rotate(45deg);
+}
+#scene2 .wald-bubble {
+  top: 1340px;
+  background: rgba(34,197,94,0.06);
+  border: 1.5px solid rgba(34,197,94,0.25);
+}
+
+.bubble .speaker {
+  font-size: 24px; font-weight: 700; letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+.military-bubble .speaker { color: #f87171; }
+.wald-bubble .speaker { color: #4ade80; }
+.bubble .content {
+  font-size: 36px; font-weight: 600; line-height: 1.6;
+  color: rgba(255,255,255,0.85);
+}
+.bubble .emphasis { font-weight: 800; }
+.military-bubble .emphasis { color: #f87171; }
+.wald-bubble .emphasis { color: #4ade80; }
+
+/* ============ SCENE 3: INSIGHT ============ */
+#scene3 { background: transparent; }
+#scene3 .insight-bg {
+  position: absolute; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 50% 40%, rgba(34,197,94,0.05) 0%, transparent 60%);
+}
+
+#scene3 .scene-title {
+  position: absolute; top: 140px; width: 100%; text-align: center;
+  font-size: 52px; font-weight: 800; opacity: 0;
+}
+#scene3 .scene-title span {
+  background: linear-gradient(90deg, #4ade80, #22d3ee);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* Two plane comparison - side by side */
+#scene3 .planes-row {
+  position: absolute; top: 300px; left: 0; width: 1080px; height: 500px;
+}
+#scene3 .plane-col {
+  position: absolute; top: 0; width: 500px; text-align: center; opacity: 0;
+}
+#scene3 .plane-col.left { left: 20px; }
+#scene3 .plane-col.right { left: 560px; }
+#scene3 .plane-col .col-label {
+  font-size: 30px; font-weight: 700; margin-bottom: 12px;
+}
+#scene3 .left .col-label { color: #4ade80; }
+#scene3 .right .col-label { color: #f87171; }
+
+/* Animated arrow / flow */
+#scene3 .flow-arrow {
+  position: absolute; top: 850px; left: 50%; transform: translateX(-50%);
+  opacity: 0;
+}
+
+/* Logic cards */
+#scene3 .logic-card {
+  position: absolute; left: 60px; right: 60px;
+  border-radius: 20px; padding: 36px 40px;
+  opacity: 0; transform: scale(0.95);
+}
+#scene3 .logic-a {
+  top: 920px;
+  background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(34,211,238,0.05));
+  border: 1px solid rgba(74,222,128,0.2);
+}
+#scene3 .logic-b {
+  top: 1170px;
+  background: linear-gradient(135deg, rgba(248,113,113,0.08), rgba(251,146,60,0.05));
+  border: 1px solid rgba(248,113,113,0.2);
+}
+.logic-card .logic-num {
+  font-size: 48px; font-weight: 900; line-height: 1;
+  margin-bottom: 12px;
+}
+.logic-a .logic-num { color: #4ade80; }
+.logic-b .logic-num { color: #f87171; }
+.logic-card .logic-text {
+  font-size: 34px; font-weight: 500; line-height: 1.7;
+  color: rgba(255,255,255,0.8);
+}
+
+#scene3 .conclusion-text {
+  position: absolute; top: 1500px; left: 80px; right: 80px;
+  text-align: center; font-size: 44px; font-weight: 800;
+  line-height: 1.5; opacity: 0;
+  background: linear-gradient(135deg, #4ade80, #22d3ee);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ============ SCENE 4: DAILY LIFE ============ */
+#scene4 { background: transparent; }
+
+#scene4 .scene-title {
+  position: absolute; top: 140px; width: 100%; text-align: center;
+  font-size: 52px; font-weight: 800; opacity: 0;
+}
+#scene4 .scene-title span {
+  background: linear-gradient(90deg, #c084fc, #f472b6);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* Iceberg visual */
+#scene4 .iceberg-container {
+  position: absolute; top: 280px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 900px; opacity: 0;
+}
+
+/* Water line */
+#scene4 .waterline {
+  position: absolute; top: 580px; left: 0; width: 1080px;
+  height: 3px; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
+}
+#scene4 .waterline-label-above {
+  position: absolute; top: 540px; right: 100px;
+  font-size: 28px; color: rgba(255,255,255,0.4); opacity: 0;
+}
+#scene4 .waterline-label-below {
+  position: absolute; top: 592px; right: 100px;
+  font-size: 28px; color: rgba(59,130,246,0.4); opacity: 0;
+}
+
+/* Examples as iceberg labels */
+#scene4 .ice-label {
+  position: absolute; left: 60px; right: 60px;
+  font-size: 32px; line-height: 1.6; opacity: 0;
+  padding: 20px 32px; border-radius: 16px;
+}
+#scene4 .ice-above {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.85); font-weight: 600;
+}
+#scene4 .ice-below {
+  background: rgba(59,130,246,0.05);
+  color: rgba(147,197,253,0.7);
+}
+#scene4 .label-1a { top: 320px; }
+#scene4 .label-1b { top: 640px; }
+#scene4 .label-2a { top: 420px; }
+#scene4 .label-2b { top: 770px; }
+#scene4 .label-3a { top: 490px; }
+#scene4 .label-3b { top: 900px; }
+
+#scene4 .big-q {
+  position: absolute; top: 1100px; width: 100%;
+  text-align: center; padding: 0 80px;
+  font-size: 42px; font-weight: 800; line-height: 1.5;
+  opacity: 0; color: rgba(255,255,255,0.9);
+}
+#scene4 .big-q em {
+  font-style: normal; color: #f472b6; font-size: 48px;
+}
+
+/* ============ SCENE 5: CLOSING ============ */
+#scene5 { background: transparent; }
+#scene5 .close-bg {
+  position: absolute; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(15,23,42,0.9) 0%, rgba(5,5,16,0.95) 70%);
+}
+
+#scene5 .plane-silhouette {
+  position: absolute; top: 500px; left: 50%; transform: translateX(-50%);
+  opacity: 0;
+}
+
+#scene5 .closing-q {
+  position: absolute; top: 900px; width: 100%; text-align: center;
+  padding: 0 80px; opacity: 0;
+  font-size: 46px; font-weight: 700; line-height: 1.6;
+}
+#scene5 .closing-q span {
+  background: linear-gradient(135deg, #93c5fd, #c084fc, #f9a8d4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+#scene5 .closing-answer {
+  position: absolute; top: 1150px; width: 100%; text-align: center;
+  padding: 0 100px; font-size: 36px; line-height: 1.7;
+  color: rgba(255,255,255,0.45); opacity: 0;
+}
+
+#scene5 .cta {
+  position: absolute; top: 1400px; left: 50%; transform: translateX(-50%) scale(0.8);
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  border-radius: 60px; padding: 22px 70px;
+  font-size: 36px; font-weight: 700; opacity: 0;
+  white-space: nowrap;
+  box-shadow: 0 0 40px rgba(99,102,241,0.3);
+}
+
+/* ============ SUBTITLES ============ */
+#subtitle-bar {
+  position: absolute; bottom: 140px; left: 50px; right: 50px;
+  text-align: center; z-index: 100; pointer-events: none;
+}
+#subtitle-bar .sub-text {
+  display: inline-block;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(16px);
+  border-radius: 14px; padding: 16px 32px;
+  font-size: 36px; line-height: 1.6;
+  color: white; opacity: 0; max-width: 100%;
+  letter-spacing: 0.5px;
+}
+
+#progress-bar {
+  position: absolute; bottom: 0; left: 0;
+  height: 3px; width: 0%;
+  background: linear-gradient(90deg, #6366f1, #ec4899);
+  z-index: 200;
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas" width="1080" height="1920"></canvas>
+<canvas id="fx-canvas" width="1080" height="1920"></canvas>
+
+<div class="scene" id="scene1">
+  <div class="vignette"></div>
+  <div class="float-icons" id="floatIcons"></div>
+  <!-- Large SVG "eye" that opens -->
+  <div class="center-eye">
+    <svg width="300" height="180" viewBox="0 0 300 180">
+      <defs>
+        <clipPath id="eyeClip">
+          <path id="eyeTop" d="M10 90 Q150 90 290 90" fill="none"/>
+          <path id="eyeBot" d="M10 90 Q150 90 290 90" fill="none"/>
+          <!-- Will be animated to open -->
+        </clipPath>
+        <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#f97316"/>
+          <stop offset="40%" stop-color="#b45309"/>
+          <stop offset="100%" stop-color="#1c1917"/>
+        </radialGradient>
+      </defs>
+      <!-- Eye white -->
+      <ellipse cx="150" cy="90" rx="130" ry="0" fill="rgba(255,255,255,0.9)" id="eyeWhite"/>
+      <!-- Iris -->
+      <circle cx="150" cy="90" r="0" fill="url(#irisGrad)" id="iris"/>
+      <!-- Pupil -->
+      <circle cx="150" cy="90" r="0" fill="#0a0a0a" id="pupil"/>
+      <!-- Eye outline -->
+      <path d="M10 90 Q150 90 290 90" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" fill="none" id="eyeOutlineTop"/>
+      <path d="M10 90 Q150 90 290 90" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" fill="none" id="eyeOutlineBot"/>
+      <!-- Reflection -->
+      <circle cx="165" cy="78" r="0" fill="rgba(255,255,255,0.8)" id="eyeReflect"/>
+    </svg>
+  </div>
+  <div class="hook-text">
+    <h1>为什么成功的故事<br>满天飞？</h1>
+    <p>而失败的，却悄无声息</p>
+  </div>
+  <div class="title-reveal">
+    <div class="title-inner">
+      幸存者偏差
+      <div class="title-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scene" id="scene2">
+  <div class="war-overlay"></div>
+  <div class="year-text">1943</div>
+  <div class="scene-title">盟军的轰炸机</div>
+  <div class="plane-group">
+    <svg width="800" height="600" viewBox="0 0 800 600" id="planeSvg">
+      <defs>
+        <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="rgba(148,163,184,0.15)"/>
+          <stop offset="100%" stop-color="rgba(71,85,105,0.1)"/>
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Main fuselage -->
+      <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z"
+        fill="url(#metalGrad)" stroke="rgba(148,163,184,0.35)" stroke-width="1.5"/>
+      <!-- Nose -->
+      <path d="M100 300 C80 290 50 295 40 300 C50 305 80 310 100 300Z"
+        fill="rgba(148,163,184,0.1)" stroke="rgba(148,163,184,0.3)" stroke-width="1"/>
+      <!-- Left wing -->
+      <path d="M250 280 L80 120 L60 120 L40 140 L220 300"
+        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
+      <path d="M250 320 L80 480 L60 480 L40 460 L220 300"
+        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
+      <!-- Right wing -->
+      <path d="M550 280 L720 120 L740 120 L760 140 L580 300"
+        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
+      <path d="M550 320 L720 480 L740 480 L760 460 L580 300"
+        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
+      <!-- Tail -->
+      <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z"
+        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
+      <!-- Engines -->
+      <circle cx="100" cy="200" r="22" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.3)" stroke-width="1.5" stroke-dasharray="3 3" class="engine-ring"/>
+      <circle cx="100" cy="400" r="22" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.3)" stroke-width="1.5" stroke-dasharray="3 3" class="engine-ring"/>
+      <!-- Cockpit -->
+      <ellipse cx="120" cy="300" rx="35" ry="25" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.3)" stroke-width="1.5" stroke-dasharray="3 3" class="cockpit-ring"/>
+      <!-- Center crosshair -->
+      <line x1="380" y1="300" x2="420" y2="300" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+      <line x1="400" y1="280" x2="400" y2="320" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+    </svg>
+  </div>
+  <!-- Heatmap will be drawn via canvas -->
+  <canvas class="heatmap-canvas" id="heatmapCanvas" width="800" height="600"></canvas>
+  
+  <div class="bubble military-bubble">
+    <div class="speaker">🎖️ 军方决策</div>
+    <div class="content">在<span class="emphasis">弹孔最密集</span>的地方加装甲！</div>
+  </div>
+  <div class="bubble wald-bubble">
+    <div class="speaker">📊 亚伯拉罕 · 沃尔德</div>
+    <div class="content">"<span class="emphasis">你们搞反了。</span>"</div>
+  </div>
+</div>
+
+<div class="scene" id="scene3">
+  <div class="insight-bg"></div>
+  <div class="scene-title"><span>真相恰恰相反</span></div>
+  
+  <div class="planes-row">
+    <div class="plane-col left">
+      <div class="col-label">✅ 飞回来的</div>
+      <svg width="460" height="380" viewBox="0 0 800 600">
+        <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z"
+          fill="rgba(74,222,128,0.03)" stroke="rgba(74,222,128,0.25)" stroke-width="1.5"/>
+        <path d="M250 280 L80 120 L60 120 L40 140 L220 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
+        <path d="M250 320 L80 480 L60 480 L40 460 L220 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
+        <path d="M550 280 L720 120 L740 120 L760 140 L580 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
+        <path d="M550 320 L720 480 L740 480 L760 460 L580 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
+        <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
+        <!-- Bullet holes on wings -->
+        <circle cx="140" cy="170" r="10" fill="rgba(239,68,68,0.7)" class="bhole"/>
+        <circle cx="180" cy="440" r="9" fill="rgba(239,68,68,0.7)" class="bhole"/>
+        <circle cx="650" cy="160" r="8" fill="rgba(239,68,68,0.7)" class="bhole"/>
+        <circle cx="680" cy="420" r="10" fill="rgba(239,68,68,0.7)" class="bhole"/>
+        <circle cx="300" cy="240" r="7" fill="rgba(239,68,68,0.6)" class="bhole"/>
+        <circle cx="500" cy="350" r="8" fill="rgba(239,68,68,0.6)" class="bhole"/>
+        <circle cx="350" cy="360" r="7" fill="rgba(239,68,68,0.6)" class="bhole"/>
+        <circle cx="600" cy="260" r="6" fill="rgba(239,68,68,0.5)" class="bhole"/>
+      </svg>
+    </div>
+    <div class="plane-col right">
+      <div class="col-label">❌ 没回来的</div>
+      <svg width="460" height="380" viewBox="0 0 800 600">
+        <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z"
+          fill="rgba(248,113,113,0.03)" stroke="rgba(248,113,113,0.25)" stroke-width="1.5"/>
+        <path d="M250 280 L80 120 L60 120 L40 140 L220 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
+        <path d="M250 320 L80 480 L60 480 L40 460 L220 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
+        <path d="M550 280 L720 120 L740 120 L760 140 L580 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
+        <path d="M550 320 L720 480 L740 480 L760 460 L580 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
+        <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
+        <!-- Critical zones highlighted -->
+        <circle cx="100" cy="200" r="28" fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
+        <circle cx="100" cy="400" r="28" fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
+        <ellipse cx="120" cy="300" rx="40" ry="30" fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
+        <!-- Explosion markers -->
+        <text x="100" y="207" font-size="28" fill="#ef4444" text-anchor="middle" font-weight="900">✕</text>
+        <text x="100" y="407" font-size="28" fill="#ef4444" text-anchor="middle" font-weight="900">✕</text>
+        <text x="120" y="307" font-size="32" fill="#ef4444" text-anchor="middle" font-weight="900">✕</text>
+      </svg>
+    </div>
+  </div>
+  
+  <!-- Divider arrow -->
+  <div class="flow-arrow">
+    <svg width="60" height="60" viewBox="0 0 60 60">
+      <path d="M30 5 L30 45 M15 35 L30 50 L45 35" stroke="rgba(255,255,255,0.3)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="logic-card logic-a">
+    <div class="logic-num">01</div>
+    <div class="logic-text">机翼中弹 → 飞机<strong style="color:#4ade80">能回来</strong> → 说明机翼<strong style="color:#4ade80">不致命</strong></div>
+  </div>
+  <div class="logic-card logic-b">
+    <div class="logic-num">02</div>
+    <div class="logic-text">引擎中弹 → 飞机<strong style="color:#f87171">没回来</strong> → 说明引擎<strong style="color:#f87171">才致命</strong></div>
+  </div>
+
+  <div class="conclusion-text">需要加固的，恰恰是<br>看不到弹孔的地方</div>
+</div>
+
+<div class="scene" id="scene4">
+  <div class="scene-title"><span>无处不在的偏差</span></div>
+  
+  <div class="iceberg-container" id="icebergContainer">
+    <canvas id="icebergCanvas" width="800" height="900"></canvas>
+  </div>
+  <div class="waterline"></div>
+  <div class="waterline-label-above">你看到的 👆</div>
+  <div class="waterline-label-below">你看不到的 👇</div>
+
+  <div class="ice-label ice-above label-1a">📱 网红都光鲜亮丽</div>
+  <div class="ice-label ice-below label-1b">👻 千万个失败的尝试</div>
+  <div class="ice-label ice-above label-2a">💰 投资传奇赚了百倍</div>
+  <div class="ice-label ice-below label-2b">👻 倾家荡产的沉默</div>
+  <div class="ice-label ice-above label-3a">🎓 辍学创业成了富翁</div>
+  <div class="ice-label ice-below label-3b">👻 读书改变命运的不上新闻</div>
+
+  <div class="big-q">我们总是只看到幸存者<br>却忘了问——<br><em>那些没幸存的呢？</em></div>
+</div>
+
+<div class="scene" id="scene5">
+  <div class="close-bg"></div>
+  <div class="plane-silhouette">
+    <svg width="500" height="300" viewBox="0 0 800 600" opacity="0.15">
+      <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z" fill="none" stroke="white" stroke-width="1"/>
+      <path d="M250 280 L80 120 L60 120 L40 140 L220 300" fill="none" stroke="white" stroke-width="1"/>
+      <path d="M250 320 L80 480 L60 480 L40 460 L220 300" fill="none" stroke="white" stroke-width="1"/>
+      <path d="M550 280 L720 120 L740 120 L760 140 L580 300" fill="none" stroke="white" stroke-width="1"/>
+      <path d="M550 320 L720 480 L740 480 L760 460 L580 300" fill="none" stroke="white" stroke-width="1"/>
+      <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z" fill="none" stroke="white" stroke-width="1"/>
+    </svg>
+  </div>
+  <div class="closing-q"><span>下次看到成功故事时<br>问问自己——</span></div>
+  <div class="closing-answer">我是不是只看到了<br>活着回来的飞机？</div>
+  <div class="cta">🧠 关注了解更多思维陷阱</div>
+</div>
+
+<div id="subtitle-bar"><div class="sub-text"></div></div>
+<div id="progress-bar"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+// ============ PARTICLE SYSTEM (Canvas) ============
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+const fxCanvas = document.getElementById('fx-canvas');
+const fxCtx = fxCanvas.getContext('2d');
+
+// Deterministic random
+let _seed = 42;
+function srand() { _seed = (_seed * 16807) % 2147483647; return _seed / 2147483647; }
+function srandRange(a,b) { return a + srand() * (b-a); }
+
+// Static stars (drawn once)
+function drawStars() {
+  _seed = 42;
+  bgCtx.clearRect(0, 0, 1080, 1920);
+  for (let i = 0; i < 250; i++) {
+    const x = srand()*1080, y = srand()*1920;
+    const r = srand()*1.2 + 0.2, a = srand()*0.4 + 0.1;
+    bgCtx.beginPath(); bgCtx.arc(x, y, r, 0, Math.PI*2);
+    bgCtx.fillStyle = `rgba(255,255,255,${a})`; bgCtx.fill();
+  }
+}
+drawStars();
+
+// Dynamic particles for Scene 1
+const particles = [];
+function initParticles() {
+  _seed = 100;
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: srandRange(0,1080), y: srandRange(0,1920),
+      vx: srandRange(-0.3,0.3), vy: srandRange(-0.8,-0.1),
+      r: srandRange(1,3), a: srandRange(0.05,0.2),
+      life: srandRange(0, 1),
+    });
+  }
+}
+initParticles();
+
+function drawParticles(time, sceneProgress) {
+  fxCtx.clearRect(0, 0, 1080, 1920);
+  if (sceneProgress < 0 || sceneProgress > 1) return;
+  
+  const alpha = sceneProgress < 0.1 ? sceneProgress/0.1 : sceneProgress > 0.9 ? (1-sceneProgress)/0.1 : 1;
+  
+  for (const p of particles) {
+    const phase = (p.life + time * 0.02) % 1;
+    const px = p.x + Math.sin(time * 0.5 + p.life * 10) * 30;
+    const py = (p.y + time * p.vy * 50) % 1920;
+    const pa = p.a * Math.sin(phase * Math.PI) * alpha;
+    if (pa <= 0) continue;
+    fxCtx.beginPath();
+    fxCtx.arc(((px % 1080) + 1080) % 1080, ((py % 1920) + 1920) % 1920, p.r, 0, Math.PI*2);
+    fxCtx.fillStyle = `rgba(251,191,36,${pa})`;
+    fxCtx.fill();
+  }
+}
+
+// ============ HEATMAP for Scene 2 ============
+const hmCanvas = document.getElementById('heatmapCanvas');
+const hmCtx = hmCanvas.getContext('2d');
+
+function drawHeatmap(intensity) {
+  hmCtx.clearRect(0, 0, 800, 600);
+  if (intensity <= 0) return;
+  
+  // Bullet impact points on wings and fuselage (NOT engines/cockpit)
+  const impacts = [
+    [140,170,20],[180,440,18],[650,160,16],[680,420,20],
+    [300,240,14],[500,350,16],[350,360,14],[600,260,12],
+    [200,180,12],[160,400,14],[620,170,12],[660,440,14],
+    [400,240,10],[450,350,12],[320,340,10],[550,270,10],
+  ];
+  
+  for (const [x, y, r] of impacts) {
+    const grad = hmCtx.createRadialGradient(x, y, 0, x, y, r * 2.5 * intensity);
+    grad.addColorStop(0, `rgba(239,68,68,${0.6 * intensity})`);
+    grad.addColorStop(0.4, `rgba(251,146,60,${0.3 * intensity})`);
+    grad.addColorStop(1, 'transparent');
+    hmCtx.beginPath();
+    hmCtx.arc(x, y, r * 2.5 * intensity, 0, Math.PI*2);
+    hmCtx.fillStyle = grad;
+    hmCtx.fill();
+  }
+}
+
+// ============ ICEBERG for Scene 4 ============
+const iceCanvas = document.getElementById('icebergCanvas');
+const iceCtx = iceCanvas.getContext('2d');
+
+function drawIceberg(reveal) {
+  iceCtx.clearRect(0, 0, 800, 900);
+  if (reveal <= 0) return;
+  
+  // Water line at y=300
+  const waterY = 300;
+  
+  // Above water - visible part (small)
+  const aboveAlpha = Math.min(1, reveal * 2);
+  iceCtx.save();
+  iceCtx.globalAlpha = aboveAlpha;
+  iceCtx.beginPath();
+  iceCtx.moveTo(320, waterY);
+  iceCtx.lineTo(400, waterY - 180);
+  iceCtx.lineTo(480, waterY);
+  iceCtx.closePath();
+  const aboveGrad = iceCtx.createLinearGradient(400, waterY-180, 400, waterY);
+  aboveGrad.addColorStop(0, 'rgba(219,234,254,0.9)');
+  aboveGrad.addColorStop(1, 'rgba(147,197,253,0.6)');
+  iceCtx.fillStyle = aboveGrad;
+  iceCtx.fill();
+  iceCtx.strokeStyle = 'rgba(219,234,254,0.4)';
+  iceCtx.lineWidth = 1;
+  iceCtx.stroke();
+  iceCtx.restore();
+  
+  // Below water - hidden part (massive) - revealed progressively
+  const belowReveal = Math.max(0, (reveal - 0.3) / 0.7);
+  if (belowReveal > 0) {
+    iceCtx.save();
+    iceCtx.globalAlpha = belowReveal * 0.7;
+    
+    // Water tint overlay
+    iceCtx.fillStyle = 'rgba(15,23,42,0.3)';
+    iceCtx.fillRect(0, waterY, 800, 600);
+    
+    iceCtx.beginPath();
+    iceCtx.moveTo(320, waterY);
+    iceCtx.lineTo(480, waterY);
+    iceCtx.lineTo(580, waterY + 150 * belowReveal);
+    iceCtx.lineTo(560, waterY + 350 * belowReveal);
+    iceCtx.lineTo(480, waterY + 500 * belowReveal);
+    iceCtx.lineTo(350, waterY + 520 * belowReveal);
+    iceCtx.lineTo(250, waterY + 400 * belowReveal);
+    iceCtx.lineTo(220, waterY + 200 * belowReveal);
+    iceCtx.closePath();
+    
+    const belowGrad = iceCtx.createLinearGradient(400, waterY, 400, waterY + 520 * belowReveal);
+    belowGrad.addColorStop(0, 'rgba(96,165,250,0.3)');
+    belowGrad.addColorStop(0.5, 'rgba(59,130,246,0.2)');
+    belowGrad.addColorStop(1, 'rgba(30,58,138,0.15)');
+    iceCtx.fillStyle = belowGrad;
+    iceCtx.fill();
+    iceCtx.strokeStyle = `rgba(96,165,250,${0.25 * belowReveal})`;
+    iceCtx.lineWidth = 1.5;
+    iceCtx.stroke();
+    iceCtx.restore();
+  }
+  
+  // Water line
+  iceCtx.save();
+  iceCtx.globalAlpha = aboveAlpha;
+  iceCtx.strokeStyle = 'rgba(59,130,246,0.35)';
+  iceCtx.lineWidth = 2;
+  iceCtx.setLineDash([8, 8]);
+  iceCtx.beginPath();
+  iceCtx.moveTo(50, waterY);
+  iceCtx.lineTo(750, waterY);
+  iceCtx.stroke();
+  iceCtx.restore();
+}
+
+// ============ FLOATING ICONS (Scene 1) ============
+(function() {
+  const icons = ['💰','🏆','📈','⭐','🎯','💎','🚀','👑','🔥','📱','💡','🎓'];
+  const container = document.getElementById('floatIcons');
+  _seed = 200;
+  icons.forEach((emoji, i) => {
+    const el = document.createElement('div');
+    el.className = 'float-icon';
+    el.textContent = emoji;
+    el.style.left = srandRange(60, 960) + 'px';
+    el.style.top = srandRange(100, 650) + 'px';
+    container.appendChild(el);
+  });
+})();
+
+// ============ NARRATION ============
+const TOTAL = 125;
+const narrations = [
+  { start: 1, end: 5.5, text: "你有没有想过，为什么创业成功的故事满天飞" },
+  { start: 5.8, end: 9.5, text: "失败的却很少有人提起？" },
+  { start: 10, end: 14, text: "为什么名校辍学的人都成了亿万富翁" },
+  { start: 14.3, end: 17.5, text: "而你身边辍学的同学却不是这样？" },
+  { start: 18, end: 21.5, text: "这背后，藏着一个叫做幸存者偏差的思维陷阱" },
+  { start: 23, end: 26, text: "故事要从二战说起" },
+  { start: 26.5, end: 30, text: "1943年，盟军的轰炸机损失惨重" },
+  { start: 30.5, end: 34.5, text: "军方找来统计学家，研究怎么给飞机加装甲" },
+  { start: 35, end: 38.5, text: "他们检查了所有飞回来的飞机" },
+  { start: 39, end: 42, text: "发现弹孔主要集中在机翼和机身" },
+  { start: 42.5, end: 46, text: "于是军方决定，在弹孔密集处加装甲" },
+  { start: 46.5, end: 50.5, text: "但统计学家沃尔德说：等等，你们搞反了" },
+  { start: 52, end: 55.5, text: "你们看到的，是活着飞回来的飞机" },
+  { start: 56, end: 60, text: "那些被击中引擎和驾驶舱的飞机，根本就没回来" },
+  { start: 60.5, end: 64, text: "机翼上满是弹孔的飞机能飞回来" },
+  { start: 64.3, end: 67.5, text: "恰恰说明机翼被打中不致命" },
+  { start: 68, end: 73, text: "真正需要加固的，是那些看不到弹孔的地方" },
+  { start: 73.5, end: 77.5, text: "因为被打中那里的飞机，已经坠毁了" },
+  { start: 79, end: 82, text: "这种偏差无处不在" },
+  { start: 82.5, end: 86, text: "你看到的网红都光鲜亮丽" },
+  { start: 86.3, end: 89.5, text: "看不到的是千万个失败的尝试" },
+  { start: 90, end: 93.5, text: "你听到的投资传奇都赚了百倍" },
+  { start: 94, end: 97, text: "听不到的是倾家荡产的沉默" },
+  { start: 97.5, end: 102, text: "古人说读书无用，是因为成功的商人站在你面前" },
+  { start: 102.5, end: 108.5, text: "我们总是只看到幸存者，却忘了问：那些没幸存的呢？" },
+  { start: 110, end: 114, text: "下次当你看到一个令人羡慕的成功故事时" },
+  { start: 114.5, end: 118.5, text: "问自己：我是不是只看到了活着回来的飞机？" },
+  { start: 119, end: 124, text: "真相，往往藏在那些沉默的数据里" },
+];
+
+// ============ MASTER TIMELINE ============
+const master = gsap.timeline({ paused: true });
+
+// Tracking objects for canvas animations
+const canvasState = {
+  heatmapIntensity: 0,
+  icebergReveal: 0,
+  scene1Progress: 0,
+};
+
+// ------ SCENE 1 (0-22s): HOOK ------
+const s1 = gsap.timeline();
+s1.fromTo('#scene1', {opacity:0}, {opacity:1, duration:1}, 0);
+s1.to(canvasState, {scene1Progress:1, duration:22, ease:'none'}, 0);
+
+// Float icons appear scattered
+document.querySelectorAll('#scene1 .float-icon').forEach((el, i) => {
+  s1.fromTo(el, {opacity:0, scale:0, rotation: -30 + i*10},
+    {opacity: 0.6, scale:1, rotation:0, duration:0.5, ease:'back.out(1.5)'}, 0.3 + i*0.15);
+  // Gentle floating
+  s1.to(el, {y: -20 + (i%4)*10, duration:3+i%2, yoyo:true, repeat:3, ease:'sine.inOut'}, 1+i*0.1);
+});
+
+// Eye opens
+s1.fromTo('#scene1 .center-eye', {opacity:0}, {opacity:1, duration:0.3}, 0.5);
+s1.to('#eyeWhite', {attr:{ry:65}, duration:0.8, ease:'power2.out'}, 2.5);
+s1.to('#iris', {attr:{r:40}, duration:0.6, ease:'power2.out'}, 2.8);
+s1.to('#pupil', {attr:{r:18}, duration:0.5}, 3);
+s1.to('#eyeReflect', {attr:{r:8}, duration:0.3}, 3.2);
+s1.to('#eyeOutlineTop', {attr:{d:'M10 90 Q150 20 290 90'}, duration:0.8, ease:'power2.out'}, 2.5);
+s1.to('#eyeOutlineBot', {attr:{d:'M10 90 Q150 160 290 90'}, duration:0.8, ease:'power2.out'}, 2.5);
+
+// Pupil dilates (focus)
+s1.to('#pupil', {attr:{r:22}, duration:0.3, yoyo:true, repeat:1}, 4);
+
+// Text appears
+s1.fromTo('#scene1 .hook-text', {opacity:0, y:30}, {opacity:1, y:0, duration:0.8, ease:'power2.out'}, 4.5);
+
+// Fade icons to draw attention to text
+s1.to('#scene1 .float-icons', {opacity:0.15, duration:1}, 6);
+
+// Title reveal with underline
+s1.fromTo('#scene1 .title-reveal', {opacity:0, scale:0.6}, {opacity:1, scale:1, duration:0.7, ease:'back.out(1.5)'}, 15);
+s1.to('#scene1 .title-reveal .title-line', {width:'100%', duration:0.5, ease:'power2.inOut'}, 16);
+// Pulse
+s1.to('#scene1 .title-reveal', {scale:1.03, duration:0.3, yoyo:true, repeat:2, ease:'sine.inOut'}, 17);
+
+s1.to('#scene1', {opacity:0, duration:0.8}, 21.2);
+master.add(s1, 0);
+
+// ------ SCENE 2 (22-51s): WWII ------
+const s2 = gsap.timeline();
+s2.fromTo('#scene2', {opacity:0}, {opacity:1, duration:0.8}, 0);
+
+// Year bg text fade in
+s2.fromTo('#scene2 .year-text', {opacity:0, scale:0.8}, {opacity:1, scale:1, duration:1.5, ease:'power1.out'}, 0);
+s2.fromTo('#scene2 .scene-title', {opacity:0, y:-20}, {opacity:1, y:0, duration:0.7}, 0.5);
+
+// Plane flies in from left
+s2.fromTo('#scene2 .plane-group', {opacity:0, x:-200, rotation:-5},
+  {opacity:1, x:0, rotation:0, duration:1.5, ease:'power2.out'}, 3);
+
+// Gentle plane hovering
+s2.to('#scene2 .plane-group', {y:-8, duration:2, yoyo:true, repeat:5, ease:'sine.inOut'}, 5);
+
+// Heatmap builds up
+s2.fromTo('#scene2 .heatmap-canvas', {opacity:0}, {opacity:1, duration:0.3}, 8);
+s2.to(canvasState, {heatmapIntensity:1, duration:4, ease:'power1.inOut'}, 8);
+
+// Engine rings pulse to show they're "clean"
+s2.to('.engine-ring', {stroke:'rgba(96,165,250,0.6)', duration:0.5, yoyo:true, repeat:3}, 10);
+s2.to('.cockpit-ring', {stroke:'rgba(96,165,250,0.6)', duration:0.5, yoyo:true, repeat:3}, 10);
+
+// Military decision
+s2.fromTo('#scene2 .military-bubble', {opacity:0, y:40}, {opacity:1, y:0, duration:0.6, ease:'power2.out'}, 16);
+
+// Wald's counter
+s2.fromTo('#scene2 .wald-bubble', {opacity:0, y:40}, {opacity:1, y:0, duration:0.6, ease:'power2.out'}, 22);
+// Wald bubble glow
+s2.to('#scene2 .wald-bubble', {
+  boxShadow:'0 0 30px rgba(34,197,94,0.2)', duration:0.4, yoyo:true, repeat:2
+}, 23);
+
+s2.to('#scene2', {opacity:0, duration:0.8}, 28.2);
+master.add(s2, 22);
+
+// ------ SCENE 3 (51-78s): INSIGHT ------
+const s3 = gsap.timeline();
+s3.fromTo('#scene3', {opacity:0}, {opacity:1, duration:0.8}, 0);
+s3.fromTo('#scene3 .scene-title', {opacity:0, y:-30}, {opacity:1, y:0, duration:0.8}, 0.3);
+
+// Both planes appear side by side
+s3.fromTo('#scene3 .plane-col.left', {opacity:0, x:-60}, {opacity:1, x:0, duration:0.8, ease:'power2.out'}, 1);
+s3.fromTo('#scene3 .plane-col.right', {opacity:0, x:60}, {opacity:1, x:0, duration:0.8, ease:'power2.out'}, 1.5);
+
+// Bullet holes on survived plane pop in
+document.querySelectorAll('#scene3 .left .bhole').forEach((el, i) => {
+  s3.fromTo(el, {r:0, opacity:0}, {r: el.getAttribute('r'), opacity:1, duration:0.2}, 3 + i*0.15);
+});
+
+// Critical zones on crashed plane pulse
+s3.to('#scene3 .right svg circle[r="28"]', {attr:{r:32}, duration:0.4, yoyo:true, repeat:2, ease:'sine.inOut'}, 5);
+s3.to('#scene3 .right svg ellipse', {attr:{rx:45, ry:35}, duration:0.4, yoyo:true, repeat:2, ease:'sine.inOut'}, 5);
+
+// Flow arrow
+s3.fromTo('#scene3 .flow-arrow', {opacity:0, y:-15}, {opacity:1, y:0, duration:0.5}, 7);
+
+// Logic cards
+s3.fromTo('#scene3 .logic-a', {opacity:0, scale:0.95, y:15}, {opacity:1, scale:1, y:0, duration:0.6, ease:'power2.out'}, 8);
+s3.fromTo('#scene3 .logic-b', {opacity:0, scale:0.95, y:15}, {opacity:1, scale:1, y:0, duration:0.6, ease:'power2.out'}, 13);
+
+// Conclusion
+s3.fromTo('#scene3 .conclusion-text', {opacity:0, scale:0.9}, {opacity:1, scale:1, duration:1, ease:'power2.out'}, 20);
+
+s3.to('#scene3', {opacity:0, duration:0.8}, 26.2);
+master.add(s3, 51);
+
+// ------ SCENE 4 (78-109s): DAILY LIFE ------
+const s4 = gsap.timeline();
+s4.fromTo('#scene4', {opacity:0}, {opacity:1, duration:0.8}, 0);
+s4.fromTo('#scene4 .scene-title', {opacity:0, y:-30}, {opacity:1, y:0, duration:0.8}, 0.3);
+
+// Iceberg reveals
+s4.fromTo('#scene4 .iceberg-container', {opacity:0}, {opacity:1, duration:0.5}, 1);
+s4.to(canvasState, {icebergReveal:0.3, duration:2, ease:'power1.out'}, 1.5); // Tip first
+s4.fromTo('#scene4 .waterline', {opacity:0}, {opacity:1, duration:0.5}, 2);
+s4.fromTo('#scene4 .waterline-label-above', {opacity:0}, {opacity:1, duration:0.5}, 3);
+
+// Example 1 above
+s4.fromTo('#scene4 .label-1a', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 4);
+// Reveal below water
+s4.to(canvasState, {icebergReveal:0.6, duration:2, ease:'power1.inOut'}, 6);
+s4.fromTo('#scene4 .waterline-label-below', {opacity:0}, {opacity:1, duration:0.5}, 6.5);
+s4.fromTo('#scene4 .label-1b', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 7);
+
+// Example 2
+s4.fromTo('#scene4 .label-2a', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 10);
+s4.to(canvasState, {icebergReveal:0.8, duration:1.5, ease:'power1.inOut'}, 11);
+s4.fromTo('#scene4 .label-2b', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 12);
+
+// Example 3
+s4.fromTo('#scene4 .label-3a', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 15);
+s4.to(canvasState, {icebergReveal:1, duration:1.5, ease:'power1.inOut'}, 16);
+s4.fromTo('#scene4 .label-3b', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 17);
+
+// Big question
+s4.fromTo('#scene4 .big-q', {opacity:0, y:30}, {opacity:1, y:0, duration:1, ease:'power2.out'}, 22);
+
+s4.to('#scene4', {opacity:0, duration:0.8}, 30.2);
+master.add(s4, 78);
+
+// ------ SCENE 5 (109-125s): CLOSING ------
+const s5 = gsap.timeline();
+s5.fromTo('#scene5', {opacity:0}, {opacity:1, duration:1}, 0);
+s5.fromTo('#scene5 .plane-silhouette', {opacity:0, y:20}, {opacity:1, y:0, duration:1.5, ease:'power1.out'}, 0.5);
+s5.to('#scene5 .plane-silhouette', {y:-10, duration:4, yoyo:true, repeat:1, ease:'sine.inOut'}, 2);
+
+s5.fromTo('#scene5 .closing-q', {opacity:0, y:20}, {opacity:1, y:0, duration:0.8}, 2);
+s5.fromTo('#scene5 .closing-answer', {opacity:0, y:15}, {opacity:1, y:0, duration:0.8}, 6);
+s5.fromTo('#scene5 .cta', {opacity:0, scale:0.8}, {opacity:1, scale:1, duration:0.5, ease:'back.out(1.5)'}, 10);
+s5.to('#scene5 .cta', {scale:1.04, duration:0.4, yoyo:true, repeat:3, ease:'sine.inOut'}, 11);
+s5.to('#scene5', {opacity:0, duration:1.5}, 14.5);
+master.add(s5, 109);
+
+// ============ SUBTITLE ENGINE ============
+const subEl = document.querySelector('#subtitle-bar .sub-text');
+const progEl = document.getElementById('progress-bar');
+let lastSub = -1;
+
+function updateSubs(t) {
+  let found = -1;
+  for (let i = 0; i < narrations.length; i++) {
+    if (t >= narrations[i].start && t <= narrations[i].end) { found = i; break; }
+  }
+  if (found !== lastSub) {
+    lastSub = found;
+    if (found >= 0) {
+      subEl.textContent = narrations[found].text;
+      gsap.fromTo(subEl, {opacity:0, y:6}, {opacity:1, y:0, duration:0.2});
+    } else {
+      gsap.to(subEl, {opacity:0, duration:0.15});
+    }
+  }
+  progEl.style.width = (t/TOTAL*100) + '%';
+}
+
+// ============ CANVAS UPDATE LOOP ============
+function updateCanvas(time) {
+  drawHeatmap(canvasState.heatmapIntensity);
+  drawIceberg(canvasState.icebergReveal);
+  // Scene 1 particles
+  if (time < 22) {
+    drawParticles(time, canvasState.scene1Progress);
+  } else {
+    fxCtx.clearRect(0, 0, 1080, 1920);
+  }
+}
+
+// ============ GLOBAL API ============
+window.TOTAL_DURATION = TOTAL;
+window.seekTo = function(s) {
+  master.seek(s);
+  updateSubs(s);
+  updateCanvas(s);
+};
+
+let _playing = false, _startT = 0;
+window.play = function() { _playing = true; _startT = performance.now(); _tick(); };
+window.pause = function() { _playing = false; };
+function _tick() {
+  if (!_playing) return;
+  const t = (performance.now() - _startT) / 1000;
+  if (t >= TOTAL) { _playing = false; return; }
+  window.seekTo(t);
+  requestAnimationFrame(_tick);
+}
+document.addEventListener('click', () => { if (!_playing) play(); else pause(); });
+window.seekTo(0.01);
+</script>
+</body>
+</html>
