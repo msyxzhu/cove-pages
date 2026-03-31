@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>地球的秘密档案</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: #050510;
+  font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  color: white;
+  position: relative;
+}
+
+/* ============ GLOBAL LAYERS ============ */
+.scene {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1080px;
+  height: 1920px;
+  opacity: 0;
+  will-change: transform, opacity;
+  overflow: hidden;
+}
+
+/* ============ SCENE 1: TITLE ============ */
+#scene1 {
+  background: radial-gradient(ellipse at 50% 60%, #0d1b3e 0%, #050510 70%);
+}
+
+#scene1 .bg-glow {
+  position: absolute;
+  width: 800px; height: 800px;
+  top: 400px; left: 140px;
+  background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+#scene1 .title-main {
+  position: absolute;
+  top: 620px;
+  width: 100%;
+  text-align: center;
+  font-size: 110px;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: 8px;
+  opacity: 0;
+}
+
+#scene1 .title-main .line1 {
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#scene1 .title-main .line2 {
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#scene1 .subtitle {
+  position: absolute;
+  top: 950px;
+  width: 100%;
+  text-align: center;
+  font-size: 38px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 12px;
+  opacity: 0;
+}
+
+#scene1 .divider {
+  position: absolute;
+  top: 920px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #60a5fa, #a78bfa, transparent);
+}
+
+#scene1 .particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(96,165,250,0.6);
+}
+
+/* Earth SVG in title */
+#scene1 .earth-silhouette {
+  position: absolute;
+  top: 1050px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  opacity: 0;
+}
+
+/* ============ SCENE 2: FORMATION ============ */
+#scene2 {
+  background: linear-gradient(180deg, #050510 0%, #1a0a2e 100%);
+}
+
+#scene2 .timeline-bar {
+  position: absolute;
+  left: 100px;
+  top: 400px;
+  width: 6px;
+  height: 0;
+  background: linear-gradient(180deg, #f59e0b, #ef4444, #3b82f6);
+  border-radius: 3px;
+}
+
+#scene2 .timeline-dot {
+  position: absolute;
+  left: 86px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 4px solid;
+  background: #050510;
+  opacity: 0;
+  transform: scale(0);
+}
+#scene2 .dot1 { top: 396px; border-color: #f59e0b; }
+#scene2 .dot2 { top: 616px; border-color: #ef4444; }
+#scene2 .dot3 { top: 836px; border-color: #8b5cf6; }
+#scene2 .dot4 { top: 1056px; border-color: #3b82f6; }
+
+#scene2 .era-label {
+  position: absolute;
+  left: 160px;
+  opacity: 0;
+  transform: translateX(-20px);
+}
+#scene2 .era1 { top: 380px; }
+#scene2 .era2 { top: 600px; }
+#scene2 .era3 { top: 820px; }
+#scene2 .era4 { top: 1040px; }
+
+.era-label .era-time {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+.era2 .era-time { color: #ef4444; }
+.era3 .era-time { color: #8b5cf6; }
+.era4 .era-time { color: #3b82f6; }
+
+.era-label .era-desc {
+  font-size: 28px;
+  color: rgba(255,255,255,0.7);
+  margin-top: 6px;
+  max-width: 700px;
+  line-height: 1.5;
+}
+
+#scene2 .heading {
+  position: absolute;
+  top: 180px;
+  width: 100%;
+  text-align: center;
+  font-size: 64px;
+  font-weight: 800;
+  opacity: 0;
+}
+#scene2 .heading span {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Fire particles for formation */
+#scene2 .fire-particle {
+  position: absolute;
+  border-radius: 50%;
+  bottom: 0;
+  opacity: 0;
+}
+
+/* ============ SCENE 3: WATER ============ */
+#scene3 {
+  background: linear-gradient(180deg, #020420 0%, #041030 100%);
+}
+
+#scene3 .heading {
+  position: absolute;
+  top: 180px;
+  width: 100%;
+  text-align: center;
+  font-size: 64px;
+  font-weight: 800;
+  opacity: 0;
+}
+#scene3 .heading span {
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#scene3 .water-circle-container {
+  position: absolute;
+  top: 450px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#scene3 .water-circle-bg {
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  border: 4px solid rgba(34,211,238,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+#scene3 .water-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(180deg, rgba(34,211,238,0.6) 0%, rgba(59,130,246,0.8) 100%);
+}
+
+#scene3 .water-wave {
+  position: absolute;
+  top: -20px;
+  left: -50%;
+  width: 200%;
+  height: 40px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 40'%3E%3Cpath d='M0 20 Q150 0 300 20 T600 20 T900 20 T1200 20 V40 H0 Z' fill='rgba(34,211,238,0.4)'/%3E%3C/svg%3E") repeat-x;
+  background-size: 600px 40px;
+}
+
+#scene3 .percentage {
+  position: absolute;
+  top: 1020px;
+  width: 100%;
+  text-align: center;
+  font-size: 140px;
+  font-weight: 900;
+  opacity: 0;
+}
+#scene3 .percentage .num {
+  background: linear-gradient(135deg, #22d3ee, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#scene3 .percentage .unit {
+  font-size: 60px;
+  color: rgba(255,255,255,0.5);
+}
+
+#scene3 .water-label {
+  position: absolute;
+  top: 1180px;
+  width: 100%;
+  text-align: center;
+  font-size: 36px;
+  color: rgba(255,255,255,0.6);
+  opacity: 0;
+}
+
+/* Comparison bars */
+#scene3 .compare-section {
+  position: absolute;
+  top: 1320px;
+  left: 80px;
+  right: 80px;
+}
+
+#scene3 .compare-item {
+  margin-bottom: 30px;
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+#scene3 .compare-item .bar-label {
+  font-size: 26px;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 8px;
+}
+
+#scene3 .compare-item .bar-bg {
+  height: 36px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+#scene3 .compare-item .bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 18px;
+}
+.bar-ocean { background: linear-gradient(90deg, #22d3ee, #3b82f6); }
+.bar-ice { background: linear-gradient(90deg, #e0f2fe, #93c5fd); }
+.bar-fresh { background: linear-gradient(90deg, #34d399, #10b981); }
+
+/* ============ SCENE 4: SPEED ============ */
+#scene4 {
+  background: linear-gradient(180deg, #0a0520 0%, #150a30 100%);
+}
+
+#scene4 .heading {
+  position: absolute;
+  top: 180px;
+  width: 100%;
+  text-align: center;
+  font-size: 64px;
+  font-weight: 800;
+  opacity: 0;
+}
+#scene4 .heading span {
+  background: linear-gradient(90deg, #f472b6, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#scene4 .speed-card {
+  position: absolute;
+  left: 60px;
+  right: 60px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 32px;
+  padding: 50px;
+  opacity: 0;
+  transform: translateY(50px);
+  backdrop-filter: blur(10px);
+}
+
+#scene4 .card1 { top: 380px; }
+#scene4 .card2 { top: 780px; }
+#scene4 .card3 { top: 1180px; }
+
+#scene4 .speed-card .icon {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+#scene4 .speed-card .speed-value {
+  font-size: 72px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.card1 .speed-value {
+  background: linear-gradient(90deg, #f472b6, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.card2 .speed-value {
+  background: linear-gradient(90deg, #a78bfa, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.card3 .speed-value {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#scene4 .speed-card .speed-label {
+  font-size: 30px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 8px;
+}
+
+#scene4 .speed-card .speed-desc {
+  font-size: 26px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+/* motion lines */
+#scene4 .motion-line {
+  position: absolute;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(244,114,182,0.4), transparent);
+  opacity: 0;
+}
+
+/* ============ SCENE 5: CLOSING ============ */
+#scene5 {
+  background: radial-gradient(ellipse at 50% 50%, #0d1b3e 0%, #050510 70%);
+}
+
+#scene5 .fun-fact-box {
+  position: absolute;
+  top: 500px;
+  left: 80px;
+  right: 80px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 32px;
+  padding: 60px;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+#scene5 .fun-fact-box .emoji {
+  font-size: 80px;
+  margin-bottom: 24px;
+}
+
+#scene5 .fun-fact-box .fact-text {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.6;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#scene5 .fun-fact-box .fact-detail {
+  font-size: 28px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 20px;
+  line-height: 1.6;
+}
+
+#scene5 .closing-text {
+  position: absolute;
+  top: 1100px;
+  width: 100%;
+  text-align: center;
+  font-size: 48px;
+  font-weight: 700;
+  opacity: 0;
+  color: rgba(255,255,255,0.8);
+}
+
+#scene5 .source-text {
+  position: absolute;
+  top: 1250px;
+  width: 100%;
+  text-align: center;
+  font-size: 24px;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 4px;
+  opacity: 0;
+}
+
+#scene5 .follow-cta {
+  position: absolute;
+  top: 1400px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 60px;
+  padding: 24px 80px;
+  font-size: 36px;
+  font-weight: 700;
+  opacity: 0;
+  white-space: nowrap;
+}
+
+/* ============ SUBTITLES ============ */
+#subtitle-bar {
+  position: absolute;
+  bottom: 160px;
+  left: 60px;
+  right: 60px;
+  text-align: center;
+  z-index: 100;
+}
+
+#subtitle-bar .sub-text {
+  display: inline-block;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px 32px;
+  font-size: 36px;
+  line-height: 1.6;
+  color: white;
+  opacity: 0;
+}
+
+/* ============ STARS BG (shared) ============ */
+#stars-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1080px;
+  height: 1920px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.scene { z-index: 1; }
+#subtitle-bar { z-index: 100; }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas" width="1080" height="1920"></canvas>
+
+<!-- SCENE 1: TITLE -->
+<div class="scene" id="scene1">
+  <div class="bg-glow"></div>
+  <div class="title-main">
+    <div class="line1">地球的</div>
+    <div class="line2">秘密档案</div>
+  </div>
+  <div class="divider"></div>
+  <div class="subtitle">· 你不知道的冷知识 ·</div>
+  <svg class="earth-silhouette" width="200" height="200" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(96,165,250,0.3)" stroke-width="2"/>
+    <circle cx="100" cy="100" r="80" fill="rgba(59,130,246,0.1)" stroke="rgba(96,165,250,0.2)" stroke-width="1"/>
+    <ellipse cx="100" cy="100" rx="95" ry="30" fill="none" stroke="rgba(167,139,250,0.2)" stroke-width="1" transform="rotate(-23 100 100)"/>
+  </svg>
+</div>
+
+<!-- SCENE 2: FORMATION TIMELINE -->
+<div class="scene" id="scene2">
+  <div class="heading"><span>46亿年的故事</span></div>
+  <div class="timeline-bar"></div>
+  <div class="timeline-dot dot1"></div>
+  <div class="timeline-dot dot2"></div>
+  <div class="timeline-dot dot3"></div>
+  <div class="timeline-dot dot4"></div>
+  <div class="era-label era1">
+    <div class="era-time">46亿年前</div>
+    <div class="era-desc">太阳系尘埃云凝聚<br>地球从一团炽热的岩浆中诞生</div>
+  </div>
+  <div class="era-label era2">
+    <div class="era-time">40亿年前</div>
+    <div class="era-desc">地壳冷却，第一场雨持续了数百万年<br>海洋开始形成</div>
+  </div>
+  <div class="era-label era3">
+    <div class="era-time">35亿年前</div>
+    <div class="era-desc">最早的生命在海洋中出现<br>蓝藻开始释放氧气</div>
+  </div>
+  <div class="era-label era4">
+    <div class="era-time">今天</div>
+    <div class="era-desc">800万+物种共享这颗蓝色星球<br>而我们只是其中之一</div>
+  </div>
+</div>
+
+<!-- SCENE 3: WATER -->
+<div class="scene" id="scene3">
+  <div class="heading"><span>水的星球</span></div>
+  <div class="water-circle-container">
+    <div class="water-circle-bg">
+      <div class="water-fill">
+        <div class="water-wave"></div>
+      </div>
+    </div>
+  </div>
+  <div class="percentage">
+    <span class="num">0</span><span class="unit">%</span>
+  </div>
+  <div class="water-label">地球表面被水覆盖的面积</div>
+  <div class="compare-section">
+    <div class="compare-item">
+      <div class="bar-label">海洋 — 96.5%</div>
+      <div class="bar-bg"><div class="bar-fill bar-ocean"></div></div>
+    </div>
+    <div class="compare-item">
+      <div class="bar-label">冰川与冰盖 — 1.74%</div>
+      <div class="bar-bg"><div class="bar-fill bar-ice"></div></div>
+    </div>
+    <div class="compare-item">
+      <div class="bar-label">淡水（河流湖泊） — 仅 0.007%</div>
+      <div class="bar-bg"><div class="bar-fill bar-fresh"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 4: SPEED -->
+<div class="scene" id="scene4">
+  <div class="heading"><span>疯狂的速度</span></div>
+  <div class="speed-card card1">
+    <div class="icon">🌀</div>
+    <div class="speed-value">1,670 km/h</div>
+    <div class="speed-label">赤道自转速度</div>
+    <div class="speed-desc">比音速还快，但你完全感觉不到</div>
+  </div>
+  <div class="speed-card card2">
+    <div class="icon">☀️</div>
+    <div class="speed-value">107,000 km/h</div>
+    <div class="speed-label">绕太阳公转速度</div>
+    <div class="speed-desc">每秒前进30公里，读完这句话已飞过90公里</div>
+  </div>
+  <div class="speed-card card3">
+    <div class="icon">🌌</div>
+    <div class="speed-value">828,000 km/h</div>
+    <div class="speed-label">随银河系运动速度</div>
+    <div class="speed-desc">整个太阳系在银河中狂奔</div>
+  </div>
+</div>
+
+<!-- SCENE 5: CLOSING -->
+<div class="scene" id="scene5">
+  <div class="fun-fact-box">
+    <div class="emoji">🤯</div>
+    <div class="fact-text">你知道吗？<br>地球每天都在变轻</div>
+    <div class="fact-detail">每年约有5万吨大气逃逸到太空<br>但同时也有4万吨宇宙尘埃落入<br>净减约1万吨/年</div>
+  </div>
+  <div class="closing-text">我们的星球，比想象中更神奇</div>
+  <div class="source-text">数据来源：NASA / ESA · 2024</div>
+  <div class="follow-cta">🌍 关注了解更多</div>
+</div>
+
+<!-- SUBTITLE BAR -->
+<div id="subtitle-bar">
+  <div class="sub-text"></div>
+</div>
+
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<script>
+// ============ STARS BACKGROUND (deterministic) ============
+(function drawStars() {
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  // Seeded pseudo-random for reproducible frames
+  let seed = 42;
+  function seededRandom() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+  for (let i = 0; i < 200; i++) {
+    const x = seededRandom() * 1080;
+    const y = seededRandom() * 1920;
+    const r = seededRandom() * 1.5 + 0.5;
+    const alpha = seededRandom() * 0.6 + 0.2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fill();
+  }
+})();
+
+// ============ MAIN TIMELINE ============
+const master = gsap.timeline({ paused: true });
+
+// Narration data for subtitle sync (aligned to actual audio timeline)
+// Audio durations: s1=7.4s, s2=20.8s, s3=14.3s, s4=17.1s, s5=13.7s
+// Scene layout: s1[0-10], s2[10-34], s3[34-52], s4[52-72], s5[72-90]
+// Audio starts: s1@1s, s2@11s, s3@35.5s, s4@53.5s, s5@73s
+const narrations = [
+  // Scene 1: 0-10s (audio at 1s, 7.4s)
+  { start: 1, end: 4, text: "这里是，地球的秘密档案" },
+  { start: 4.2, end: 8, text: "关于我们这颗蓝色星球，你可能不知道的冷知识" },
+  // Scene 2: 10-34s (audio at 11s, 20.8s)
+  { start: 11, end: 15, text: "46亿年前，太阳系还是一片混沌的尘埃云" },
+  { start: 15.5, end: 19.5, text: "地球，从炽热的岩浆中慢慢凝聚成形" },
+  { start: 20, end: 25, text: "40亿年前，地壳冷却，第一场雨，下了数百万年" },
+  { start: 25.5, end: 28.5, text: "生命在海洋中悄然出现" },
+  { start: 29, end: 33, text: "如今，800万种生物共享这颗星球" },
+  // Scene 3: 34-52s (audio at 35.5s, 14.3s)
+  { start: 35.5, end: 39, text: "地球表面，百分之七十一被水覆盖" },
+  { start: 39.5, end: 42.5, text: "但这些水，绝大多数是海水" },
+  { start: 43, end: 46, text: "冰川和冰盖，占了不到百分之二" },
+  { start: 46.5, end: 51, text: "而我们能直接使用的淡水，只有百分之零点零零七" },
+  // Scene 4: 52-72s (audio at 53.5s, 17.1s)
+  { start: 53.5, end: 57, text: "你以为自己静静坐着？其实你正在狂奔" },
+  { start: 57.5, end: 61.5, text: "赤道上的你，每小时移动一千六百七十公里" },
+  { start: 62, end: 66, text: "地球绕太阳公转，每秒三十公里" },
+  { start: 66.5, end: 71, text: "而整个太阳系，在银河中以每小时八十多万公里的速度飞驰" },
+  // Scene 5: 72-90s (audio at 73s, 13.7s)
+  { start: 73, end: 77, text: "最后一个冷知识，地球每天都在变轻" },
+  { start: 77.5, end: 82, text: "每年约有五万吨大气逃逸到太空" },
+  { start: 82.5, end: 87, text: "我们的星球，比想象中更神奇" },
+];
+
+// ============ SCENE 1: TITLE (0-10s) ============
+const s1 = gsap.timeline();
+
+s1.fromTo('#scene1', { opacity: 0 }, { opacity: 1, duration: 1 }, 0);
+s1.fromTo('#scene1 .bg-glow', { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 2, ease: 'power2.out' }, 0);
+
+s1.fromTo('#scene1 .title-main', { opacity: 0 }, { opacity: 1, duration: 0.1 }, 0.5);
+s1.fromTo('#scene1 .title-main .line1', 
+  { opacity: 0, y: 40 }, 
+  { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }, 0.5);
+s1.fromTo('#scene1 .title-main .line2', 
+  { opacity: 0, y: 40 }, 
+  { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }, 1);
+
+s1.fromTo('#scene1 .divider', { width: 0 }, { width: 300, duration: 0.8, ease: 'power2.inOut' }, 2);
+s1.fromTo('#scene1 .subtitle', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8 }, 2.5);
+
+s1.fromTo('#scene1 .earth-silhouette', 
+  { opacity: 0, scale: 0, rotation: -180 }, 
+  { opacity: 1, scale: 1, rotation: 0, duration: 2, ease: 'back.out(1.4)', transformOrigin: 'center center' }, 3.5);
+
+s1.to('#scene1 .earth-silhouette', { y: -15, duration: 2, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 5.5);
+
+s1.to('#scene1', { opacity: 0, duration: 0.8 }, 9.2);
+
+master.add(s1, 0);
+
+// ============ SCENE 2: FORMATION (10-34s) ============
+const s2 = gsap.timeline();
+
+s2.fromTo('#scene2', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0);
+s2.fromTo('#scene2 .heading', { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
+
+s2.fromTo('#scene2 .timeline-bar', { height: 0 }, { height: 700, duration: 18, ease: 'none' }, 1);
+
+s2.fromTo('#scene2 .dot1', { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)' }, 1);
+s2.fromTo('#scene2 .era1', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.8, ease: 'power2.out' }, 1.3);
+
+s2.fromTo('#scene2 .dot2', { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)' }, 8);
+s2.fromTo('#scene2 .era2', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.8, ease: 'power2.out' }, 8.3);
+
+s2.fromTo('#scene2 .dot3', { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)' }, 13);
+s2.fromTo('#scene2 .era3', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.8, ease: 'power2.out' }, 13.3);
+
+s2.fromTo('#scene2 .dot4', { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)' }, 17);
+s2.fromTo('#scene2 .era4', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.8, ease: 'power2.out' }, 17.3);
+
+['.dot1','.dot2','.dot3','.dot4'].forEach((d, i) => {
+  s2.to(`#scene2 ${d}`, { boxShadow: '0 0 20px currentColor', duration: 0.3, yoyo: true, repeat: 1 }, [1.5, 8.5, 13.5, 17.5][i]);
+});
+
+s2.to('#scene2', { opacity: 0, duration: 0.8 }, 23.2);
+
+master.add(s2, 10);
+
+// ============ SCENE 3: WATER (34-52s) ============
+const s3 = gsap.timeline();
+
+s3.fromTo('#scene3', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0);
+s3.fromTo('#scene3 .heading', { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
+
+s3.to('#scene3 .water-fill', { height: '71%', duration: 4, ease: 'power1.inOut' }, 1);
+s3.fromTo('#scene3 .water-wave', { x: 0 }, { x: '-50%', duration: 3, repeat: 5, ease: 'none' }, 1);
+
+const pctObj = { val: 0 };
+s3.to(pctObj, { 
+  val: 71, 
+  duration: 4, 
+  ease: 'power1.inOut',
+  onUpdate: () => {
+    document.querySelector('#scene3 .percentage .num').textContent = Math.round(pctObj.val);
+  }
+}, 1);
+
+s3.fromTo('#scene3 .percentage', { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'back.out(1.5)' }, 0.5);
+s3.fromTo('#scene3 .water-label', { opacity: 0 }, { opacity: 1, duration: 0.6 }, 4.5);
+
+s3.fromTo('#scene3 .compare-item:nth-child(1)', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6 }, 6);
+s3.to('#scene3 .bar-ocean', { width: '96.5%', duration: 1.2, ease: 'power2.out' }, 6.3);
+
+s3.fromTo('#scene3 .compare-item:nth-child(2)', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6 }, 9);
+s3.to('#scene3 .bar-ice', { width: '20%', duration: 0.8, ease: 'power2.out' }, 9.3);
+
+s3.fromTo('#scene3 .compare-item:nth-child(3)', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6 }, 12);
+s3.to('#scene3 .bar-fresh', { width: '3%', duration: 0.5, ease: 'power2.out' }, 12.3);
+
+s3.to('#scene3', { opacity: 0, duration: 0.8 }, 17.2);
+
+master.add(s3, 34);
+
+// ============ SCENE 4: SPEED (52-72s) ============
+const s4 = gsap.timeline();
+
+s4.fromTo('#scene4', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0);
+s4.fromTo('#scene4 .heading', { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 0.3);
+
+s4.fromTo('#scene4 .card1', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 3);
+s4.fromTo('#scene4 .card2', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 8);
+s4.fromTo('#scene4 .card3', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, 12);
+
+s4.to('#scene4 .card1', { scale: 1.02, duration: 0.3, yoyo: true, repeat: 1, ease: 'power1.inOut' }, 4);
+s4.to('#scene4 .card2', { scale: 1.02, duration: 0.3, yoyo: true, repeat: 1, ease: 'power1.inOut' }, 9);
+s4.to('#scene4 .card3', { scale: 1.02, duration: 0.3, yoyo: true, repeat: 1, ease: 'power1.inOut' }, 13);
+
+// Deterministic motion lines (fixed positions for reproducible frames)
+const linePositions = [350, 520, 710, 880, 1050, 1200, 1380, 1550];
+const lineWidths = [150, 120, 180, 140, 160, 130, 170, 145];
+const lineStarts = [1, 2.5, 4, 6, 8.5, 10, 12.5, 15];
+for (let i = 0; i < 8; i++) {
+  const line = document.createElement('div');
+  line.className = 'motion-line';
+  line.style.top = linePositions[i] + 'px';
+  line.style.left = '-200px';
+  line.style.width = lineWidths[i] + 'px';
+  document.getElementById('scene4').appendChild(line);
+  
+  s4.fromTo(line, 
+    { opacity: 0, x: -200 }, 
+    { opacity: 0.6, x: 1300, duration: 2, ease: 'power1.in' }, 
+    lineStarts[i]
+  );
+}
+
+s4.to('#scene4', { opacity: 0, duration: 0.8 }, 19.2);
+
+master.add(s4, 52);
+
+// ============ SCENE 5: CLOSING (72-90s) ============
+const s5 = gsap.timeline();
+
+s5.fromTo('#scene5', { opacity: 0 }, { opacity: 1, duration: 1 }, 0);
+
+s5.fromTo('#scene5 .fun-fact-box', 
+  { opacity: 0, scale: 0.8 }, 
+  { opacity: 1, scale: 1, duration: 1, ease: 'back.out(1.5)' }, 0.5);
+
+s5.fromTo('#scene5 .fun-fact-box .emoji', 
+  { scale: 0, rotation: -180 }, 
+  { scale: 1, rotation: 0, duration: 0.8, ease: 'back.out(2)' }, 1);
+
+s5.fromTo('#scene5 .fun-fact-box .fact-detail', 
+  { opacity: 0, y: 20 }, 
+  { opacity: 1, y: 0, duration: 0.8 }, 4);
+
+s5.fromTo('#scene5 .closing-text', 
+  { opacity: 0, y: 30 }, 
+  { opacity: 1, y: 0, duration: 1, ease: 'power2.out' }, 10);
+
+s5.fromTo('#scene5 .source-text', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 12);
+
+s5.fromTo('#scene5 .follow-cta', 
+  { opacity: 0, scale: 0.8 }, 
+  { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.5)' }, 13);
+
+s5.to('#scene5 .follow-cta', { scale: 1.05, duration: 0.5, yoyo: true, repeat: 2, ease: 'sine.inOut' }, 14);
+
+s5.to('#scene5', { opacity: 0, duration: 1.5 }, 16.5);
+
+master.add(s5, 72);
+
+// ============ SUBTITLE SYSTEM ============
+const subEl = document.querySelector('#subtitle-bar .sub-text');
+let lastSubIdx = -1;
+
+function updateSubtitles(time) {
+  let found = -1;
+  for (let i = 0; i < narrations.length; i++) {
+    if (time >= narrations[i].start && time <= narrations[i].end) {
+      found = i;
+      break;
+    }
+  }
+  if (found !== lastSubIdx) {
+    lastSubIdx = found;
+    if (found >= 0) {
+      subEl.textContent = narrations[found].text;
+      gsap.fromTo(subEl, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3 });
+    } else {
+      gsap.to(subEl, { opacity: 0, duration: 0.2 });
+    }
+  }
+}
+
+// ============ GLOBAL API FOR RENDERER ============
+window.TOTAL_DURATION = 90;
+
+window.seekTo = function(seconds) {
+  master.seek(seconds);
+  updateSubtitles(seconds);
+};
+
+// ============ AUTO-PLAY MODE (for preview) ============
+let isPlaying = false;
+let startTime = 0;
+
+function autoPlay() {
+  if (!isPlaying) return;
+  const elapsed = (performance.now() - startTime) / 1000;
+  if (elapsed >= window.TOTAL_DURATION) {
+    isPlaying = false;
+    return;
+  }
+  window.seekTo(elapsed);
+  requestAnimationFrame(autoPlay);
+}
+
+window.play = function() {
+  isPlaying = true;
+  startTime = performance.now();
+  master.seek(0);
+  autoPlay();
+};
+
+window.pause = function() {
+  isPlaying = false;
+};
+
+// Start auto-play on click for preview
+document.addEventListener('click', () => {
+  if (!isPlaying) window.play();
+  else window.pause();
+});
+
+// Show scene 1 initially
+window.seekTo(0.01);
+</script>
+</body>
+</html>
