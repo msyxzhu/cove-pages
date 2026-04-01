@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>勾股定理 - 视觉证明</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;700;900&family=Noto+Serif+SC:wght@700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #faf8f0;
+    --ink: #2c2c2c;
+    --blue: #3498db;
+    --red: #e74c3c;
+    --green: #27ae60;
+    --orange: #f39c12;
+    --purple: #9b59b6;
+  }
+  body {
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--ink);
+  }
+  /* Grid paper */
+  body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; z-index: 10;
+    padding: 60px;
+  }
+  .scene.active { opacity: 1; visibility: visible; }
+  .sub-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 120px; background: #333;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 0 60px;
+  }
+  #subtitle { font-size: 36px; color: white; text-align: center; letter-spacing: 3px; opacity: 0; }
+  .progress-bar { position: absolute; top: 0; left: 0; height: 4px; background: var(--blue); z-index: 200; width: 0; }
+  .start-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; gap: 24px;
+  }
+  .start-overlay h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 80px; font-weight: 900;
+    color: var(--ink); letter-spacing: 12px;
+  }
+  .start-overlay p { font-size: 28px; color: #888; }
+  .play-ring {
+    width: 80px; height: 80px;
+    border: 3px solid var(--blue); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; color: var(--blue);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.1);opacity:1} }
+  .scene-tag { font-size: 24px; color: var(--orange); letter-spacing: 8px; font-weight: 700; opacity: 0; }
+  .scene-title { font-family: 'Ma Shan Zheng', cursive; font-size: 64px; opacity: 0; margin: 12px 0; }
+  canvas { border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<div class="start-overlay" id="startOverlay">
+  <h1>勾股定理</h1>
+  <p>a² + b² = c²  的视觉证明</p>
+  <div class="play-ring">▶</div>
+</div>
+
+<!-- SCENE 0: Title -->
+<div class="scene" id="scene0">
+  <div style="font-size:100px; opacity:0;" id="s0icon">📐</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:96px; font-weight:900; opacity:0; letter-spacing:12px; margin-top:20px;" id="s0title">勾股定理</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:56px; opacity:0; margin-top:16px; color:var(--blue);" id="s0formula">a² + b² = c²</div>
+  <div style="font-size:28px; color:#888; opacity:0; margin-top:30px; text-align:center; line-height:1.8;" id="s0desc">
+    人类最古老、最优美的数学定理之一<br>
+    2500年前的证明，今天依然令人惊叹
+  </div>
+</div>
+
+<!-- SCENE 1-5: Canvas animated proof -->
+<div class="scene" id="scene1">
+  <div class="scene-tag" id="s1tag">/ 直角三角形</div>
+  <div class="scene-title" id="s1title">从一个三角形开始</div>
+  <canvas id="canvas1" width="960" height="1200"></canvas>
+</div>
+
+<div class="scene" id="scene2">
+  <div class="scene-tag" id="s2tag">/ 三个正方形</div>
+  <div class="scene-title" id="s2title">在每条边上建一个正方形</div>
+  <canvas id="canvas2" width="960" height="1200"></canvas>
+</div>
+
+<div class="scene" id="scene3">
+  <div class="scene-tag" id="s3tag">/ 面积关系</div>
+  <div class="scene-title" id="s3title" style="font-size:52px;">小正方形的面积之和 = 大正方形的面积</div>
+  <canvas id="canvas3" width="960" height="1200"></canvas>
+</div>
+
+<div class="scene" id="scene4">
+  <div class="scene-tag" id="s4tag">/ 拼合证明</div>
+  <div class="scene-title" id="s4title">把碎片拼进去</div>
+  <canvas id="canvas4" width="960" height="1200"></canvas>
+</div>
+
+<!-- SCENE 5: Formula + applications -->
+<div class="scene" id="scene5">
+  <div class="scene-tag" id="s5tag">/ 无处不在</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:80px; font-weight:900; opacity:0; color:var(--blue);" id="s5formula">a² + b² = c²</div>
+  <div style="display:flex; flex-direction:column; gap:16px; margin-top:40px; width:100%;" id="apps5">
+    <div style="display:flex;align-items:center;gap:20px;padding:20px 28px;background:white;border-radius:12px;border:2px solid #eee;opacity:0;transform:translateX(-40px);" class="app5">
+      <span style="font-size:48px;">🗺️</span>
+      <span style="font-size:26px;">GPS 定位 — 卫星三角测量</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;padding:20px 28px;background:white;border-radius:12px;border:2px solid #eee;opacity:0;transform:translateX(-40px);" class="app5">
+      <span style="font-size:48px;">🏗️</span>
+      <span style="font-size:26px;">建筑工程 — 直角校准</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;padding:20px 28px;background:white;border-radius:12px;border:2px solid #eee;opacity:0;transform:translateX(-40px);" class="app5">
+      <span style="font-size:48px;">🎮</span>
+      <span style="font-size:26px;">游戏引擎 — 距离计算</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;padding:20px 28px;background:white;border-radius:12px;border:2px solid #eee;opacity:0;transform:translateX(-40px);" class="app5">
+      <span style="font-size:48px;">🚀</span>
+      <span style="font-size:26px;">相对论 — 时空度规的基石</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 6: Conclusion -->
+<div class="scene" id="scene6">
+  <div style="font-size:80px; opacity:0;" id="s6icon">✨</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:56px; font-weight:900; text-align:center; opacity:0; line-height:1.6; margin-top:20px;" id="s6title">
+    最简单的图形里<br>
+    藏着最深刻的真理
+  </div>
+  <div style="margin-top:40px; border-left:4px solid var(--orange); padding-left:30px; opacity:0;" id="s6quote">
+    <div style="font-family:'Ma Shan Zheng',cursive; font-size:44px; color:var(--orange);">
+      「万物皆数」
+    </div>
+    <div style="font-size:22px; color:#888; margin-top:10px;">—— 毕达哥拉斯 (约 570-495 BC)</div>
+  </div>
+</div>
+
+<div class="sub-bar"><div id="subtitle"></div></div>
+
+<script>
+// ===== DRAWING HELPERS =====
+function drawTriangle(ctx, ax, ay, bx, by, cx, cy, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx, cy); ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
+}
+
+function drawSquare(ctx, points, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2.5; ctx.stroke(); }
+}
+
+function drawLabel(ctx, text, x, y, color, size) {
+  ctx.font = `900 ${size || 32}px 'Noto Serif SC', serif`;
+  ctx.fillStyle = color || '#2c2c2c';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y);
+}
+
+// Triangle vertices (3-4-5 scaled up)
+const A = { x: 200, y: 800 };
+const B = { x: 680, y: 800 };
+const C = { x: 200, y: 320 };
+const a = 480; // BC vertical (opposite A... well, let's use standard: a=3, b=4, c=5 scaled)
+// Actually: AB = 480 (horizontal), AC = 480 (vertical), BC = hypotenuse
+// Let's use a=3*100=300, b=4*100=400, c=5*100=500
+const T = { // right angle at A
+  A: { x: 280, y: 800 },
+  B: { x: 680, y: 800 }, // b = 400
+  C: { x: 280, y: 500 }, // a = 300
+};
+// a = AC = 300 (vertical side)
+// b = AB = 400 (horizontal side)
+// c = BC = 500 (hypotenuse)
+
+function getSquarePoints(p1, p2, outward) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  // Perpendicular
+  const px = outward ? -dy : dy;
+  const py = outward ? dx : -dx;
+  return [
+    p1,
+    p2,
+    { x: p2.x + px, y: p2.y + py },
+    { x: p1.x + px, y: p1.y + py },
+  ];
+}
+
+// ===== SCENE ANIMATIONS =====
+function animScene1() {
+  const ctx = document.getElementById('canvas1').getContext('2d');
+  ctx.clearRect(0, 0, 960, 1200);
+  
+  let progress = 0;
+  function draw() {
+    ctx.clearRect(0, 0, 960, 1200);
+    const p = Math.min(progress / 60, 1);
+    
+    // Draw triangle progressively
+    if (p > 0) {
+      ctx.beginPath();
+      ctx.moveTo(T.A.x, T.A.y);
+      if (p < 0.33) {
+        const t = p / 0.33;
+        ctx.lineTo(T.A.x + (T.B.x - T.A.x) * t, T.A.y + (T.B.y - T.A.y) * t);
+      } else if (p < 0.66) {
+        ctx.lineTo(T.B.x, T.B.y);
+        const t = (p - 0.33) / 0.33;
+        ctx.lineTo(T.B.x + (T.C.x - T.B.x) * t, T.B.y + (T.C.y - T.B.y) * t);
+      } else {
+        ctx.lineTo(T.B.x, T.B.y);
+        ctx.lineTo(T.C.x, T.C.y);
+        const t = (p - 0.66) / 0.34;
+        ctx.lineTo(T.C.x + (T.A.x - T.C.x) * t, T.C.y + (T.A.y - T.C.y) * t);
+      }
+      ctx.strokeStyle = '#2c2c2c';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+    
+    // Labels after triangle complete
+    if (p >= 1) {
+      // Fill triangle
+      drawTriangle(ctx, T.A.x, T.A.y, T.B.x, T.B.y, T.C.x, T.C.y, 'rgba(52,152,219,0.08)', '#2c2c2c');
+      
+      // Right angle marker
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(T.A.x, T.A.y - 30, 30, 30);
+      
+      // Side labels
+      drawLabel(ctx, 'a = 3', T.A.x - 60, (T.A.y + T.C.y) / 2, '#e74c3c', 36);
+      drawLabel(ctx, 'b = 4', (T.A.x + T.B.x) / 2, T.A.y + 50, '#3498db', 36);
+      drawLabel(ctx, 'c = 5', (T.B.x + T.C.x) / 2 + 40, (T.B.y + T.C.y) / 2 - 20, '#27ae60', 36);
+    }
+    
+    progress++;
+    if (progress < 120) requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function animScene2() {
+  const ctx = document.getElementById('canvas2').getContext('2d');
+  ctx.clearRect(0, 0, 960, 1200);
+  
+  // Draw triangle
+  drawTriangle(ctx, T.A.x, T.A.y, T.B.x, T.B.y, T.C.x, T.C.y, 'rgba(0,0,0,0.03)', '#2c2c2c');
+  
+  // Three squares with animation
+  const sqA = getSquarePoints(T.C, T.A, true); // a² side
+  const sqB = getSquarePoints(T.A, T.B, false); // b² bottom
+  const sqC = getSquarePoints(T.B, T.C, false); // c² hypotenuse
+
+  let step = 0;
+  function draw() {
+    ctx.clearRect(0, 0, 960, 1200);
+    drawTriangle(ctx, T.A.x, T.A.y, T.B.x, T.B.y, T.C.x, T.C.y, 'rgba(0,0,0,0.03)', '#2c2c2c');
+    
+    if (step > 20) {
+      const alpha = Math.min((step - 20) / 30, 1);
+      drawSquare(ctx, sqA, `rgba(231,76,60,${alpha * 0.2})`, `rgba(231,76,60,${alpha})`);
+      if (alpha >= 1) drawLabel(ctx, 'a² = 9', sqA[3].x - 50, (sqA[2].y + sqA[3].y) / 2, '#e74c3c', 30);
+    }
+    if (step > 50) {
+      const alpha = Math.min((step - 50) / 30, 1);
+      drawSquare(ctx, sqB, `rgba(52,152,219,${alpha * 0.2})`, `rgba(52,152,219,${alpha})`);
+      if (alpha >= 1) drawLabel(ctx, 'b² = 16', (sqB[2].x + sqB[3].x) / 2, sqB[2].y + 40, '#3498db', 30);
+    }
+    if (step > 80) {
+      const alpha = Math.min((step - 80) / 30, 1);
+      drawSquare(ctx, sqC, `rgba(39,174,96,${alpha * 0.2})`, `rgba(39,174,96,${alpha})`);
+      if (alpha >= 1) drawLabel(ctx, 'c² = 25', (sqC[0].x + sqC[2].x) / 2 + 30, (sqC[0].y + sqC[2].y) / 2, '#27ae60', 30);
+    }
+    
+    step++;
+    if (step < 150) requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function animScene3() {
+  const ctx = document.getElementById('canvas3').getContext('2d');
+  let step = 0;
+  
+  function draw() {
+    ctx.clearRect(0, 0, 960, 1200);
+    
+    // a² grid (3x3)
+    const gridSize = 60;
+    const startX1 = 100, startY1 = 200;
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const idx = r * 3 + c;
+        if (step > idx * 3) {
+          const alpha = Math.min((step - idx * 3) / 10, 1);
+          ctx.fillStyle = `rgba(231,76,60,${alpha * 0.3})`;
+          ctx.fillRect(startX1 + c * gridSize, startY1 + r * gridSize, gridSize - 2, gridSize - 2);
+          ctx.strokeStyle = `rgba(231,76,60,${alpha})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(startX1 + c * gridSize, startY1 + r * gridSize, gridSize - 2, gridSize - 2);
+        }
+      }
+    }
+    if (step > 30) drawLabel(ctx, 'a² = 9', startX1 + 90, startY1 - 20, '#e74c3c', 36);
+    
+    // + sign
+    if (step > 35) {
+      const alpha = Math.min((step - 35) / 10, 1);
+      ctx.font = `900 ${60}px serif`;
+      ctx.fillStyle = `rgba(44,44,44,${alpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('+', 400, 330);
+    }
+    
+    // b² grid (4x4)
+    const startX2 = 450, startY2 = 160;
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const idx = r * 4 + c;
+        if (step > 40 + idx * 2) {
+          const alpha = Math.min((step - 40 - idx * 2) / 10, 1);
+          ctx.fillStyle = `rgba(52,152,219,${alpha * 0.3})`;
+          ctx.fillRect(startX2 + c * gridSize, startY2 + r * gridSize, gridSize - 2, gridSize - 2);
+          ctx.strokeStyle = `rgba(52,152,219,${alpha})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(startX2 + c * gridSize, startY2 + r * gridSize, gridSize - 2, gridSize - 2);
+        }
+      }
+    }
+    if (step > 80) drawLabel(ctx, 'b² = 16', startX2 + 120, startY2 - 20, '#3498db', 36);
+    
+    // = sign
+    if (step > 85) {
+      const alpha = Math.min((step - 85) / 10, 1);
+      ctx.font = `900 ${60}px serif`;
+      ctx.fillStyle = `rgba(44,44,44,${alpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('=', 480, 600);
+    }
+    
+    // c² grid (5x5)
+    const startX3 = 240, startY3 = 650;
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const idx = r * 5 + c;
+        if (step > 90 + idx * 2) {
+          const alpha = Math.min((step - 90 - idx * 2) / 10, 1);
+          ctx.fillStyle = `rgba(39,174,96,${alpha * 0.3})`;
+          ctx.fillRect(startX3 + c * gridSize, startY3 + r * gridSize, gridSize - 2, gridSize - 2);
+          ctx.strokeStyle = `rgba(39,174,96,${alpha})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(startX3 + c * gridSize, startY3 + r * gridSize, gridSize - 2, gridSize - 2);
+        }
+      }
+    }
+    if (step > 150) drawLabel(ctx, 'c² = 25', startX3 + 150, startY3 - 20, '#27ae60', 36);
+    
+    // Final equation
+    if (step > 160) {
+      const alpha = Math.min((step - 160) / 20, 1);
+      ctx.font = `900 48px 'Noto Serif SC', serif`;
+      ctx.fillStyle = `rgba(44,44,44,${alpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('9 + 16 = 25  ✓', 480, 1050);
+    }
+    
+    step++;
+    if (step < 200) requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function animScene4() {
+  const ctx = document.getElementById('canvas4').getContext('2d');
+  ctx.clearRect(0, 0, 960, 1200);
+  
+  // Draw the classic "proof without words" - 4 triangles + c² = big square
+  const size = 700;
+  const ox = 130, oy = 150;
+  const aa = 210, bb = 490; // a=210, b=490 (c=√(210²+490²) ≈ 533... let's use a=3,b=4 scaled to fit)
+  const a3 = 200, b4 = 280; // a=200, b=280 → a+b=480
+  
+  let step = 0;
+  function draw() {
+    ctx.clearRect(0, 0, 960, 1200);
+    const side = a3 + b4; // big square side
+    
+    // Big outer square
+    if (step > 0) {
+      const alpha = Math.min(step / 20, 1);
+      ctx.strokeStyle = `rgba(44,44,44,${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(ox, oy, side, side);
+    }
+    
+    // 4 colored triangles
+    const triangles = [
+      { ax: ox, ay: oy, bx: ox + b4, by: oy, cx: ox, cy: oy + a3, color: 'rgba(155,89,182,0.4)' },
+      { ax: ox + b4, ay: oy, bx: ox + side, by: oy + b4, cx: ox + b4, cy: oy, color: 'rgba(155,89,182,0.4)' },
+      // Fix: place 4 right triangles correctly
+    ];
+    
+    // Better approach: draw the classic rearrangement
+    // Big square (a+b)² = c² + 4·(½ab)
+    // Left: big square with 4 triangles arranged, inner square = c²
+    // Right: same big square with 4 triangles rearranged, two inner squares = a² + b²
+
+    // LEFT ARRANGEMENT: inner c²
+    const lx = 30, ly = 200;
+    if (step > 20) {
+      const alpha = Math.min((step - 20) / 30, 1);
+      // Outer square
+      ctx.strokeStyle = `rgba(44,44,44,${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(lx, ly, side, side);
+      
+      // 4 triangles
+      ctx.globalAlpha = alpha;
+      // Triangle 1: top-left
+      drawTriangle(ctx, lx, ly, lx + b4, ly, lx, ly + a3, 'rgba(155,89,182,0.5)', 'rgba(155,89,182,0.8)');
+      // Triangle 2: top-right
+      drawTriangle(ctx, lx + b4, ly, lx + side, ly, lx + side, ly + b4, 'rgba(243,156,18,0.5)', 'rgba(243,156,18,0.8)');
+      // Triangle 3: bottom-right
+      drawTriangle(ctx, lx + side, ly + b4, lx + side, ly + side, lx + a3, ly + side, 'rgba(231,76,60,0.5)', 'rgba(231,76,60,0.8)');
+      // Triangle 4: bottom-left
+      drawTriangle(ctx, lx, ly + a3, lx, ly + side, lx + a3, ly + side, 'rgba(52,152,219,0.5)', 'rgba(52,152,219,0.8)');
+      
+      ctx.globalAlpha = 1;
+      
+      // Inner c² square (tilted)
+      if (step > 60) {
+        const ia = Math.min((step - 60) / 20, 1);
+        ctx.fillStyle = `rgba(39,174,96,${ia * 0.3})`;
+        ctx.strokeStyle = `rgba(39,174,96,${ia})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(lx + b4, ly);
+        ctx.lineTo(lx + side, ly + b4);
+        ctx.lineTo(lx + a3, ly + side);
+        ctx.lineTo(lx, ly + a3);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        
+        if (ia >= 1) drawLabel(ctx, 'c²', lx + side / 2, ly + side / 2 + 10, '#27ae60', 48);
+      }
+    }
+    
+    // = sign
+    if (step > 90) {
+      const alpha = Math.min((step - 90) / 10, 1);
+      drawLabel(ctx, '=', 500, ly + side / 2, `rgba(44,44,44,${alpha})`, 60);
+    }
+    
+    // RIGHT ARRANGEMENT: a² + b²
+    const rx = 530, ry = 200;
+    if (step > 100) {
+      const alpha = Math.min((step - 100) / 30, 1);
+      ctx.strokeStyle = `rgba(44,44,44,${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(rx, ry, side, side);
+      
+      ctx.globalAlpha = alpha;
+      // Rearranged triangles
+      drawTriangle(ctx, rx, ry, rx + b4, ry, rx + b4, ry + a3, 'rgba(155,89,182,0.5)', 'rgba(155,89,182,0.8)');
+      drawTriangle(ctx, rx, ry, rx, ry + a3, rx + b4, ry + a3, 'rgba(243,156,18,0.5)', 'rgba(243,156,18,0.8)');
+      drawTriangle(ctx, rx + b4, ry + a3, rx + side, ry + a3, rx + side, ry + side, 'rgba(231,76,60,0.5)', 'rgba(231,76,60,0.8)');
+      drawTriangle(ctx, rx + b4, ry + a3, rx + b4, ry + side, rx + side, ry + side, 'rgba(52,152,219,0.5)', 'rgba(52,152,219,0.8)');
+      ctx.globalAlpha = 1;
+      
+      // a² square
+      if (step > 140) {
+        const ia = Math.min((step - 140) / 15, 1);
+        ctx.fillStyle = `rgba(231,76,60,${ia * 0.2})`;
+        ctx.strokeStyle = `rgba(231,76,60,${ia})`;
+        ctx.lineWidth = 3;
+        ctx.fillRect(rx, ry + a3, b4, b4);
+        ctx.strokeRect(rx, ry + a3, b4, b4);
+        if (ia >= 1) drawLabel(ctx, 'b²', rx + b4 / 2, ry + a3 + b4 / 2 + 10, '#3498db', 40);
+        
+        ctx.fillStyle = `rgba(52,152,219,${ia * 0.2})`;
+        ctx.strokeStyle = `rgba(52,152,219,${ia})`;
+        ctx.fillRect(rx + b4, ry, a3, a3);
+        ctx.strokeRect(rx + b4, ry, a3, a3);
+        if (ia >= 1) drawLabel(ctx, 'a²', rx + b4 + a3 / 2, ry + a3 / 2 + 10, '#e74c3c', 40);
+      }
+    }
+    
+    // Bottom formula
+    if (step > 170) {
+      const alpha = Math.min((step - 170) / 20, 1);
+      ctx.font = `900 52px 'Noto Serif SC', serif`;
+      ctx.fillStyle = `rgba(44,44,44,${alpha})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('c² = a² + b²  ∎', 480, ry + side + 80);
+    }
+    
+    step++;
+    if (step < 220) requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ===== SCENE ENGINE =====
+const sceneIds = ['scene0','scene1','scene2','scene3','scene4','scene5','scene6'];
+let cur = -1;
+const durations = [6000, 8000, 9000, 10000, 12000, 10000, 8000];
+const BUFFER = 1500;
+const starts = []; let cm = 0;
+durations.forEach(d => { starts.push(cm); cm += d + BUFFER; });
+const TOTAL = cm;
+const subs = [
+  '有一个定理，每个人都学过，但你真的理解它吗？',
+  '从一个直角三角形开始。三条边分别是 a、b、c。',
+  '在每条边上建一个正方形。面积分别是 a²、b²、c²。',
+  '数一数格子：9 + 16 = 25。小正方形面积之和等于大正方形。',
+  '经典的拼合证明：同样的四个三角形，两种摆法，证明 c² = a² + b²。',
+  '这个2500年前的定理，至今仍是 GPS、游戏引擎、相对论的基石。',
+  '最简单的图形里，藏着最深刻的真理。',
+];
+
+function showSub(t) {
+  const el = document.getElementById('subtitle');
+  gsap.to(el, { opacity: 0, duration: 0.2, onComplete: () => { el.textContent = t; gsap.to(el, { opacity: 1, duration: 0.3 }); }});
+}
+
+function go(idx) {
+  if (idx === cur || idx < 0 || idx >= sceneIds.length) return;
+  if (cur >= 0) {
+    const old = document.getElementById(sceneIds[cur]);
+    gsap.to(old, { opacity: 0, duration: 0.4, onComplete: () => old.classList.remove('active') });
+  }
+  cur = idx;
+  const el = document.getElementById(sceneIds[idx]);
+  el.classList.add('active');
+  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+  showSub(subs[idx]);
+  gsap.to('#progress', { width: ((starts[idx] + durations[idx]) / TOTAL * 100) + '%', duration: durations[idx] / 1000, ease: 'none' });
+  anims[idx]();
+}
+
+const anims = [
+  () => {
+    gsap.fromTo('#s0icon', { scale: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('#s0title', { y: 40 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.5 });
+    gsap.fromTo('#s0formula', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 1.2 });
+    gsap.fromTo('#s0desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 2 });
+  },
+  () => {
+    gsap.fromTo('#s1tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s1title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    setTimeout(animScene1, 800);
+  },
+  () => {
+    gsap.fromTo('#s2tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s2title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    setTimeout(animScene2, 800);
+  },
+  () => {
+    gsap.fromTo('#s3tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s3title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    setTimeout(animScene3, 800);
+  },
+  () => {
+    gsap.fromTo('#s4tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s4title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    setTimeout(animScene4, 800);
+  },
+  () => {
+    gsap.fromTo('#s5tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s5formula', { scale: 0.5 }, { scale: 1, opacity: 1, duration: 0.8, delay: 0.5, ease: 'back.out(1.5)' });
+    document.querySelectorAll('.app5').forEach((el, i) => {
+      gsap.to(el, { opacity: 1, x: 0, duration: 0.6, delay: 1.5 + i * 0.8, ease: 'power3.out' });
+    });
+  },
+  () => {
+    gsap.fromTo('#s6icon', { scale: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('#s6title', { y: 30 }, { y: 0, opacity: 1, duration: 1, delay: 0.8 });
+    gsap.fromTo('#s6quote', { x: -30 }, { x: 0, opacity: 1, duration: 0.8, delay: 3 });
+  },
+];
+
+document.getElementById('startOverlay').addEventListener('click', () => {
+  gsap.to('#startOverlay', { opacity: 0, duration: 0.3, onComplete: () => {
+    document.getElementById('startOverlay').style.display = 'none';
+    sceneIds.forEach((_, i) => setTimeout(() => go(i), starts[i]));
+  }});
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') go(cur + 1);
+  if (e.key === 'ArrowLeft') go(cur - 1);
+});
+</script>
+</body>
+</html>

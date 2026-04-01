@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>双缝实验 - 量子世界的诡异</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;700;900&family=Noto+Serif+SC:wght@700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --bg: #050510; --cyan: #00e5ff; --purple: #d500f9; --white: #e8eaf6; --dim: #7c7ca0; }
+  body {
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: var(--bg);
+    font-family: 'Noto Sans SC', sans-serif; color: var(--white);
+  }
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; z-index: 10; padding: 60px;
+  }
+  .scene.active { opacity: 1; visibility: visible; }
+  .sub-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 140px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.95));
+    display: flex; align-items: center; justify-content: center; z-index: 100; padding: 0 60px;
+  }
+  #subtitle { font-size: 36px; color: white; text-align: center; letter-spacing: 3px; line-height: 1.5; opacity: 0; }
+  .progress-bar { position: absolute; top: 0; left: 0; height: 4px; background: var(--cyan); z-index: 200; width: 0; }
+  .start-overlay {
+    position: fixed; inset: 0; z-index: 9999; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; gap: 24px;
+  }
+  .start-overlay h1 { font-family: 'Noto Serif SC', serif; font-size: 80px; font-weight: 900; color: var(--cyan); letter-spacing: 8px; }
+  .start-overlay p { font-size: 28px; color: var(--dim); }
+  .play-ring {
+    width: 100px; height: 100px; border: 3px solid var(--cyan); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--cyan);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.1);opacity:1} }
+  .scene-tag { font-size: 24px; color: var(--purple); letter-spacing: 8px; font-weight: 700; opacity: 0; }
+  .scene-title { font-family: 'Ma Shan Zheng', cursive; font-size: 64px; opacity: 0; margin: 12px 0; }
+  canvas#expCanvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+  .info-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 24px 32px; width: 100%;
+    opacity: 0; transform: translateX(-40px); margin: 8px 0;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .glow-cyan { text-shadow: 0 0 20px rgba(0,229,255,0.5); color: var(--cyan); }
+  .glow-purple { text-shadow: 0 0 20px rgba(213,0,249,0.5); color: var(--purple); }
+</style>
+</head>
+<body>
+
+<canvas id="expCanvas" width="1080" height="1920"></canvas>
+<div class="progress-bar" id="progress"></div>
+
+<div class="start-overlay" id="startOverlay">
+  <h1>双缝实验</h1>
+  <p>量子世界最诡异的实验</p>
+  <div class="play-ring">▶</div>
+</div>
+
+<!-- SCENE 0: Title -->
+<div class="scene" id="scene0">
+  <div style="font-size:120px; opacity:0;" id="s0icon">🌊</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:96px; font-weight:900; opacity:0; letter-spacing:12px;" id="s0title">
+    <span class="glow-cyan">双缝实验</span>
+  </div>
+  <div style="font-size:32px; color:var(--dim); opacity:0; margin-top:16px;" id="s0sub">DOUBLE-SLIT EXPERIMENT</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; margin-top:40px; text-align:center; line-height:1.8;" id="s0desc">
+    费曼说：这个实验包含了<br>
+    <span class="glow-cyan">量子力学所有的秘密</span>
+  </div>
+</div>
+
+<!-- SCENE 1: Classical - balls -->
+<div class="scene" id="scene1">
+  <div class="scene-tag" id="s1tag">/ 经典世界</div>
+  <div class="scene-title" id="s1title">先用弹珠试试</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; text-align:center; line-height:1.8; margin-top:600px;" id="s1desc">
+    弹珠穿过两条缝 → 屏幕上出现<span style="color:var(--cyan);font-weight:700;">两条亮带</span><br>
+    符合直觉 ✅
+  </div>
+</div>
+
+<!-- SCENE 2: Water waves -->
+<div class="scene" id="scene2">
+  <div class="scene-tag" id="s2tag">/ 波的世界</div>
+  <div class="scene-title" id="s2title">换成水波试试</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; text-align:center; line-height:1.8; margin-top:600px;" id="s2desc">
+    水波穿过两条缝 → 屏幕上出现<span class="glow-purple">干涉条纹</span><br>
+    波峰+波峰=更亮，波峰+波谷=暗
+  </div>
+</div>
+
+<!-- SCENE 3: Electrons = interference! -->
+<div class="scene" id="scene3">
+  <div class="scene-tag" id="s3tag">/ 量子世界</div>
+  <div class="scene-title" id="s3title" style="font-size:56px;">电子呢？它是粒子……</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; text-align:center; line-height:1.8; margin-top:600px;" id="s3desc">
+    单个电子一个一个发射<br>
+    屏幕上居然也出现了<span class="glow-purple">干涉条纹！</span><br>
+    <span style="color:var(--cyan);font-weight:900;font-size:36px;">粒子居然表现得像波？！</span>
+  </div>
+</div>
+
+<!-- SCENE 4: Observer effect -->
+<div class="scene" id="scene4">
+  <div class="scene-tag" id="s4tag">/ 更诡异的</div>
+  <div class="scene-title" id="s4title" style="font-size:52px;">加一个探测器看看电子走哪条缝</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; text-align:center; line-height:1.8; margin-top:600px;" id="s4desc">
+    一旦你「观测」电子走了哪条缝<br>
+    干涉条纹<span style="color:var(--purple);font-weight:900;">消失了！</span><br>
+    变回了两条普通亮带<br><br>
+    <span class="glow-cyan" style="font-size:32px;">仿佛电子「知道」自己被看了</span>
+  </div>
+</div>
+
+<!-- SCENE 5: What it means -->
+<div class="scene" id="scene5" style="align-items:flex-start;">
+  <div class="scene-tag" id="s5tag">/ 这意味着什么</div>
+  <div class="scene-title" id="s5title" style="font-size:48px;">三个颠覆认知的结论</div>
+  <div style="width:100%;">
+    <div class="info-card" id="wm1">
+      <span style="font-size:48px;">1️⃣</span>
+      <span style="font-size:26px;line-height:1.6;">电子在被观测前<span class="glow-purple">没有确定的位置</span>，它同时走了两条缝</span>
+    </div>
+    <div class="info-card" id="wm2">
+      <span style="font-size:48px;">2️⃣</span>
+      <span style="font-size:26px;line-height:1.6;"><span class="glow-cyan">观测行为本身</span>改变了实验结果</span>
+    </div>
+    <div class="info-card" id="wm3">
+      <span style="font-size:48px;">3️⃣</span>
+      <span style="font-size:26px;line-height:1.6;">微观世界不是「我们不知道」，而是<span style="color:#ffd54f;font-weight:900;">真的不确定</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 6: Conclusion -->
+<div class="scene" id="scene6">
+  <div style="font-size:100px; opacity:0;" id="s6icon">🔬</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:56px; font-weight:900; text-align:center; opacity:0; line-height:1.6; margin-top:20px;" id="s6title">
+    <span class="glow-cyan">上帝掷骰子</span>
+  </div>
+  <div style="max-width:800px; text-align:center; opacity:0; margin-top:30px; font-size:28px; line-height:2; color:var(--dim);" id="s6desc">
+    这不是科幻，这是物理学家<br>
+    用真实实验反复验证的结果<br><br>
+    <span style="color:var(--white);">我们所在的宇宙</span><br>
+    <span class="glow-purple">比你想象的还要奇怪</span>
+  </div>
+  <div style="margin-top:40px; border-left:4px solid var(--cyan); padding-left:30px; opacity:0;" id="s6quote">
+    <div style="font-family:'Ma Shan Zheng',cursive; font-size:44px; color:var(--cyan);">
+      「如果你觉得自己懂了量子力学<br>那你一定还没懂」
+    </div>
+    <div style="font-size:22px; color:var(--dim); margin-top:10px;">—— 理查德·费曼</div>
+  </div>
+</div>
+
+<div class="sub-bar"><div id="subtitle"></div></div>
+
+<script>
+const cvs = document.getElementById('expCanvas');
+const ctx = cvs.getContext('2d');
+let expMode = 'none'; // 'balls', 'waves', 'electrons', 'observed'
+let particles = [];
+let waveTime = 0;
+let screenHits = new Array(200).fill(0);
+let animating = true;
+
+// Wall and slit geometry
+const wallX = 400;
+const slit1Y = 760, slit2Y = 960;
+const slitWidth = 40;
+const screenX = 900;
+
+function drawExperiment() {
+  if (!animating) return;
+  ctx.clearRect(0, 0, 1080, 1920);
+  
+  if (expMode === 'none') { requestAnimationFrame(drawExperiment); return; }
+  
+  // Draw wall
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(wallX, 500, 12, slit1Y - 500 - slitWidth / 2);
+  ctx.fillRect(wallX, slit1Y + slitWidth / 2, 12, slit2Y - slit1Y - slitWidth);
+  ctx.fillRect(wallX, slit2Y + slitWidth / 2, 12, 1400 - slit2Y - slitWidth / 2);
+  
+  // Draw screen
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(screenX, 500, 8, 900);
+  
+  // Slit labels
+  ctx.font = '20px Noto Sans SC';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.textAlign = 'center';
+  ctx.fillText('缝1', wallX + 6, slit1Y - 30);
+  ctx.fillText('缝2', wallX + 6, slit2Y + 50);
+  
+  if (expMode === 'balls' || expMode === 'electrons' || expMode === 'observed') {
+    // Emit particles
+    if (Math.random() < 0.15) {
+      const isElectron = expMode === 'electrons' || expMode === 'observed';
+      particles.push({
+        x: 100,
+        y: 860,
+        vx: 3 + Math.random() * 2,
+        vy: (Math.random() - 0.5) * 0.5,
+        throughSlit: 0,
+        alive: true,
+        color: isElectron ? 'rgba(0,229,255,0.8)' : 'rgba(255,255,255,0.7)',
+        size: isElectron ? 3 : 4,
+      });
+    }
+    
+    particles.forEach(p => {
+      if (!p.alive) return;
+      p.x += p.vx;
+      p.y += p.vy;
+      
+      // Hit wall?
+      if (p.x >= wallX && p.x <= wallX + 12 && p.throughSlit === 0) {
+        const inSlit1 = Math.abs(p.y - slit1Y) < slitWidth / 2;
+        const inSlit2 = Math.abs(p.y - slit2Y) < slitWidth / 2;
+        if (inSlit1) {
+          p.throughSlit = 1;
+          if (expMode === 'balls' || expMode === 'observed') {
+            p.vy += (Math.random() - 0.5) * 2;
+          } else {
+            // Electron: quantum behavior → spread out
+            p.vy = (Math.random() - 0.5) * 4;
+          }
+        } else if (inSlit2) {
+          p.throughSlit = 2;
+          if (expMode === 'balls' || expMode === 'observed') {
+            p.vy += (Math.random() - 0.5) * 2;
+          } else {
+            p.vy = (Math.random() - 0.5) * 4;
+          }
+        } else {
+          p.alive = false;
+        }
+      }
+      
+      // Hit screen?
+      if (p.x >= screenX && p.throughSlit > 0) {
+        const idx = Math.floor((p.y - 500) / 4.5);
+        if (idx >= 0 && idx < screenHits.length) {
+          if (expMode === 'electrons') {
+            // Interference pattern
+            const dy1 = p.y - slit1Y;
+            const dy2 = p.y - slit2Y;
+            const phase = Math.sin(dy1 * 0.08) + Math.sin(dy2 * 0.08);
+            const prob = (1 + phase) / 2;
+            if (Math.random() < prob * 0.8) {
+              screenHits[idx] += 1;
+            }
+          } else {
+            screenHits[idx] += 1;
+          }
+        }
+        p.alive = false;
+      }
+      
+      // Out of bounds
+      if (p.x > 1080 || p.y < 400 || p.y > 1500) p.alive = false;
+      
+      // Draw
+      if (p.alive) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        if (expMode === 'electrons') {
+          ctx.shadowColor = '#00e5ff';
+          ctx.shadowBlur = 8;
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    });
+    
+    // Clean dead particles
+    particles = particles.filter(p => p.alive);
+    
+    // Draw screen pattern
+    const maxHit = Math.max(...screenHits, 1);
+    for (let i = 0; i < screenHits.length; i++) {
+      const intensity = screenHits[i] / maxHit;
+      const y = 500 + i * 4.5;
+      const barWidth = intensity * 80;
+      if (barWidth > 0.5) {
+        const hue = expMode === 'electrons' ? `rgba(0,229,255,${intensity * 0.8})` : `rgba(255,255,255,${intensity * 0.6})`;
+        ctx.fillStyle = hue;
+        ctx.fillRect(screenX + 15, y, barWidth, 4);
+      }
+    }
+  }
+  
+  if (expMode === 'waves') {
+    waveTime += 0.05;
+    // Draw wave circles from source
+    for (let w = 0; w < 15; w++) {
+      const r = (waveTime * 60 + w * 40) % 600;
+      if (r > 0) {
+        ctx.beginPath();
+        ctx.arc(100, 860, r, -0.5, 0.5);
+        ctx.strokeStyle = `rgba(213,0,249,${0.3 * (1 - r / 600)})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    
+    // Waves through slits - interference
+    for (let sy of [slit1Y, slit2Y]) {
+      for (let w = 0; w < 10; w++) {
+        const r = (waveTime * 50 + w * 35) % 400;
+        if (r > 0) {
+          ctx.beginPath();
+          ctx.arc(wallX + 12, sy, r, -Math.PI / 2, Math.PI / 2);
+          ctx.strokeStyle = `rgba(0,229,255,${0.25 * (1 - r / 400)})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+    }
+    
+    // Draw interference on screen
+    for (let i = 0; i < 200; i++) {
+      const y = 500 + i * 4.5;
+      const d1 = Math.sqrt(Math.pow(screenX - wallX, 2) + Math.pow(y - slit1Y, 2));
+      const d2 = Math.sqrt(Math.pow(screenX - wallX, 2) + Math.pow(y - slit2Y, 2));
+      const phase = Math.cos((d1 - d2) * 0.06 + waveTime * 2);
+      const intensity = (1 + phase) / 2;
+      ctx.fillStyle = `rgba(213,0,249,${intensity * 0.7})`;
+      ctx.fillRect(screenX + 15, y, intensity * 60, 4);
+    }
+  }
+  
+  requestAnimationFrame(drawExperiment);
+}
+drawExperiment();
+
+// ===== SCENE ENGINE =====
+const sceneIds = ['scene0','scene1','scene2','scene3','scene4','scene5','scene6'];
+let cur = -1;
+const durations = [6000, 10000, 10000, 12000, 12000, 10000, 10000];
+const BUFFER = 1500;
+const starts = []; let c = 0;
+durations.forEach(d => { starts.push(c); c += d + BUFFER; });
+const TOTAL = c;
+const subs = [
+  '费曼说：这个实验包含了量子力学所有的秘密',
+  '先用弹珠做实验。弹珠穿过两条缝，屏幕上出现两条亮带。',
+  '换成水波。波通过两条缝后相互干涉，形成明暗交替的条纹。',
+  '现在用电子——一个一个发射。居然也出现了干涉条纹！',
+  '在缝旁加一个探测器……干涉条纹消失了。仿佛电子知道自己被观测了。',
+  '三个颠覆认知的结论：位置不确定、观测改变结果、世界本质是概率。',
+  '如果你觉得自己懂了量子力学，那你一定还没懂。',
+];
+
+function showSub(t) {
+  const el = document.getElementById('subtitle');
+  gsap.to(el, { opacity: 0, duration: 0.2, onComplete: () => { el.textContent = t; gsap.to(el, { opacity: 1, duration: 0.3 }); }});
+}
+
+function go(idx) {
+  if (idx === cur || idx < 0 || idx >= sceneIds.length) return;
+  if (cur >= 0) {
+    const old = document.getElementById(sceneIds[cur]);
+    gsap.to(old, { opacity: 0, duration: 0.4, onComplete: () => old.classList.remove('active') });
+  }
+  cur = idx;
+  const el = document.getElementById(sceneIds[idx]);
+  el.classList.add('active');
+  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+  showSub(subs[idx]);
+  gsap.to('#progress', { width: ((starts[idx] + durations[idx]) / TOTAL * 100) + '%', duration: durations[idx] / 1000, ease: 'none' });
+  anims[idx]();
+}
+
+const anims = [
+  () => {
+    expMode = 'none'; ctx.clearRect(0, 0, 1080, 1920);
+    gsap.fromTo('#s0icon', { scale: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('#s0title', { y: 40 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.5 });
+    gsap.fromTo('#s0sub', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 1 });
+    gsap.fromTo('#s0desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 2 });
+  },
+  () => {
+    particles = []; screenHits = new Array(200).fill(0);
+    expMode = 'balls';
+    gsap.fromTo('#s1tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s1title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#s1desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 4 });
+  },
+  () => {
+    particles = []; screenHits = new Array(200).fill(0); waveTime = 0;
+    expMode = 'waves';
+    gsap.fromTo('#s2tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s2title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#s2desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 4 });
+  },
+  () => {
+    particles = []; screenHits = new Array(200).fill(0);
+    expMode = 'electrons';
+    gsap.fromTo('#s3tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s3title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#s3desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 5 });
+  },
+  () => {
+    particles = []; screenHits = new Array(200).fill(0);
+    expMode = 'observed';
+    gsap.fromTo('#s4tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s4title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#s4desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 5 });
+  },
+  () => {
+    expMode = 'none'; ctx.clearRect(0, 0, 1080, 1920);
+    gsap.fromTo('#s5tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s5title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    ['#wm1','#wm2','#wm3'].forEach((id, i) => {
+      gsap.to(id, { opacity: 1, x: 0, duration: 0.7, delay: 1.5 + i * 1.5, ease: 'power3.out' });
+    });
+  },
+  () => {
+    gsap.fromTo('#s6icon', { scale: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('#s6title', { y: 30 }, { y: 0, opacity: 1, duration: 1, delay: 0.8 });
+    gsap.fromTo('#s6desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 2.5 });
+    gsap.fromTo('#s6quote', { x: -30 }, { x: 0, opacity: 1, duration: 0.8, delay: 5 });
+  },
+];
+
+document.getElementById('startOverlay').addEventListener('click', () => {
+  gsap.to('#startOverlay', { opacity: 0, duration: 0.3, onComplete: () => {
+    document.getElementById('startOverlay').style.display = 'none';
+    sceneIds.forEach((_, i) => setTimeout(() => go(i), starts[i]));
+  }});
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') go(cur + 1);
+  if (e.key === 'ArrowLeft') go(cur - 1);
+});
+</script>
+</body>
+</html>
