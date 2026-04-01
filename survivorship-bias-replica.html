@@ -1170,19 +1170,55 @@
 </div>
 
 <script>
+// ===== AUDIO ENGINE =====
+// Audio durations from edge-tts (ms), +1500ms buffer between scenes
+const audioDurations = [5736, 8112, 6600, 11568, 5976, 7200, 12864, 12048, 4080, 15864, 18360, 8712, 10104];
+const BUFFER = 1500; // pause between scenes
+
+// Calculate cumulative start times
+const sceneStarts = [];
+let cumulative = 0;
+audioDurations.forEach((dur, i) => {
+  sceneStarts.push(cumulative);
+  cumulative += dur + BUFFER;
+});
+const TOTAL_DURATION = cumulative;
+
+// Preload audio
+const audioElements = [];
+for (let i = 0; i <= 12; i++) {
+  const audio = new Audio(`audio/scene${String(i).padStart(2, '0')}.mp3`);
+  audio.preload = 'auto';
+  audioElements.push(audio);
+}
+
+// Current audio
+let currentAudio = null;
+
+function playSceneAudio(idx) {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  if (idx >= 0 && idx < audioElements.length) {
+    currentAudio = audioElements[idx];
+    currentAudio.play().catch(() => {}); // may fail without user gesture
+  }
+}
+
 // ===== TIMELINE ENGINE =====
 const scenes = [
-  // Scene 0: Black intro (0-5s)
+  // Scene 0: Black intro
   {
-    id: 'scene0', start: 0, end: 5000,
+    id: 'scene0',
     subtitle: '很多时候，我们看到的，往往只是一个视角，而非真相。',
     onEnter() {
       setTimeout(() => el('introText').classList.add('show'), 500);
     }
   },
-  // Scene 1: Planes + AA (5-12s)
+  // Scene 1: Planes + AA
   {
-    id: 'scene1', start: 5000, end: 12000,
+    id: 'scene1',
     subtitle: '美军分析被击中的战斗机',
     onEnter() {
       el('header').classList.add('show');
@@ -1197,13 +1233,12 @@ const scenes = [
       setTimeout(() => el('gun4').classList.add('show'), 1800);
     }
   },
-  // Scene 2: Top-down bullet holes (12-20s)
+  // Scene 2: Top-down bullet holes
   {
-    id: 'scene2', start: 12000, end: 20000,
+    id: 'scene2',
     subtitle: '于是建议加强这些部位的防护',
     onEnter() {
       el('topPlane').classList.add('show');
-      // Add bullet holes
       const holes = [
         {x:130,y:170},{x:160,y:180},{x:110,y:190},
         {x:530,y:170},{x:560,y:180},{x:500,y:190},
@@ -1223,15 +1258,14 @@ const scenes = [
           });
         }, 800 + i * 150);
       });
-      // Show arrows
       setTimeout(() => {
         document.querySelectorAll('.arrow-path').forEach(p => p.style.opacity = '1');
       }, 3500);
     }
   },
-  // Scene 3: Wald vs Military (20-30s)
+  // Scene 3: Wald vs Military
   {
-    id: 'scene3', start: 20000, end: 30000,
+    id: 'scene3',
     subtitle: '真正需要防护的是机尾而不是机翼',
     onEnter() {
       el('scene3Plane').classList.add('show');
@@ -1241,27 +1275,27 @@ const scenes = [
       setTimeout(() => el('tailHighlight').classList.add('show'), 2800);
     }
   },
-  // Scene 4: Crashed plane (30-40s)
+  // Scene 4: Crashed plane
   {
-    id: 'scene4', start: 30000, end: 40000,
-    subtitle: '而那些沉默的未能返航的数据',
+    id: 'scene4',
+    subtitle: '那些沉默的未能返航的飞机才是关键',
     onEnter() {
       setTimeout(() => el('crashBox').classList.add('show'), 500);
       setTimeout(() => el('healthyPlane').classList.add('show'), 1200);
     }
   },
-  // Scene 5: Summary box (40-48s)
+  // Scene 5: Summary box
   {
-    id: 'scene5', start: 40000, end: 48000,
+    id: 'scene5',
     subtitle: '这就是幸存者偏差',
     onEnter() {
       setTimeout(() => el('summaryBox').classList.add('show'), 500);
       setTimeout(() => el('summaryLabel').classList.add('show'), 1200);
     }
   },
-  // Scene 6: Startup (48-60s)
+  // Scene 6: Startup
   {
-    id: 'scene6', start: 48000, end: 60000,
+    id: 'scene6',
     subtitle: '就像你刷到100个辞职创业成功的故事',
     onEnter() {
       setTimeout(() => el('selectBadge').classList.add('show'), 300);
@@ -1270,9 +1304,9 @@ const scenes = [
       setTimeout(() => el('scene6Text').classList.add('show'), 2000);
     }
   },
-  // Scene 7: Other people's kids (60-78s)
+  // Scene 7: Other people's kids
   {
-    id: 'scene7', start: 60000, end: 78000,
+    id: 'scene7',
     subtitle: '经常听到你看别人家的孩子',
     onEnter() {
       setTimeout(() => el('idealKids').classList.add('show'), 300);
@@ -1281,18 +1315,18 @@ const scenes = [
       setTimeout(() => { el('normalKids').classList.add('show'); el('normalLabel').classList.add('show'); }, 3000);
     }
   },
-  // Scene 8: Break free (78-85s)  
+  // Scene 8: Break free
   {
-    id: 'scene8', start: 78000, end: 85000,
+    id: 'scene8',
     subtitle: '如何打破幸存者偏差的困局？',
     onEnter() {
       setTimeout(() => el('breakTitle').classList.add('show'), 300);
     }
   },
-  // Scene 9: Three methods (85-110s)
+  // Scene 9: Three methods
   {
-    id: 'scene9', start: 85000, end: 110000,
-    subtitle: '也要主动挖掘未被讲述的故事',
+    id: 'scene9',
+    subtitle: '主动挖掘未被讲述的故事',
     onEnter() {
       setTimeout(() => el('method1').classList.add('show'), 300);
       setTimeout(() => el('method2').classList.add('show'), 800);
@@ -1302,19 +1336,19 @@ const scenes = [
       setTimeout(() => el('bayesFormula').classList.add('show'), 3500);
     }
   },
-  // Scene 10: Seatbelt (110-145s)
+  // Scene 10: Seatbelt
   {
-    id: 'scene10', start: 110000, end: 145000,
-    subtitle: '而几乎所有系安全带的驾驶员幸存',
+    id: 'scene10',
+    subtitle: '几乎所有系安全带的驾驶员都幸存了下来',
     onEnter() {
       setTimeout(() => el('carCrash').classList.add('show'), 500);
       setTimeout(() => el('noSeatbelt').classList.add('show'), 1500);
       setTimeout(() => el('withSeatbelt').classList.add('show'), 2500);
     }
   },
-  // Scene 11: Data prisoner (145-170s)
+  // Scene 11: Data prisoner
   {
-    id: 'scene11', start: 145000, end: 170000,
+    id: 'scene11',
     subtitle: '我们都是被数据筛选的囚徒',
     onEnter() {
       setTimeout(() => el('overwhelmed').classList.add('show'), 500);
@@ -1324,9 +1358,9 @@ const scenes = [
       setTimeout(() => el('fl4').classList.add('show'), 2200);
     }
   },
-  // Scene 12: Conclusion (170-191s)
+  // Scene 12: Conclusion
   {
-    id: 'scene12', start: 170000, end: 191000,
+    id: 'scene12',
     subtitle: '多角度观察，多换位思考',
     onEnter() {
       setTimeout(() => el('happyPerson').classList.add('show'), 500);
@@ -1339,7 +1373,6 @@ const scenes = [
 function el(id) { return document.getElementById(id); }
 
 let currentSceneIdx = -1;
-const TOTAL_DURATION = 191000;
 
 function goToScene(idx) {
   if (idx === currentSceneIdx || idx < 0 || idx >= scenes.length) return;
@@ -1353,6 +1386,9 @@ function goToScene(idx) {
   const scene = scenes[idx];
   el(scene.id).classList.add('active');
   
+  // Play audio
+  playSceneAudio(idx);
+  
   // Subtitle
   const sub = el('subtitle');
   sub.classList.remove('show');
@@ -1362,24 +1398,42 @@ function goToScene(idx) {
   }, 200);
   
   // Progress
-  el('progress').style.width = ((scene.end / TOTAL_DURATION) * 100) + '%';
+  const endTime = sceneStarts[idx] + audioDurations[idx];
+  el('progress').style.width = ((endTime / TOTAL_DURATION) * 100) + '%';
   
   // Trigger enter
   if (scene.onEnter) scene.onEnter();
 }
 
-// Auto-play
+// Auto-play with audio-synced timing
 function autoPlay() {
   scenes.forEach((scene, idx) => {
-    setTimeout(() => goToScene(idx), scene.start);
+    setTimeout(() => goToScene(idx), sceneStarts[idx]);
   });
 }
 
-// Start
-setTimeout(autoPlay, 500);
+// Click anywhere to start (needed for audio autoplay policy)
+let started = false;
+const startOverlay = document.createElement('div');
+startOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;cursor:pointer;';
+startOverlay.innerHTML = '<div style="color:white;font-size:48px;font-family:\'Ma Shan Zheng\',cursive;letter-spacing:8px;">▶ 点击播放</div>';
+document.body.appendChild(startOverlay);
+
+startOverlay.addEventListener('click', () => {
+  if (started) return;
+  started = true;
+  startOverlay.style.display = 'none';
+  autoPlay();
+});
 
 // Keyboard nav
 document.addEventListener('keydown', (e) => {
+  if (!started) {
+    started = true;
+    startOverlay.style.display = 'none';
+    autoPlay();
+    return;
+  }
   if (e.key === 'ArrowRight' || e.key === ' ') goToScene(currentSceneIdx + 1);
   if (e.key === 'ArrowLeft') goToScene(currentSceneIdx - 1);
 });
