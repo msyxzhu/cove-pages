@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>幸存者偏差</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: #f5f0e8;
+    font-family: 'Noto Sans SC', sans-serif;
+    position: relative;
+  }
+
+  /* Paper texture overlay */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(139,69,19,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(139,69,19,0.05) 0%, transparent 50%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.008) 2px, rgba(0,0,0,0.008) 4px);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+  }
+  .scene.active { opacity: 1; }
+
+  /* ========== SCENE 1: Title ========== */
+  #scene1 {
+    background: linear-gradient(180deg, #f5f0e8 0%, #ede5d8 100%);
+  }
+
+  .title-container {
+    text-align: center;
+    position: relative;
+  }
+
+  .title-en {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 42px;
+    color: #999;
+    letter-spacing: 8px;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 0.5s;
+  }
+
+  .title-main {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 120px;
+    font-weight: 900;
+    color: #1a1a1a;
+    letter-spacing: 16px;
+    margin: 30px 0;
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+    animation: titleReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 1s;
+  }
+
+  .title-line {
+    width: 0;
+    height: 4px;
+    background: #c0392b;
+    margin: 0 auto;
+    animation: lineExpand 0.6s ease forwards;
+    animation-delay: 1.8s;
+  }
+
+  .title-sub {
+    font-size: 36px;
+    color: #666;
+    margin-top: 40px;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 2.2s;
+  }
+
+  .title-red {
+    color: #c0392b;
+    font-weight: 700;
+  }
+
+  /* Floating question marks */
+  .qmark {
+    position: absolute;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 200px;
+    color: rgba(192, 57, 43, 0.06);
+    animation: float 6s ease-in-out infinite;
+  }
+  .qmark:nth-child(1) { top: 100px; left: 80px; animation-delay: 0s; }
+  .qmark:nth-child(2) { top: 300px; right: 60px; animation-delay: 2s; font-size: 150px; }
+  .qmark:nth-child(3) { bottom: 200px; left: 120px; animation-delay: 4s; font-size: 180px; }
+
+  /* ========== SCENE 2: WWII Story ========== */
+  #scene2 { padding: 80px 60px; }
+
+  .scene-label {
+    font-size: 28px;
+    color: #c0392b;
+    letter-spacing: 6px;
+    font-weight: 700;
+    align-self: flex-start;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s ease forwards;
+  }
+
+  .scene2-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 64px;
+    font-weight: 900;
+    color: #1a1a1a;
+    margin: 30px 0 50px;
+    align-self: flex-start;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 0.3s;
+  }
+
+  /* Airplane SVG */
+  .plane-container {
+    position: relative;
+    width: 900px;
+    height: 600px;
+    margin: 20px 0;
+  }
+
+  .plane-body {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    animation: planeAppear 1s ease forwards;
+    animation-delay: 0.8s;
+  }
+
+  /* Bullet holes */
+  .bullet-hole {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, #c0392b 0%, #8b0000 40%, transparent 70%);
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  .bullet-hole.show {
+    animation: bulletImpact 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .bullet-ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(192, 57, 43, 0.4);
+    animation: ringExpand 0.6s ease forwards;
+    opacity: 0;
+  }
+
+  .scene2-text {
+    font-size: 36px;
+    color: #444;
+    line-height: 1.8;
+    text-align: center;
+    max-width: 900px;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 3s;
+  }
+
+  /* ========== SCENE 3: Two perspectives ========== */
+  #scene3 { padding: 80px 60px; }
+
+  .versus-container {
+    display: flex;
+    width: 100%;
+    gap: 40px;
+    margin: 40px 0;
+  }
+
+  .perspective-card {
+    flex: 1;
+    background: white;
+    border-radius: 24px;
+    padding: 50px 40px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(60px);
+    box-shadow: 0 4px 30px rgba(0,0,0,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .perspective-card.wrong {
+    border: 3px solid #e74c3c;
+    animation: cardSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.5s;
+  }
+
+  .perspective-card.right {
+    border: 3px solid #27ae60;
+    animation: cardSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.8s;
+  }
+
+  .card-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+  }
+
+  .card-label {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .card-label.wrong-label { color: #e74c3c; }
+  .card-label.right-label { color: #27ae60; }
+
+  .card-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: #1a1a1a;
+    margin-bottom: 20px;
+  }
+
+  .card-desc {
+    font-size: 28px;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  .vs-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 900;
+    font-size: 28px;
+    z-index: 10;
+    opacity: 0;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation-delay: 1.2s;
+  }
+
+  .scene3-bottom {
+    font-size: 32px;
+    color: #c0392b;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 1.8s;
+    margin-top: 30px;
+  }
+
+  /* ========== SCENE 4: Examples ========== */
+  #scene4 { padding: 80px 60px; align-items: flex-start; }
+
+  .example-list {
+    width: 100%;
+    margin-top: 40px;
+  }
+
+  .example-item {
+    display: flex;
+    align-items: flex-start;
+    background: white;
+    border-radius: 20px;
+    padding: 36px 40px;
+    margin-bottom: 24px;
+    opacity: 0;
+    transform: translateX(-80px);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+  }
+
+  .example-item.show {
+    animation: slideInLeft 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .example-icon {
+    font-size: 56px;
+    margin-right: 30px;
+    flex-shrink: 0;
+  }
+
+  .example-content h3 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+
+  .example-content p {
+    font-size: 26px;
+    color: #888;
+    line-height: 1.5;
+  }
+
+  .example-highlight {
+    color: #c0392b;
+    font-weight: 700;
+  }
+
+  /* ========== SCENE 5: Conclusion ========== */
+  #scene5 {
+    background: linear-gradient(180deg, #1a1a1a 0%, #2c2c2c 100%);
+  }
+
+  .conclusion-icon {
+    font-size: 120px;
+    opacity: 0;
+    animation: popIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation-delay: 0.3s;
+  }
+
+  .conclusion-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 72px;
+    font-weight: 900;
+    color: white;
+    text-align: center;
+    margin: 40px 0;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 0.8s;
+  }
+
+  .conclusion-text {
+    font-size: 36px;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    line-height: 2;
+    max-width: 800px;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 1.2s;
+  }
+
+  .conclusion-quote {
+    margin-top: 60px;
+    padding: 40px 50px;
+    border-left: 4px solid #c0392b;
+    opacity: 0;
+    animation: fadeSlideUp 0.8s ease forwards;
+    animation-delay: 1.8s;
+  }
+
+  .conclusion-quote p {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 40px;
+    color: #c0392b;
+    font-weight: 700;
+    line-height: 1.6;
+  }
+
+  .conclusion-quote .author {
+    font-size: 28px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 16px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 300;
+  }
+
+  /* ========== Subtitle bar ========== */
+  .subtitle-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 160px;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 0 60px;
+  }
+
+  .subtitle-text {
+    font-size: 38px;
+    color: white;
+    text-align: center;
+    line-height: 1.5;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .subtitle-text.show { opacity: 1; }
+
+  /* ========== Progress bar ========== */
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 6px;
+    background: #c0392b;
+    z-index: 200;
+    transition: width 0.5s ease;
+  }
+
+  /* ========== Nav dots ========== */
+  .nav-dots {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .nav-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .nav-dot.active {
+    background: #c0392b;
+    transform: scale(1.4);
+  }
+
+  /* ========== Keyframes ========== */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes titleReveal {
+    from { opacity: 0; transform: translateY(40px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes lineExpand {
+    from { width: 0; }
+    to { width: 200px; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-30px) rotate(5deg); }
+  }
+
+  @keyframes planeAppear {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  @keyframes bulletImpact {
+    0% { opacity: 0; transform: scale(0); width: 0; height: 0; }
+    50% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 1; transform: scale(1); width: 28px; height: 28px; }
+  }
+
+  @keyframes ringExpand {
+    from { opacity: 0.8; transform: scale(1); }
+    to { opacity: 0; transform: scale(2.5); }
+  }
+
+  @keyframes cardSlideIn {
+    from { opacity: 0; transform: translateY(60px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-80px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+    25% { transform: translate(-50%, -50%) rotate(-2deg); }
+    75% { transform: translate(-50%, -50%) rotate(2deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<div class="nav-dots" id="navDots"></div>
+
+<!-- SCENE 1: Title -->
+<div class="scene active" id="scene1">
+  <span class="qmark">?</span>
+  <span class="qmark">?</span>
+  <span class="qmark">?</span>
+  <div class="title-container">
+    <div class="title-en">SURVIVORSHIP BIAS</div>
+    <div class="title-main">幸存者偏差</div>
+    <div class="title-line"></div>
+    <div class="title-sub">你看到的「真相」<span class="title-red">可能只是幸存者的故事</span></div>
+  </div>
+</div>
+
+<!-- SCENE 2: WWII Plane Story -->
+<div class="scene" id="scene2">
+  <div class="scene-label">/ 经典案例</div>
+  <div class="scene2-title">二战·弹孔之谜</div>
+  <div class="plane-container" id="planeContainer">
+    <svg class="plane-body" width="700" height="500" viewBox="0 0 700 500">
+      <!-- Fuselage -->
+      <ellipse cx="350" cy="250" rx="280" ry="60" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-dasharray="1200" stroke-dashoffset="1200">
+        <animate attributeName="stroke-dashoffset" to="0" dur="1.5s" begin="0.8s" fill="freeze"/>
+      </ellipse>
+      <!-- Left wing -->
+      <path d="M200,250 L80,120 L160,110 L280,230" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-dasharray="600" stroke-dashoffset="600">
+        <animate attributeName="stroke-dashoffset" to="0" dur="1s" begin="1.5s" fill="freeze"/>
+      </path>
+      <!-- Right wing -->
+      <path d="M200,250 L80,380 L160,390 L280,270" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-dasharray="600" stroke-dashoffset="600">
+        <animate attributeName="stroke-dashoffset" to="0" dur="1s" begin="1.5s" fill="freeze"/>
+      </path>
+      <!-- Tail top -->
+      <path d="M600,250 L650,160 L680,170 L620,240" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-dasharray="300" stroke-dashoffset="300">
+        <animate attributeName="stroke-dashoffset" to="0" dur="0.8s" begin="2s" fill="freeze"/>
+      </path>
+      <!-- Tail bottom -->
+      <path d="M600,260 L650,340 L680,330 L620,265" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-dasharray="300" stroke-dashoffset="300">
+        <animate attributeName="stroke-dashoffset" to="0" dur="0.8s" begin="2s" fill="freeze"/>
+      </path>
+      <!-- Nose -->
+      <ellipse cx="72" cy="250" rx="18" ry="25" fill="none" stroke="#1a1a1a" stroke-width="3" opacity="0">
+        <animate attributeName="opacity" to="1" dur="0.3s" begin="2.5s" fill="freeze"/>
+      </ellipse>
+      <!-- Cockpit -->
+      <ellipse cx="180" cy="240" rx="40" ry="25" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-dasharray="4 4" opacity="0">
+        <animate attributeName="opacity" to="1" dur="0.3s" begin="2.5s" fill="freeze"/>
+      </ellipse>
+    </svg>
+    <!-- Bullet holes added by JS -->
+  </div>
+  <div class="scene2-text">
+    军方想加固弹孔最多的地方<br>
+    <span style="color:#c0392b;font-weight:700">但真正的答案恰恰相反 ↓</span>
+  </div>
+</div>
+
+<!-- SCENE 3: Two Perspectives -->
+<div class="scene" id="scene3">
+  <div class="scene-label">/ 两种思维</div>
+  <div class="versus-container" style="position:relative;">
+    <div class="perspective-card wrong">
+      <div class="card-icon">❌</div>
+      <div class="card-label wrong-label">军方的想法</div>
+      <div class="card-title">加固弹孔多的地方</div>
+      <div class="card-desc">「这些地方中弹最多，<br>最需要保护」</div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="perspective-card right">
+      <div class="card-icon">✅</div>
+      <div class="card-label right-label">沃德的洞察</div>
+      <div class="card-title">加固弹孔少的地方</div>
+      <div class="card-desc">「中弹在那里的飞机<br>根本没飞回来」</div>
+    </div>
+  </div>
+  <div class="scene3-bottom">
+    💡 你看到的数据，只来自「活下来的」样本
+  </div>
+</div>
+
+<!-- SCENE 4: Life Examples -->
+<div class="scene" id="scene4">
+  <div class="scene-label">/ 生活中的幸存者偏差</div>
+  <div class="scene2-title" style="font-size:52px;">你是否也中过招？</div>
+  <div class="example-list" id="exampleList">
+    <div class="example-item">
+      <div class="example-icon">🎓</div>
+      <div class="example-content">
+        <h3>「读书无用论」</h3>
+        <p>只看到辍学成功的<span class="example-highlight">比尔·盖茨</span><br>看不到千万辍学后挣扎的普通人</p>
+      </div>
+    </div>
+    <div class="example-item">
+      <div class="example-icon">💰</div>
+      <div class="example-content">
+        <h3>「创业很简单」</h3>
+        <p>媒体报道的都是<span class="example-highlight">成功案例</span><br>90%失败的公司无人问津</p>
+      </div>
+    </div>
+    <div class="example-item">
+      <div class="example-icon">🏥</div>
+      <div class="example-content">
+        <h3>「老偏方治大病」</h3>
+        <p>活着讲述的人说<span class="example-highlight">「我好了」</span><br>没好的人已经说不了话了</p>
+      </div>
+    </div>
+    <div class="example-item">
+      <div class="example-icon">📱</div>
+      <div class="example-content">
+        <h3>「以前的东西质量好」</h3>
+        <p>留到现在的都是<span class="example-highlight">精品中的精品</span><br>烂的早就被扔了</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 5: Conclusion -->
+<div class="scene" id="scene5">
+  <div class="conclusion-icon">🧠</div>
+  <div class="conclusion-title">看见「看不见」的</div>
+  <div class="conclusion-text">
+    下次当你听到一个「铁证如山」的结论时<br>
+    问问自己——<br>
+    <strong style="color:white;">那些沉默的数据去哪了？</strong>
+  </div>
+  <div class="conclusion-quote">
+    <p>「死人不会说话」</p>
+    <div class="author">—— 亚伯拉罕·沃德 (Abraham Wald)</div>
+  </div>
+</div>
+
+<!-- Subtitle bar -->
+<div class="subtitle-bar">
+  <div class="subtitle-text" id="subtitle"></div>
+</div>
+
+<script>
+const TOTAL_SCENES = 5;
+let currentScene = 0;
+
+// Scene timing
+const sceneDurations = [5000, 8000, 7000, 8000, 7000];
+
+// Subtitles per scene
+const subtitles = [
+  [
+    { time: 0, text: '你有没有想过' },
+    { time: 1500, text: '你看到的「真相」' },
+    { time: 3000, text: '可能只是故事的一半？' },
+  ],
+  [
+    { time: 0, text: '二战期间，盟军统计了返航轰炸机的弹孔分布' },
+    { time: 3000, text: '机翼和机身布满弹孔' },
+    { time: 5000, text: '军方决定：加固弹孔最多的部位' },
+    { time: 7000, text: '但统计学家沃德说：你们搞反了' },
+  ],
+  [
+    { time: 0, text: '军方看到的是「飞回来的飞机」' },
+    { time: 2500, text: '弹孔少的地方 = 被击中就坠毁了' },
+    { time: 5000, text: '这就是幸存者偏差的经典案例' },
+  ],
+  [
+    { time: 0, text: '幸存者偏差在生活中无处不在' },
+    { time: 2500, text: '我们只看到成功者、幸运者' },
+    { time: 5000, text: '却忽略了沉默的大多数' },
+  ],
+  [
+    { time: 0, text: '下次做判断之前' },
+    { time: 2000, text: '记得问自己——' },
+    { time: 3500, text: '那些「消失的数据」说明了什么？' },
+    { time: 5500, text: '看见「看不见」的，才是真正的思考' },
+  ],
+];
+
+// Bullet hole positions (relative to plane container)
+const bulletPositions = [
+  { x: 180, y: 220 }, { x: 250, y: 280 }, { x: 320, y: 240 },
+  { x: 150, y: 260 }, { x: 400, y: 230 }, { x: 350, y: 270 },
+  { x: 130, y: 150 }, { x: 200, y: 130 }, // wings
+  { x: 130, y: 350 }, { x: 200, y: 370 }, // wings
+  { x: 280, y: 260 }, { x: 420, y: 250 },
+];
+
+function initNavDots() {
+  const container = document.getElementById('navDots');
+  for (let i = 0; i < TOTAL_SCENES; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToScene(i);
+    container.appendChild(dot);
+  }
+}
+
+function updateProgress() {
+  const pct = ((currentScene + 1) / TOTAL_SCENES) * 100;
+  document.getElementById('progress').style.width = pct + '%';
+}
+
+function updateNavDots() {
+  document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === currentScene);
+  });
+}
+
+function showSubtitles(sceneIdx) {
+  const subs = subtitles[sceneIdx];
+  const el = document.getElementById('subtitle');
+  subs.forEach(s => {
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => {
+        el.textContent = s.text;
+        el.classList.add('show');
+      }, 150);
+    }, s.time);
+  });
+}
+
+function triggerBulletHoles() {
+  const container = document.getElementById('planeContainer');
+  // Remove old holes
+  container.querySelectorAll('.bullet-hole').forEach(h => h.remove());
+
+  bulletPositions.forEach((pos, i) => {
+    setTimeout(() => {
+      const hole = document.createElement('div');
+      hole.className = 'bullet-hole';
+      hole.style.left = pos.x + 'px';
+      hole.style.top = pos.y + 'px';
+      container.appendChild(hole);
+
+      // Trigger animation
+      requestAnimationFrame(() => hole.classList.add('show'));
+
+      // Ring effect
+      const ring = document.createElement('div');
+      ring.className = 'bullet-ring';
+      hole.appendChild(ring);
+    }, 2800 + i * 200);
+  });
+}
+
+function triggerExamples() {
+  const items = document.querySelectorAll('.example-item');
+  items.forEach((item, i) => {
+    setTimeout(() => item.classList.add('show'), 800 + i * 500);
+  });
+}
+
+function goToScene(idx) {
+  if (idx < 0 || idx >= TOTAL_SCENES) return;
+
+  // Deactivate all
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+
+  currentScene = idx;
+  const scene = document.getElementById('scene' + (idx + 1));
+  scene.classList.add('active');
+
+  updateProgress();
+  updateNavDots();
+  showSubtitles(idx);
+
+  // Scene-specific triggers
+  if (idx === 1) triggerBulletHoles();
+  if (idx === 3) triggerExamples();
+}
+
+function autoPlay() {
+  let elapsed = 0;
+  for (let i = 0; i < TOTAL_SCENES; i++) {
+    const sceneIdx = i;
+    setTimeout(() => goToScene(sceneIdx), elapsed);
+    elapsed += sceneDurations[i];
+  }
+}
+
+// Init
+initNavDots();
+updateProgress();
+showSubtitles(0);
+
+// Auto-play after 1s
+setTimeout(autoPlay, 1000);
+
+// Also allow keyboard nav
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') goToScene(currentScene + 1);
+  if (e.key === 'ArrowLeft') goToScene(currentScene - 1);
+});
+</script>
+
+</body>
+</html>
