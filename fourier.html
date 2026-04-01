@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>傅里叶变换 - 圆的魔法</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;700;900&family=Noto+Serif+SC:wght@700;900&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #0a0a2e;
+    --blue: #4fc3f7;
+    --pink: #ff6b9d;
+    --gold: #ffd54f;
+    --green: #69f0ae;
+    --white: #e8eaf6;
+  }
+
+  body {
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--white);
+  }
+
+  /* Stars background */
+  .stars {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(1px 1px at 100px 200px, white 50%, transparent 50%),
+      radial-gradient(1px 1px at 300px 400px, white 50%, transparent 50%),
+      radial-gradient(2px 2px at 500px 100px, rgba(255,255,255,0.8) 50%, transparent 50%),
+      radial-gradient(1px 1px at 700px 350px, white 50%, transparent 50%),
+      radial-gradient(1px 1px at 200px 600px, white 50%, transparent 50%),
+      radial-gradient(2px 2px at 800px 550px, rgba(255,255,255,0.6) 50%, transparent 50%),
+      radial-gradient(1px 1px at 400px 800px, white 50%, transparent 50%),
+      radial-gradient(1px 1px at 600px 700px, white 50%, transparent 50%),
+      radial-gradient(1px 1px at 150px 900px, white 50%, transparent 50%),
+      radial-gradient(2px 2px at 900px 850px, rgba(255,255,255,0.7) 50%, transparent 50%),
+      radial-gradient(1px 1px at 50px 1100px, white 50%, transparent 50%),
+      radial-gradient(1px 1px at 750px 1200px, white 50%, transparent 50%),
+      radial-gradient(1px 1px at 350px 1400px, white 50%, transparent 50%),
+      radial-gradient(2px 2px at 950px 1300px, rgba(255,255,255,0.6) 50%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    z-index: 10;
+  }
+  .scene.active { opacity: 1; visibility: visible; }
+
+  /* Subtitle */
+  .subtitle-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 140px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.9));
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 0 60px;
+  }
+  .subtitle-text {
+    font-size: 36px; color: white; text-align: center;
+    letter-spacing: 3px; line-height: 1.5; opacity: 0;
+  }
+
+  /* Progress */
+  .progress-bar {
+    position: absolute; top: 0; left: 0;
+    height: 4px; background: var(--gold); z-index: 200; width: 0;
+  }
+
+  /* Start overlay */
+  .start-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; gap: 30px;
+  }
+  .start-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 80px; font-weight: 900;
+    background: linear-gradient(135deg, var(--blue), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 12px;
+  }
+  .start-sub { font-size: 36px; color: var(--blue); opacity: 0.7; }
+  .start-play {
+    width: 100px; height: 100px;
+    border: 3px solid var(--blue); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; color: var(--blue);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+
+  /* ===== CANVAS for Fourier ===== */
+  canvas { position: absolute; top: 0; left: 0; z-index: 5; }
+
+  /* ===== Scene styles ===== */
+
+  /* Scene 0: Title */
+  #scene0 { gap: 30px; }
+  .title-icon { font-size: 120px; opacity: 0; }
+  .title-main {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 100px; font-weight: 900;
+    letter-spacing: 16px; opacity: 0;
+  }
+  .title-gradient {
+    background: linear-gradient(135deg, var(--blue), var(--pink), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .title-sub { font-size: 40px; color: var(--blue); opacity: 0; letter-spacing: 6px; }
+
+  /* Scene 1: Simple circle */
+  #scene1 { gap: 20px; }
+  .scene-label {
+    font-size: 28px; color: var(--gold); letter-spacing: 8px;
+    font-weight: 700; opacity: 0;
+  }
+  .scene-title {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 64px; opacity: 0;
+  }
+  .canvas-area {
+    position: relative;
+    width: 800px; height: 800px;
+  }
+
+  /* Scene 3: Formula */
+  .formula-box {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(79,195,247,0.3);
+    border-radius: 20px; padding: 40px 60px;
+    opacity: 0;
+  }
+  .formula {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 48px; color: var(--gold);
+    letter-spacing: 4px;
+  }
+
+  /* Glow effect */
+  .glow-blue { text-shadow: 0 0 20px rgba(79,195,247,0.5); }
+  .glow-pink { text-shadow: 0 0 20px rgba(255,107,157,0.5); }
+  .glow-gold { text-shadow: 0 0 20px rgba(255,213,79,0.5); }
+</style>
+</head>
+<body>
+
+<div class="stars"></div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- START -->
+<div class="start-overlay" id="startOverlay">
+  <div class="start-title">傅里叶变换</div>
+  <div class="start-sub">用旋转的圆，画出一切</div>
+  <div class="start-play">▶</div>
+</div>
+
+<!-- Main canvas for Fourier visualization -->
+<canvas id="fourierCanvas" width="1080" height="1920"></canvas>
+
+<!-- SCENE 0: Title -->
+<div class="scene" id="scene0">
+  <div class="title-icon">🔵</div>
+  <div class="title-main title-gradient">傅里叶变换</div>
+  <div class="title-sub">一个改变世界的数学工具</div>
+  <div style="margin-top:40px; opacity:0;" id="titleDesc">
+    <div style="font-size:32px; color:rgba(255,255,255,0.5); line-height:1.8; text-align:center;">
+      MP3 · JPEG · WiFi · MRI<br>
+      它们都依赖同一个原理
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 1: One circle = sine wave -->
+<div class="scene" id="scene1">
+  <div class="scene-label" id="s1label">/ 第一步</div>
+  <div class="scene-title" id="s1title">一个圆 = 一个正弦波</div>
+  <div class="canvas-area" id="sineArea"></div>
+</div>
+
+<!-- SCENE 2: Multiple circles = complex wave -->
+<div class="scene" id="scene2">
+  <div class="scene-label" id="s2label">/ 叠加</div>
+  <div class="scene-title" id="s2title">多个圆叠加 = 复杂波形</div>
+  <div class="canvas-area" id="multiArea"></div>
+</div>
+
+<!-- SCENE 3: Draw anything -->
+<div class="scene" id="scene3">
+  <div class="scene-label" id="s3label">/ 魔法时刻</div>
+  <div class="scene-title" id="s3title" style="font-size:56px;">足够多的圆 = 画出任何图形</div>
+  <div class="canvas-area" id="drawArea"></div>
+</div>
+
+<!-- SCENE 4: Formula -->
+<div class="scene" id="scene4">
+  <div class="scene-label" id="s4label">/ 核心公式</div>
+  <div class="formula-box" id="formulaBox">
+    <div class="formula">f(t) = Σ cₙ · e<sup>i·2πnt</sup></div>
+  </div>
+  <div style="margin-top:40px; max-width:800px; text-align:center; opacity:0;" id="formulaDesc">
+    <div style="font-size:32px; line-height:1.8; color:rgba(255,255,255,0.7);">
+      任何周期函数<br>
+      都可以分解为<span class="glow-blue" style="color:var(--blue);">无数个旋转圆</span>的叠加<br>
+      每个圆有自己的<span class="glow-pink" style="color:var(--pink);">频率</span>、<span class="glow-gold" style="color:var(--gold);">振幅</span>和<span style="color:var(--green);">相位</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 5: Applications -->
+<div class="scene" id="scene5" style="padding:60px; gap:30px;">
+  <div class="scene-title" id="s5title" style="font-size:52px;">它无处不在</div>
+  <div id="apps" style="display:flex; flex-direction:column; gap:24px; width:100%;">
+    <div class="app-card" style="display:flex;align-items:center;gap:30px;background:rgba(79,195,247,0.08);border:2px solid rgba(79,195,247,0.2);border-radius:16px;padding:24px 36px;opacity:0;transform:translateX(-60px);">
+      <span style="font-size:56px;">🎵</span>
+      <div>
+        <div style="font-size:32px;font-weight:700;color:var(--blue);">MP3 音频压缩</div>
+        <div style="font-size:24px;color:rgba(255,255,255,0.5);">去掉人耳听不到的频率分量</div>
+      </div>
+    </div>
+    <div class="app-card" style="display:flex;align-items:center;gap:30px;background:rgba(255,107,157,0.08);border:2px solid rgba(255,107,157,0.2);border-radius:16px;padding:24px 36px;opacity:0;transform:translateX(-60px);">
+      <span style="font-size:56px;">📷</span>
+      <div>
+        <div style="font-size:32px;font-weight:700;color:var(--pink);">JPEG 图片压缩</div>
+        <div style="font-size:24px;color:rgba(255,255,255,0.5);">把像素变成频率，丢掉高频细节</div>
+      </div>
+    </div>
+    <div class="app-card" style="display:flex;align-items:center;gap:30px;background:rgba(255,213,79,0.08);border:2px solid rgba(255,213,79,0.2);border-radius:16px;padding:24px 36px;opacity:0;transform:translateX(-60px);">
+      <span style="font-size:56px;">📶</span>
+      <div>
+        <div style="font-size:32px;font-weight:700;color:var(--gold);">WiFi / 5G 信号</div>
+        <div style="font-size:24px;color:rgba(255,255,255,0.5);">用不同频率同时传输多路数据</div>
+      </div>
+    </div>
+    <div class="app-card" style="display:flex;align-items:center;gap:30px;background:rgba(105,240,174,0.08);border:2px solid rgba(105,240,174,0.2);border-radius:16px;padding:24px 36px;opacity:0;transform:translateX(-60px);">
+      <span style="font-size:56px;">🏥</span>
+      <div>
+        <div style="font-size:32px;font-weight:700;color:var(--green);">MRI 核磁共振</div>
+        <div style="font-size:24px;color:rgba(255,255,255,0.5);">从频率信号重建人体截面图像</div>
+      </div>
+    </div>
+    <div class="app-card" style="display:flex;align-items:center;gap:30px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px 36px;opacity:0;transform:translateX(-60px);">
+      <span style="font-size:56px;">🌊</span>
+      <div>
+        <div style="font-size:32px;font-weight:700;">地震预测 · 语音识别 · 量子力学…</div>
+        <div style="font-size:24px;color:rgba(255,255,255,0.5);">几乎所有涉及波和信号的领域</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 6: Conclusion -->
+<div class="scene" id="scene6">
+  <div style="font-size:100px; opacity:0;" id="concEmoji">🌌</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:64px; font-weight:900; text-align:center; line-height:1.6; opacity:0; margin-top:30px;" id="concText">
+    <span class="title-gradient">用最简单的圆</span><br>
+    描述最复杂的世界
+  </div>
+  <div style="margin-top:50px; font-size:36px; color:rgba(255,255,255,0.4); opacity:0; letter-spacing:6px;" id="concAuthor">
+    —— 约瑟夫·傅里叶 (1768-1830)
+  </div>
+</div>
+
+<!-- SUBTITLE BAR -->
+<div class="subtitle-bar">
+  <div class="subtitle-text" id="subtitle"></div>
+</div>
+
+<script>
+// ===== FOURIER CANVAS ENGINE =====
+const canvas = document.getElementById('fourierCanvas');
+const ctx = canvas.getContext('2d');
+let animating = false;
+let fourierMode = 'none'; // 'sine', 'multi', 'draw'
+let time = 0;
+let wave = [];
+let drawPath = [];
+
+// Epicycle parameters
+const sineCircle = [{ freq: 1, amp: 150, phase: 0 }];
+const multiCircles = [
+  { freq: 1, amp: 120, phase: 0 },
+  { freq: 3, amp: 60, phase: Math.PI / 4 },
+  { freq: 5, amp: 30, phase: Math.PI / 2 },
+  { freq: 7, amp: 15, phase: 0 },
+];
+
+// Star shape for "draw anything"
+function generateStarPath(cx, cy, r, points) {
+  const path = [];
+  for (let i = 0; i < 200; i++) {
+    const t = (i / 200) * Math.PI * 2;
+    const angle = t;
+    const mod = r * (0.5 + 0.5 * Math.cos(points * angle));
+    path.push({ x: cx + mod * Math.cos(angle), y: cy + mod * Math.sin(angle) });
+  }
+  return path;
+}
+
+// DFT
+function dft(x) {
+  const N = x.length;
+  const X = [];
+  for (let k = 0; k < N; k++) {
+    let re = 0, im = 0;
+    for (let n = 0; n < N; n++) {
+      const phi = (2 * Math.PI * k * n) / N;
+      re += x[n].x * Math.cos(phi) + x[n].y * Math.sin(phi);
+      im += -x[n].x * Math.sin(phi) + x[n].y * Math.cos(phi);
+    }
+    re /= N; im /= N;
+    X.push({
+      freq: k, amp: Math.sqrt(re*re + im*im),
+      phase: Math.atan2(im, re)
+    });
+  }
+  return X.sort((a,b) => b.amp - a.amp);
+}
+
+let starFourier = [];
+
+function initStarFourier() {
+  const path = generateStarPath(0, 0, 200, 5);
+  starFourier = dft(path);
+}
+
+function drawEpicycles(cx, cy, circles, t, color) {
+  let x = cx, y = cy;
+  
+  for (let i = 0; i < circles.length; i++) {
+    const c = circles[i];
+    const prevX = x, prevY = y;
+    const angle = c.freq * t + (c.phase || 0);
+    x += c.amp * Math.cos(angle);
+    y += c.amp * Math.sin(angle);
+    
+    // Draw orbit circle
+    ctx.beginPath();
+    ctx.arc(prevX, prevY, c.amp, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(79, 195, 247, ${0.15 + 0.1 * (1 - i/circles.length)})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Draw radius
+    ctx.beginPath();
+    ctx.moveTo(prevX, prevY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 + 0.3 * (1 - i/circles.length)})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // Draw point
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color || 'var(--blue)';
+    ctx.fill();
+  }
+  
+  return { x, y };
+}
+
+function renderFrame() {
+  if (!animating) return;
+  
+  ctx.clearRect(0, 0, 1080, 1920);
+  
+  if (fourierMode === 'sine') {
+    // Single circle → sine wave
+    const cx = 300, cy = 960;
+    const end = drawEpicycles(cx, cy, sineCircle, time, '#4fc3f7');
+    
+    wave.unshift(end.y);
+    if (wave.length > 500) wave.pop();
+    
+    // Connect to wave
+    ctx.beginPath();
+    ctx.moveTo(end.x, end.y);
+    ctx.lineTo(500, wave[0]);
+    ctx.strokeStyle = 'rgba(79, 195, 247, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Draw wave
+    ctx.beginPath();
+    for (let i = 0; i < wave.length; i++) {
+      const wx = 500 + i;
+      if (i === 0) ctx.moveTo(wx, wave[i]);
+      else ctx.lineTo(wx, wave[i]);
+    }
+    ctx.strokeStyle = '#ff6b9d';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    // Glow on tip
+    ctx.beginPath();
+    ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#4fc3f7';
+    ctx.shadowColor = '#4fc3f7';
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    time += 0.03;
+  }
+  
+  else if (fourierMode === 'multi') {
+    const cx = 300, cy = 960;
+    const end = drawEpicycles(cx, cy, multiCircles, time, '#ffd54f');
+    
+    wave.unshift(end.y);
+    if (wave.length > 500) wave.pop();
+    
+    ctx.beginPath();
+    ctx.moveTo(end.x, end.y);
+    ctx.lineTo(500, wave[0]);
+    ctx.strokeStyle = 'rgba(255, 213, 79, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    ctx.beginPath();
+    for (let i = 0; i < wave.length; i++) {
+      if (i === 0) ctx.moveTo(500 + i, wave[i]);
+      else ctx.lineTo(500 + i, wave[i]);
+    }
+    ctx.strokeStyle = '#ff6b9d';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffd54f';
+    ctx.shadowColor = '#ffd54f';
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    time += 0.02;
+  }
+  
+  else if (fourierMode === 'draw') {
+    const cx = 540, cy = 960;
+    const N = Math.min(starFourier.length, 50); // Use top 50 frequencies
+    const circles = starFourier.slice(0, N);
+    const end = drawEpicycles(cx, cy, circles, time, '#69f0ae');
+    
+    drawPath.push({ x: end.x, y: end.y });
+    
+    // Draw the traced path
+    if (drawPath.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(drawPath[0].x, drawPath[0].y);
+      for (let i = 1; i < drawPath.length; i++) {
+        ctx.lineTo(drawPath[i].x, drawPath[i].y);
+      }
+      ctx.strokeStyle = '#ff6b9d';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#ff6b9d';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    
+    // Glow
+    ctx.beginPath();
+    ctx.arc(end.x, end.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#69f0ae';
+    ctx.shadowColor = '#69f0ae';
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    const dt = (2 * Math.PI) / starFourier.length;
+    time += dt;
+    
+    // Reset after full cycle
+    if (time > 2 * Math.PI) {
+      time = 0;
+      drawPath = [];
+    }
+  }
+  
+  requestAnimationFrame(renderFrame);
+}
+
+// ===== SCENE MANAGER =====
+const sceneIds = ['scene0','scene1','scene2','scene3','scene4','scene5','scene6'];
+let currentScene = -1;
+
+const sceneDurs = [6000, 8000, 8000, 10000, 10000, 10000, 8000];
+const BUFFER = 1500;
+const sceneStarts = [];
+let cum = 0;
+sceneDurs.forEach(d => { sceneStarts.push(cum); cum += d + BUFFER; });
+const TOTAL = cum;
+
+const subs = [
+  '有一个数学工具，改变了整个现代世界',
+  '想象一个点在圆上匀速旋转，它的轨迹投影就是一条正弦波',
+  '如果把多个不同大小、不同速度的圆叠加起来，波形就变得复杂了',
+  '神奇的是，只要圆足够多，你可以画出任何图形——星星、文字、甚至人脸',
+  '这就是傅里叶变换的核心：任何复杂的信号，都是简单正弦波的叠加',
+  '从音乐到图片，从 WiFi 到核磁共振，它无处不在',
+  '用最简单的圆，描述最复杂的世界',
+];
+
+function showSub(text) {
+  const el = document.getElementById('subtitle');
+  gsap.to(el, { opacity: 0, duration: 0.2, onComplete: () => {
+    el.textContent = text;
+    gsap.to(el, { opacity: 1, duration: 0.3 });
+  }});
+}
+
+function goScene(idx) {
+  if (idx === currentScene || idx < 0 || idx >= sceneIds.length) return;
+  
+  if (currentScene >= 0) {
+    const old = document.getElementById(sceneIds[currentScene]);
+    gsap.to(old, { opacity: 0, duration: 0.4, onComplete: () => old.classList.remove('active') });
+  }
+  
+  currentScene = idx;
+  const el = document.getElementById(sceneIds[idx]);
+  el.classList.add('active');
+  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+  
+  showSub(subs[idx]);
+  gsap.to('#progress', { width: ((sceneStarts[idx] + sceneDurs[idx]) / TOTAL * 100) + '%', duration: sceneDurs[idx] / 1000, ease: 'none' });
+  
+  sceneAnims[idx]();
+}
+
+const sceneAnims = [
+  // Scene 0: Title
+  () => {
+    fourierMode = 'none';
+    ctx.clearRect(0, 0, 1080, 1920);
+    gsap.fromTo('.title-icon', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('.title-main', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.5 });
+    gsap.fromTo('.title-sub', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 1 });
+    gsap.fromTo('#titleDesc', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 1.8 });
+  },
+  
+  // Scene 1: Single circle
+  () => {
+    wave = [];
+    time = 0;
+    fourierMode = 'sine';
+    if (!animating) { animating = true; renderFrame(); }
+    gsap.fromTo('#s1label', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.3 });
+    gsap.fromTo('#s1title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.6 });
+  },
+  
+  // Scene 2: Multiple circles
+  () => {
+    wave = [];
+    time = 0;
+    fourierMode = 'multi';
+    gsap.fromTo('#s2label', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.3 });
+    gsap.fromTo('#s2title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.6 });
+  },
+  
+  // Scene 3: Draw star
+  () => {
+    drawPath = [];
+    time = 0;
+    initStarFourier();
+    fourierMode = 'draw';
+    gsap.fromTo('#s3label', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.3 });
+    gsap.fromTo('#s3title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.6 });
+  },
+  
+  // Scene 4: Formula
+  () => {
+    fourierMode = 'none';
+    ctx.clearRect(0, 0, 1080, 1920);
+    gsap.fromTo('#s4label', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.3 });
+    gsap.fromTo('#formulaBox', { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, delay: 0.8, ease: 'back.out(1.5)' });
+    gsap.fromTo('#formulaDesc', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 2 });
+  },
+  
+  // Scene 5: Applications
+  () => {
+    gsap.fromTo('#s5title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.3 });
+    document.querySelectorAll('.app-card').forEach((card, i) => {
+      gsap.to(card, { opacity: 1, x: 0, duration: 0.7, delay: 0.8 + i * 0.5, ease: 'power3.out' });
+    });
+  },
+  
+  // Scene 6: Conclusion
+  () => {
+    // Restart draw mode in background
+    drawPath = [];
+    time = 0;
+    fourierMode = 'draw';
+    
+    gsap.fromTo('#concEmoji', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('#concText', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 1, delay: 1 });
+    gsap.fromTo('#concAuthor', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 3 });
+  },
+];
+
+// ===== START =====
+initStarFourier();
+
+document.getElementById('startOverlay').addEventListener('click', () => {
+  gsap.to('#startOverlay', { opacity: 0, duration: 0.3, onComplete: () => {
+    document.getElementById('startOverlay').style.display = 'none';
+    sceneIds.forEach((_, idx) => {
+      setTimeout(() => goScene(idx), sceneStarts[idx]);
+    });
+  }});
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') goScene(currentScene + 1);
+  if (e.key === 'ArrowLeft') goScene(currentScene - 1);
+});
+</script>
+
+</body>
+</html>
