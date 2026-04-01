@@ -1,32 +1,347 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cove Pages 🌊</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        .container { text-align: center; padding: 40px; }
-        .logo { font-size: 5em; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
-        h1 { font-size: 2.5em; margin-bottom: 10px; }
-        p { opacity: 0.7; font-size: 1.2em; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fogsight 雾象 - 动画视频目录</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&family=Noto+Serif+SC:wght@700;900&family=Ma+Shan+Zheng&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #0a0a1a;
+    color: #e8eaf6;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+
+  /* Header */
+  .header {
+    padding: 60px 40px 40px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .header h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #4fc3f7, #ff6b9d, #ffd54f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 8px;
+  }
+  .header p {
+    margin-top: 12px;
+    font-size: 18px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 4px;
+  }
+  .header .stats {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+  }
+  .header .stat {
+    text-align: center;
+  }
+  .header .stat-num {
+    font-size: 36px;
+    font-weight: 900;
+    color: #4fc3f7;
+  }
+  .header .stat-label {
+    font-size: 14px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+  }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 24px;
+    padding: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Card */
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(79,195,247,0.3);
+    box-shadow: 0 8px 40px rgba(79,195,247,0.1);
+  }
+
+  .card-preview {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-preview::after {
+    content: '▶';
+    position: absolute;
+    right: 16px;
+    bottom: 12px;
+    font-size: 24px;
+    color: rgba(255,255,255,0.3);
+    transition: color 0.2s;
+  }
+  .card:hover .card-preview::after {
+    color: #4fc3f7;
+  }
+
+  .card-body {
+    padding: 20px 24px 24px;
+  }
+  .card-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .tag-tech { background: rgba(79,195,247,0.15); color: #4fc3f7; }
+  .tag-topic { background: rgba(255,107,157,0.15); color: #ff6b9d; }
+  .tag-style { background: rgba(255,213,79,0.15); color: #ffd54f; }
+  .tag-audio { background: rgba(105,240,174,0.15); color: #69f0ae; }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .card-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+  }
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px;
+    color: rgba(255,255,255,0.25);
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.2);
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .footer a { color: #4fc3f7; text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; padding: 20px; }
+    .header h1 { font-size: 32px; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">🌊</div>
-        <h1>Cove Pages</h1>
-        <p>轩的 AI 助手生成的页面都在这里</p>
+
+<div class="header">
+  <h1>Fogsight 雾象</h1>
+  <p>AI 动画引擎 · HTML → 视频</p>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="totalCount">0</div>
+      <div class="stat-label">动画作品</div>
     </div>
+    <div class="stat">
+      <div class="stat-num">2</div>
+      <div class="stat-label">主题系列</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">4</div>
+      <div class="stat-label">技术栈</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="footer">
+  Powered by HTML + CSS + JS · GSAP · Lottie · anime.js · Edge TTS<br>
+  <a href="https://github.com/msyxzhu/cove-pages">GitHub Repo</a>
+</div>
+
+<script>
+const demos = [
+  {
+    title: '幸存者偏差 · GSAP+Lottie版',
+    url: 'survivorship-bias-gsap.html',
+    emoji: '✈️',
+    bg: 'linear-gradient(135deg, #f0ebe0 0%, #d4c5a9 100%)',
+    desc: 'GSAP 时间线 + Lottie 卡通 + anime.js SVG路径绘制 + Edge TTS 女声旁白',
+    tags: [
+      { text: 'GSAP', type: 'tech' },
+      { text: 'Lottie', type: 'tech' },
+      { text: '心理学', type: 'topic' },
+      { text: '语音', type: 'audio' },
+    ],
+    ratio: '16:9',
+    date: '2026-04-01',
+    featured: true,
+  },
+  {
+    title: '傅里叶变换 · 圆的魔法',
+    url: 'fourier.html',
+    emoji: '🔵',
+    bg: 'linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 100%)',
+    desc: '实时 Canvas DFT 算法，旋转圆画出任意图形，暗色宇宙风',
+    tags: [
+      { text: 'Canvas', type: 'tech' },
+      { text: 'GSAP', type: 'tech' },
+      { text: '数学', type: 'topic' },
+      { text: '2D实时', type: 'style' },
+    ],
+    ratio: '9:16',
+    date: '2026-04-01',
+    featured: true,
+  },
+  {
+    title: '幸存者偏差 · 完整还原版',
+    url: 'survivorship-bias-replica.html',
+    emoji: '🎬',
+    bg: 'linear-gradient(135deg, #f0ebe0 0%, #e0d5c0 100%)',
+    desc: '13场景完整还原抖音视频结构，手绘SVG人物，Edge TTS语音同步',
+    tags: [
+      { text: 'SVG', type: 'tech' },
+      { text: 'Edge TTS', type: 'tech' },
+      { text: '心理学', type: 'topic' },
+      { text: '语音', type: 'audio' },
+    ],
+    ratio: '16:9',
+    date: '2026-04-01',
+  },
+  {
+    title: '幸存者偏差 · v3 竖屏版',
+    url: 'survivorship-bias-v3.html',
+    emoji: '📱',
+    bg: 'linear-gradient(135deg, #f5f0e8 0%, #ede5d8 100%)',
+    desc: '5场景精简版，纯CSS动画，竖屏抖音比例，SVG弹孔+弹性缓动',
+    tags: [
+      { text: '纯CSS', type: 'tech' },
+      { text: '心理学', type: 'topic' },
+      { text: '竖屏', type: 'style' },
+    ],
+    ratio: '9:16',
+    date: '2026-04-01',
+  },
+  {
+    title: '幸存者偏差 · v2',
+    url: 'survivorship-bias-v2.html',
+    emoji: '📝',
+    bg: 'linear-gradient(135deg, #f5f0e8 0%, #e8dcc8 100%)',
+    desc: '早期版本，基础CSS动画',
+    tags: [
+      { text: '纯CSS', type: 'tech' },
+      { text: '心理学', type: 'topic' },
+    ],
+    ratio: '—',
+    date: '2026-04-01',
+  },
+  {
+    title: '幸存者偏差 · v1',
+    url: 'survivorship-bias.html',
+    emoji: '📄',
+    bg: 'linear-gradient(135deg, #f5f0e8 0%, #e8dcc8 100%)',
+    desc: '最初版本原型',
+    tags: [
+      { text: '原型', type: 'style' },
+      { text: '心理学', type: 'topic' },
+    ],
+    ratio: '—',
+    date: '2026-04-01',
+  },
+  {
+    title: '视频 Demo · v2',
+    url: 'video-demo-v2.html',
+    emoji: '🎥',
+    bg: 'linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%)',
+    desc: '早期视频生成测试',
+    tags: [
+      { text: '测试', type: 'style' },
+    ],
+    ratio: '—',
+    date: '2026-03-31',
+  },
+  {
+    title: '视频 Demo · v1',
+    url: 'video-demo.html',
+    emoji: '🎞️',
+    bg: 'linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%)',
+    desc: '最早的视频生成概念验证',
+    tags: [
+      { text: '测试', type: 'style' },
+    ],
+    ratio: '—',
+    date: '2026-03-31',
+  },
+];
+
+// Render
+const grid = document.getElementById('grid');
+demos.forEach(d => {
+  const card = document.createElement('a');
+  card.className = 'card';
+  card.href = d.url;
+  card.target = '_blank';
+  
+  const tagsHTML = d.tags.map(t => 
+    `<span class="tag tag-${t.type}">${t.text}</span>`
+  ).join('');
+  
+  card.innerHTML = `
+    <div class="card-preview" style="background:${d.bg};">
+      <span>${d.emoji}</span>
+    </div>
+    <div class="card-body">
+      <div class="card-tags">${tagsHTML}</div>
+      <div class="card-title">${d.title}</div>
+      <div class="card-desc">${d.desc}</div>
+      <div class="card-meta">
+        <span>${d.ratio}</span>
+        <span>${d.date}</span>
+      </div>
+    </div>
+  `;
+  
+  grid.appendChild(card);
+});
+
+document.getElementById('totalCount').textContent = demos.length;
+</script>
+
 </body>
 </html>
