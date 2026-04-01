@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>囚徒困境 - 博弈论入门</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;700;900&family=Noto+Serif+SC:wght@700;900&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --purple: #bc8cff;
+    --text: #c9d1d9;
+    --dim: #8b949e;
+  }
+
+  body {
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--text);
+  }
+
+  /* Grid bg */
+  body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(rgba(88,166,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(88,166,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; z-index: 10;
+    padding: 60px;
+  }
+  .scene.active { opacity: 1; visibility: visible; }
+
+  /* Subtitle */
+  .sub-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 140px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.95));
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 0 60px;
+  }
+  #subtitle {
+    font-size: 36px; color: white; text-align: center;
+    letter-spacing: 3px; line-height: 1.5; opacity: 0;
+  }
+
+  .progress-bar {
+    position: absolute; top: 0; left: 0;
+    height: 4px; background: var(--blue); z-index: 200; width: 0;
+  }
+
+  /* Start */
+  .start-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; gap: 24px;
+  }
+  .start-overlay h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 80px; font-weight: 900;
+    color: var(--blue); letter-spacing: 12px;
+  }
+  .start-overlay p { font-size: 32px; color: var(--dim); }
+  .play-ring {
+    width: 100px; height: 100px;
+    border: 3px solid var(--blue); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; color: var(--blue);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.1);opacity:1} }
+
+  /* ===== Component styles ===== */
+
+  .scene-tag {
+    font-size: 24px; color: var(--orange); letter-spacing: 8px;
+    font-weight: 700; opacity: 0;
+  }
+  .scene-title {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 64px; opacity: 0; margin-top: 12px;
+  }
+
+  /* Prisoner cards */
+  .prisoners {
+    display: flex; gap: 80px; margin: 40px 0;
+  }
+  .prisoner {
+    text-align: center; opacity: 0;
+  }
+  .prisoner-avatar {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 80px; position: relative;
+  }
+  .prisoner-avatar.a { background: rgba(88,166,255,0.15); border: 3px solid var(--blue); }
+  .prisoner-avatar.b { background: rgba(248,81,73,0.15); border: 3px solid var(--red); }
+  .prisoner-name {
+    font-size: 36px; font-weight: 700; margin-top: 16px;
+  }
+
+  /* Payoff matrix */
+  .matrix-container { opacity: 0; margin: 30px 0; }
+  .matrix {
+    border-collapse: collapse;
+    font-size: 28px;
+  }
+  .matrix th {
+    padding: 20px 30px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .matrix td {
+    padding: 24px 36px;
+    border: 2px solid var(--border);
+    text-align: center;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .matrix td.highlight {
+    background: rgba(88,166,255,0.1);
+    border-color: var(--blue);
+  }
+  .matrix td.bad {
+    background: rgba(248,81,73,0.1);
+    border-color: var(--red);
+  }
+  .matrix td.good {
+    background: rgba(63,185,80,0.1);
+    border-color: var(--green);
+  }
+  .matrix td.nash {
+    background: rgba(210,153,34,0.15);
+    border-color: var(--orange);
+    box-shadow: 0 0 20px rgba(210,153,34,0.2);
+  }
+  .payoff-a { color: var(--blue); font-weight: 900; font-size: 32px; }
+  .payoff-b { color: var(--red); font-weight: 900; font-size: 32px; }
+
+  /* Choice buttons */
+  .choices {
+    display: flex; gap: 40px; margin: 20px 0;
+  }
+  .choice-btn {
+    padding: 20px 50px;
+    border-radius: 12px;
+    font-size: 36px; font-weight: 700;
+    letter-spacing: 4px;
+    opacity: 0; transform: translateY(20px);
+    cursor: default;
+  }
+  .choice-btn.cooperate {
+    background: rgba(63,185,80,0.15);
+    border: 2px solid var(--green);
+    color: var(--green);
+  }
+  .choice-btn.betray {
+    background: rgba(248,81,73,0.15);
+    border: 2px solid var(--red);
+    color: var(--red);
+  }
+
+  /* Verdict */
+  .verdict {
+    font-size: 48px; font-weight: 900;
+    opacity: 0; margin: 20px 0;
+  }
+
+  /* Bars for iterated game */
+  .bar-chart {
+    display: flex; align-items: flex-end; gap: 12px;
+    height: 300px; padding-top: 20px;
+    opacity: 0;
+  }
+  .bar-group {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px;
+  }
+  .bar {
+    width: 80px; border-radius: 8px 8px 0 0;
+    transition: height 1s ease;
+  }
+  .bar-label { font-size: 20px; color: var(--dim); }
+  .bar-value { font-size: 24px; font-weight: 700; }
+
+  /* Strategy cards */
+  .strategy-cards {
+    display: flex; flex-direction: column;
+    gap: 20px; width: 100%;
+  }
+  .strat-card {
+    display: flex; align-items: center; gap: 24px;
+    padding: 24px 32px;
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    opacity: 0; transform: translateX(-60px);
+  }
+  .strat-icon { font-size: 48px; }
+  .strat-name { font-size: 28px; font-weight: 700; }
+  .strat-desc { font-size: 22px; color: var(--dim); margin-top: 4px; }
+  .strat-card.winner { border-color: var(--green); background: rgba(63,185,80,0.08); }
+
+  /* Conclusion glow text */
+  .glow { text-shadow: 0 0 20px currentColor; }
+
+  /* Canvas for particle effects */
+  canvas#particles {
+    position: absolute; inset: 0; z-index: 5;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles" width="1080" height="1920"></canvas>
+<div class="progress-bar" id="progress"></div>
+
+<div class="start-overlay" id="startOverlay">
+  <h1>囚徒困境</h1>
+  <p>博弈论最经典的思想实验</p>
+  <div class="play-ring">▶</div>
+</div>
+
+<!-- SCENE 0: Title -->
+<div class="scene" id="scene0">
+  <div style="font-size:120px; opacity:0;" id="s0icon">⚖️</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:100px; font-weight:900; color:var(--blue); opacity:0; letter-spacing:16px; margin-top:20px;" id="s0title">囚徒困境</div>
+  <div style="font-size:36px; color:var(--dim); opacity:0; margin-top:20px; letter-spacing:6px;" id="s0sub">PRISONER'S DILEMMA</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; margin-top:40px; text-align:center; line-height:1.8;" id="s0desc">
+    为什么理性的人<br>会做出对双方都不利的选择？
+  </div>
+</div>
+
+<!-- SCENE 1: Setup - Two prisoners -->
+<div class="scene" id="scene1">
+  <div class="scene-tag" id="s1tag">/ 设定</div>
+  <div class="scene-title" id="s1title">两个嫌疑犯被分开审讯</div>
+  <div class="prisoners" id="prisoners1">
+    <div class="prisoner" id="prisonerA">
+      <div class="prisoner-avatar a">🧑</div>
+      <div class="prisoner-name" style="color:var(--blue);">囚犯 A</div>
+    </div>
+    <div style="display:flex;align-items:center;opacity:0;" id="wallIcon">
+      <div style="width:4px;height:300px;background:var(--border);border-radius:2px;position:relative;">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);padding:8px;font-size:24px;color:var(--dim);">🔒</div>
+      </div>
+    </div>
+    <div class="prisoner" id="prisonerB">
+      <div class="prisoner-avatar b">🧑</div>
+      <div class="prisoner-name" style="color:var(--red);">囚犯 B</div>
+    </div>
+  </div>
+  <div style="font-size:30px; color:var(--dim); opacity:0; text-align:center; line-height:1.8; max-width:800px;" id="s1desc">
+    他们无法沟通<br>
+    每人只有两个选择
+  </div>
+  <div class="choices" id="choices1">
+    <div class="choice-btn cooperate">🤝 合作（沉默）</div>
+    <div class="choice-btn betray">🗡️ 背叛（揭发）</div>
+  </div>
+</div>
+
+<!-- SCENE 2: Payoff matrix -->
+<div class="scene" id="scene2">
+  <div class="scene-tag" id="s2tag">/ 收益矩阵</div>
+  <div class="scene-title" id="s2title" style="font-size:52px;">不同选择的结果</div>
+  <div class="matrix-container" id="matrixBox">
+    <table class="matrix">
+      <tr>
+        <th></th>
+        <th style="color:var(--red);">B 合作</th>
+        <th style="color:var(--red);">B 背叛</th>
+      </tr>
+      <tr>
+        <th style="color:var(--blue);">A 合作</th>
+        <td id="cell00"><span class="payoff-a">-1</span> / <span class="payoff-b">-1</span><br><span style="font-size:20px;color:var(--dim);">各判1年</span></td>
+        <td id="cell01"><span class="payoff-a">-10</span> / <span class="payoff-b">0</span><br><span style="font-size:20px;color:var(--dim);">A判10年，B释放</span></td>
+      </tr>
+      <tr>
+        <th style="color:var(--blue);">A 背叛</th>
+        <td id="cell10"><span class="payoff-a">0</span> / <span class="payoff-b">-10</span><br><span style="font-size:20px;color:var(--dim);">A释放，B判10年</span></td>
+        <td id="cell11"><span class="payoff-a">-5</span> / <span class="payoff-b">-5</span><br><span style="font-size:20px;color:var(--dim);">各判5年</span></td>
+      </tr>
+    </table>
+  </div>
+  <div style="font-size:28px; opacity:0; text-align:center; line-height:1.8;" id="matrixNote">
+    <span style="color:var(--green);">双方合作 → 各判1年（最优）</span><br>
+    <span style="color:var(--red);">双方背叛 → 各判5年（最差）</span>
+  </div>
+</div>
+
+<!-- SCENE 3: The dilemma -->
+<div class="scene" id="scene3">
+  <div class="scene-tag" id="s3tag">/ 困境</div>
+  <div class="scene-title" id="s3title" style="font-size:56px;">理性的选择……</div>
+  <div style="display:flex; flex-direction:column; gap:24px; margin:30px 0; width:100%;" id="reasoning">
+    <div style="padding:24px 32px; border-radius:12px; border:2px solid var(--blue); background:rgba(88,166,255,0.05); opacity:0; font-size:28px; line-height:1.8;" id="r1">
+      <span style="color:var(--blue);font-weight:700;">A 的想法：</span><br>
+      「如果 B 合作 → 我背叛得 0年，合作得 1年 → <span style="color:var(--red);">背叛更好</span>」<br>
+      「如果 B 背叛 → 我背叛得 5年，合作得 10年 → <span style="color:var(--red);">还是背叛更好</span>」
+    </div>
+    <div style="padding:24px 32px; border-radius:12px; border:2px solid var(--red); background:rgba(248,81,73,0.05); opacity:0; font-size:28px; line-height:1.8;" id="r2">
+      <span style="color:var(--red);font-weight:700;">B 的想法：</span><br>
+      完全一样的推理 → <span style="color:var(--red);">背叛也更好</span>
+    </div>
+  </div>
+  <div class="verdict" id="verdict1" style="color:var(--orange);">
+    ⚡ 纳什均衡：双方都背叛 → 各判5年
+  </div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; text-align:center;" id="paradox">
+    明明双方合作只需各判1年<br>
+    <span style="color:var(--red);font-weight:700;">但「理性」却把他们推向了最差结局</span>
+  </div>
+</div>
+
+<!-- SCENE 4: Real world -->
+<div class="scene" id="scene4">
+  <div class="scene-tag" id="s4tag">/ 现实中的囚徒困境</div>
+  <div class="strategy-cards" id="realWorld">
+    <div class="strat-card" id="rw1">
+      <div class="strat-icon">🏭</div>
+      <div>
+        <div class="strat-name">价格战</div>
+        <div class="strat-desc">两家公司都降价 → 利润全没了，但谁都不敢先涨价</div>
+      </div>
+    </div>
+    <div class="strat-card" id="rw2">
+      <div class="strat-icon">🌍</div>
+      <div>
+        <div class="strat-name">气候变化</div>
+        <div class="strat-desc">减排对全球有利，但每个国家都想「搭便车」让别人先减</div>
+      </div>
+    </div>
+    <div class="strat-card" id="rw3">
+      <div class="strat-icon">💊</div>
+      <div>
+        <div class="strat-name">抗生素滥用</div>
+        <div class="strat-desc">个人用抗生素有益，但所有人滥用 → 超级细菌</div>
+      </div>
+    </div>
+    <div class="strat-card" id="rw4">
+      <div class="strat-icon">🚗</div>
+      <div>
+        <div class="strat-name">堵车 vs 公交</div>
+        <div class="strat-desc">人人开车 → 全堵；人人坐公交 → 全通。但「我一个人开车没关系」</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 5: Iterated game + TFT -->
+<div class="scene" id="scene5">
+  <div class="scene-tag" id="s5tag">/ 破局之道</div>
+  <div class="scene-title" id="s5title" style="font-size:52px;">重复博弈改变一切</div>
+  <div style="font-size:28px; color:var(--dim); opacity:0; text-align:center; line-height:1.8; margin:20px 0;" id="s5desc">
+    如果游戏只玩一次 → 背叛是最优<br>
+    如果<span style="color:var(--green);font-weight:700;">反复博弈</span> → 合作策略胜出
+  </div>
+  <div class="strategy-cards" id="strategies">
+    <div class="strat-card" id="st1">
+      <div class="strat-icon">😈</div>
+      <div>
+        <div class="strat-name">永远背叛</div>
+        <div class="strat-desc">每次都背叛 → 短期赢，长期被所有人报复</div>
+      </div>
+    </div>
+    <div class="strat-card" id="st2">
+      <div class="strat-icon">😇</div>
+      <div>
+        <div class="strat-name">永远合作</div>
+        <div class="strat-desc">每次都合作 → 容易被人利用</div>
+      </div>
+    </div>
+    <div class="strat-card winner" id="st3">
+      <div class="strat-icon">🏆</div>
+      <div>
+        <div class="strat-name" style="color:var(--green);">以牙还牙 (Tit for Tat)</div>
+        <div class="strat-desc">第一回合合作，之后<span style="color:var(--green);">模仿对手上一轮的选择</span></div>
+      </div>
+    </div>
+    <div class="strat-card" id="st4">
+      <div class="strat-icon">🎲</div>
+      <div>
+        <div class="strat-name">随机策略</div>
+        <div class="strat-desc">随机合作或背叛 → 不可预测但也不稳定</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 6: TFT wins -->
+<div class="scene" id="scene6">
+  <div class="scene-tag" id="s6tag">/ 结论</div>
+  <div style="font-family:'Noto Serif SC',serif; font-size:72px; font-weight:900; text-align:center; opacity:0; line-height:1.5;" id="s6title">
+    <span style="color:var(--green);" class="glow">善良</span> · 
+    <span style="color:var(--blue);" class="glow">可激怒</span> · 
+    <span style="color:var(--purple);" class="glow">宽容</span>
+  </div>
+  <div style="max-width:800px; text-align:center; opacity:0; margin-top:30px;" id="s6desc">
+    <div style="font-size:32px; line-height:2; color:var(--dim);">
+      「以牙还牙」策略为什么赢？<br>
+      <span style="color:var(--green);">善良</span> — 从不主动背叛<br>
+      <span style="color:var(--blue);">可激怒</span> — 对背叛立即报复<br>
+      <span style="color:var(--purple);">宽容</span> — 对方改过就原谅
+    </div>
+  </div>
+  <div style="margin-top:40px; border-left:4px solid var(--orange); padding-left:30px; opacity:0;" id="s6quote">
+    <div style="font-family:'Ma Shan Zheng',cursive; font-size:48px; color:var(--orange);">
+      「在一个可能再次相遇的世界里<br>合作是最聪明的自私」
+    </div>
+    <div style="font-size:24px; color:var(--dim); margin-top:12px;">
+      —— 罗伯特·阿克塞尔罗德 《合作的进化》
+    </div>
+  </div>
+</div>
+
+<!-- Subtitle -->
+<div class="sub-bar">
+  <div id="subtitle"></div>
+</div>
+
+<script>
+// ===== PARTICLES =====
+const cvs = document.getElementById('particles');
+const pctx = cvs.getContext('2d');
+const dots = [];
+for (let i = 0; i < 40; i++) {
+  dots.push({
+    x: Math.random() * 1080, y: Math.random() * 1920,
+    vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+    r: Math.random() * 2 + 0.5,
+    alpha: Math.random() * 0.3 + 0.05,
+  });
+}
+function drawParticles() {
+  pctx.clearRect(0, 0, 1080, 1920);
+  dots.forEach(d => {
+    d.x += d.vx; d.y += d.vy;
+    if (d.x < 0) d.x = 1080; if (d.x > 1080) d.x = 0;
+    if (d.y < 0) d.y = 1920; if (d.y > 1920) d.y = 0;
+    pctx.beginPath();
+    pctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+    pctx.fillStyle = `rgba(88,166,255,${d.alpha})`;
+    pctx.fill();
+  });
+  // Lines between nearby dots
+  for (let i = 0; i < dots.length; i++) {
+    for (let j = i+1; j < dots.length; j++) {
+      const dx = dots[i].x - dots[j].x;
+      const dy = dots[i].y - dots[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 150) {
+        pctx.beginPath();
+        pctx.moveTo(dots[i].x, dots[i].y);
+        pctx.lineTo(dots[j].x, dots[j].y);
+        pctx.strokeStyle = `rgba(88,166,255,${0.05 * (1 - dist/150)})`;
+        pctx.lineWidth = 1;
+        pctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ===== SCENE ENGINE =====
+const sceneIds = ['scene0','scene1','scene2','scene3','scene4','scene5','scene6'];
+let cur = -1;
+
+const durations = [6000, 9000, 10000, 12000, 10000, 12000, 10000];
+const BUFFER = 1500;
+const starts = []; let c = 0;
+durations.forEach(d => { starts.push(c); c += d + BUFFER; });
+const TOTAL = c;
+
+const subs = [
+  '有一个思想实验，揭示了人类合作的本质困境',
+  '两个嫌疑犯被警方分开审讯，彼此无法沟通',
+  '根据他们的选择，会有四种不同的结果',
+  '每个人单独来看，背叛永远是「更好」的选择。这就是困境所在。',
+  '这种困境在现实生活中无处不在',
+  '如果游戏反复进行，一切都变了。合作可以进化出来。',
+  '善良、可激怒、宽容——这就是长期博弈的赢家特质',
+];
+
+function showSub(text) {
+  const el = document.getElementById('subtitle');
+  gsap.to(el, { opacity: 0, duration: 0.2, onComplete: () => {
+    el.textContent = text;
+    gsap.to(el, { opacity: 1, duration: 0.3 });
+  }});
+}
+
+function go(idx) {
+  if (idx === cur || idx < 0 || idx >= sceneIds.length) return;
+  if (cur >= 0) {
+    const old = document.getElementById(sceneIds[cur]);
+    gsap.to(old, { opacity: 0, duration: 0.4, onComplete: () => old.classList.remove('active') });
+  }
+  cur = idx;
+  const el = document.getElementById(sceneIds[idx]);
+  el.classList.add('active');
+  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+  showSub(subs[idx]);
+  gsap.to('#progress', { width: ((starts[idx] + durations[idx]) / TOTAL * 100) + '%', duration: durations[idx] / 1000, ease: 'none' });
+  anims[idx]();
+}
+
+const anims = [
+  // Scene 0: Title
+  () => {
+    gsap.fromTo('#s0icon', { scale: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.fromTo('#s0title', { y: 40 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.5 });
+    gsap.fromTo('#s0sub', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 1 });
+    gsap.fromTo('#s0desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 2 });
+  },
+
+  // Scene 1: Two prisoners
+  () => {
+    gsap.fromTo('#s1tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s1title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#prisonerA', { x: -100 }, { x: 0, opacity: 1, duration: 0.8, delay: 1, ease: 'back.out(1.5)' });
+    gsap.fromTo('#prisonerB', { x: 100 }, { x: 0, opacity: 1, duration: 0.8, delay: 1.3, ease: 'back.out(1.5)' });
+    gsap.to('#wallIcon', { opacity: 1, duration: 0.5, delay: 2 });
+    gsap.fromTo('#s1desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 2.5 });
+    gsap.staggerFromTo('.choice-btn', { y: 20 }, { y: 0, opacity: 1, duration: 0.5 }, 0.3, 3.5);
+  },
+
+  // Scene 2: Matrix
+  () => {
+    gsap.fromTo('#s2tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s2title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#matrixBox', { scale: 0.8 }, { scale: 1, opacity: 1, duration: 0.8, delay: 1, ease: 'back.out(1.5)' });
+    
+    // Highlight cells sequentially
+    setTimeout(() => document.getElementById('cell00').classList.add('good'), 3000);
+    setTimeout(() => document.getElementById('cell01').classList.add('bad'), 4500);
+    setTimeout(() => document.getElementById('cell10').classList.add('bad'), 6000);
+    setTimeout(() => document.getElementById('cell11').classList.add('nash'), 7500);
+    
+    gsap.fromTo('#matrixNote', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 8 });
+  },
+
+  // Scene 3: The dilemma
+  () => {
+    gsap.fromTo('#s3tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s3title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#r1', { x: -40 }, { x: 0, opacity: 1, duration: 0.7, delay: 1.5 });
+    gsap.fromTo('#r2', { x: -40 }, { x: 0, opacity: 1, duration: 0.7, delay: 4 });
+    gsap.fromTo('#verdict1', { scale: 0.5 }, { scale: 1, opacity: 1, duration: 0.8, delay: 6, ease: 'back.out(2)' });
+    gsap.fromTo('#paradox', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 8 });
+  },
+
+  // Scene 4: Real world
+  () => {
+    gsap.fromTo('#s4tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    ['#rw1','#rw2','#rw3','#rw4'].forEach((id, i) => {
+      gsap.to(id, { opacity: 1, x: 0, duration: 0.7, delay: 0.8 + i * 1.2, ease: 'power3.out' });
+    });
+  },
+
+  // Scene 5: Strategies
+  () => {
+    gsap.fromTo('#s5tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s5title', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 0.5 });
+    gsap.fromTo('#s5desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.6, delay: 1.2 });
+    ['#st1','#st2','#st3','#st4'].forEach((id, i) => {
+      gsap.to(id, { opacity: 1, x: 0, duration: 0.7, delay: 2.5 + i * 1.5, ease: 'power3.out' });
+    });
+  },
+
+  // Scene 6: Conclusion
+  () => {
+    gsap.fromTo('#s6tag', { y: 20 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.2 });
+    gsap.fromTo('#s6title', { y: 30 }, { y: 0, opacity: 1, duration: 1, delay: 0.8 });
+    gsap.fromTo('#s6desc', { y: 20 }, { y: 0, opacity: 1, duration: 0.8, delay: 2.5 });
+    gsap.fromTo('#s6quote', { x: -30 }, { x: 0, opacity: 1, duration: 0.8, delay: 5 });
+  },
+];
+
+// Start
+document.getElementById('startOverlay').addEventListener('click', () => {
+  gsap.to('#startOverlay', { opacity: 0, duration: 0.3, onComplete: () => {
+    document.getElementById('startOverlay').style.display = 'none';
+    sceneIds.forEach((_, i) => setTimeout(() => go(i), starts[i]));
+  }});
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') go(cur + 1);
+  if (e.key === 'ArrowLeft') go(cur - 1);
+});
+</script>
+
+</body>
+</html>
