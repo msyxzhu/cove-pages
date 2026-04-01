@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>幸存者偏差 - GSAP + Lottie 版</title>
+<!-- GSAP + ScrollTrigger -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<!-- Lottie player -->
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js"></script>
+<!-- anime.js for SVG morphing -->
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Ma+Shan+Zheng&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --paper: #f0ebe0;
+    --ink: #1a1a1a;
+    --red: #b22222;
+    --green: #2e7d32;
+  }
+
+  body {
+    width: 1920px; height: 1080px;
+    overflow: hidden;
+    background: var(--paper);
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+
+  /* Paper texture */
+  body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(0,0,0,0.005) 3px, rgba(0,0,0,0.005) 6px),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.005) 3px, rgba(0,0,0,0.005) 6px);
+    pointer-events: none; z-index: 1;
+  }
+
+  .scene {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 90px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+  }
+  .scene.active { opacity: 1; visibility: visible; }
+
+  /* Subtitle bar */
+  .subtitle-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 90px; background: #333;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .subtitle-text {
+    font-size: 40px; color: white; font-weight: 500;
+    letter-spacing: 4px; text-align: center;
+    opacity: 0;
+  }
+
+  /* Progress */
+  .progress-bar {
+    position: absolute; top: 0; left: 0;
+    height: 5px; background: var(--red);
+    z-index: 200; width: 0;
+  }
+
+  /* Header */
+  .header {
+    position: absolute; top: 20px; left: 30px; z-index: 50;
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 40px; color: var(--red);
+    letter-spacing: 4px; opacity: 0;
+  }
+  .watermark {
+    position: absolute; bottom: 100px; right: 40px;
+    font-size: 22px; color: #bbb; z-index: 50; opacity: 0;
+  }
+
+  /* Start overlay */
+  .start-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.85);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; gap: 20px;
+  }
+  .start-overlay .play-btn {
+    font-size: 80px; color: white;
+    width: 120px; height: 120px;
+    border: 4px solid white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s;
+  }
+  .start-overlay .play-btn:hover { transform: scale(1.1); }
+  .start-overlay .play-label {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 48px; color: white; letter-spacing: 8px;
+  }
+
+  /* ===== Scene-specific styles ===== */
+
+  /* Scene 0: Black intro */
+  #scene0 { background: #1a1a1a; bottom: 0; flex-direction: column; gap: 40px; }
+  .intro-line {
+    font-size: 52px; color: white; text-align: center;
+    letter-spacing: 6px; opacity: 0;
+  }
+
+  /* Scene 1: Planes */
+  #scene1 { position: relative; }
+  .lottie-plane { position: absolute; width: 400px; height: 300px; }
+  .lottie-plane.p1 { top: 50px; right: 400px; }
+  .lottie-plane.p2 { top: 200px; right: 200px; transform: scale(1.3); }
+  .lottie-plane.p3 { top: 100px; right: 650px; transform: scale(0.8); }
+
+  /* Scene 2: Bullet holes on plane */
+  #scene2 { flex-direction: column; gap: 20px; }
+  .topdown-svg { opacity: 0; }
+  .bullet-dot {
+    position: absolute; width: 16px; height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--red) 30%, #600 60%, transparent 70%);
+    opacity: 0; transform: scale(0);
+  }
+  .bullet-ring {
+    position: absolute; width: 40px; height: 40px;
+    border: 2px solid rgba(178,34,34,0.5);
+    border-radius: 50%; opacity: 0;
+    margin-left: -12px; margin-top: -12px;
+  }
+
+  /* Scene 3: Wald vs Military */
+  #scene3 { gap: 60px; padding: 0 100px; }
+  .char-col { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .speech-bubble {
+    background: white; border: 3px solid var(--ink);
+    border-radius: 20px; padding: 16px 28px;
+    font-family: 'Ma Shan Zheng', cursive; font-size: 38px;
+    position: relative; opacity: 0; transform: scale(0.5);
+  }
+  .speech-bubble::after {
+    content: ''; position: absolute;
+    bottom: -14px; left: 50%; transform: translateX(-50%);
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 14px solid white;
+  }
+  .speech-bubble.red { color: var(--red); border-color: var(--red); }
+  .lottie-thinking { width: 300px; height: 400px; }
+
+  /* Red dashed highlight */
+  .highlight-dash {
+    position: absolute; border: 3px dashed var(--red);
+    border-radius: 50%; opacity: 0; transform: scale(0);
+  }
+
+  /* Scene 4: Summary */
+  #scene4 { flex-direction: column; gap: 40px; }
+  .summary-dashed {
+    border: 4px dashed var(--red); border-radius: 24px;
+    padding: 50px 80px; display: flex; align-items: center; gap: 60px;
+    opacity: 0;
+  }
+  .summary-title {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 80px; color: var(--ink); letter-spacing: 16px;
+    opacity: 0;
+  }
+
+  /* Scene 5: Real life examples */
+  #scene5 { flex-direction: column; gap: 30px; padding: 40px 80px; }
+  .example-card {
+    display: flex; align-items: center; gap: 30px;
+    background: white; border-radius: 16px;
+    padding: 24px 36px; width: 100%;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+    opacity: 0; transform: translateX(-100px);
+  }
+  .example-icon { font-size: 56px; flex-shrink: 0; }
+  .example-title { font-size: 32px; font-weight: 700; color: var(--ink); }
+  .example-desc { font-size: 26px; color: #666; margin-top: 4px; }
+  .example-highlight { color: var(--red); font-weight: 700; }
+
+  /* Scene 6: Break free */
+  #scene6 { flex-direction: column; gap: 40px; }
+  .big-title {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 120px; color: var(--ink);
+    letter-spacing: 20px; opacity: 0;
+  }
+  .method-pill {
+    border: 3px dashed var(--red); border-radius: 50px;
+    padding: 16px 40px;
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 42px; color: var(--red);
+    opacity: 0; transform: translateY(30px);
+  }
+  .methods-row { display: flex; gap: 40px; }
+
+  /* Scene 7: Seatbelt */
+  #scene7 { gap: 80px; }
+  .stat-col { text-align: center; opacity: 0; transform: translateY(40px); }
+  .stat-num { font-size: 72px; font-weight: 900; }
+  .stat-label { font-size: 28px; color: #666; margin-top: 8px; }
+  .stat-result { font-size: 40px; font-weight: 900; margin-top: 12px; }
+  .lottie-car { width: 400px; height: 300px; }
+
+  /* Scene 8: Conclusion */
+  #scene8 { flex-direction: column; gap: 40px; }
+  .conclusion-line {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 48px; color: white; text-align: center;
+    line-height: 1.8; opacity: 0; letter-spacing: 4px;
+  }
+  .conclusion-quote {
+    border-left: 5px solid var(--red);
+    padding-left: 40px; opacity: 0;
+  }
+  .conclusion-quote p {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 56px; color: var(--red);
+  }
+  .conclusion-quote .author {
+    font-size: 28px; color: rgba(255,255,255,0.5); margin-top: 10px;
+  }
+
+  /* SVG hand-drawn style */
+  .sketch-fill { fill: white; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .sketch-line { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* SVG path drawing animation class */
+  .draw-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+<div class="header" id="header">- 幸存者偏差 -</div>
+<div class="watermark" id="watermark">@Fogsight</div>
+
+<!-- START OVERLAY -->
+<div class="start-overlay" id="startOverlay">
+  <div class="play-btn">▶</div>
+  <div class="play-label">幸存者偏差</div>
+</div>
+
+<!-- SCENE 0: Black Intro -->
+<div class="scene" id="scene0" style="background:#1a1a1a; bottom:0;">
+  <div class="intro-line" id="intro1">很多时候</div>
+  <div class="intro-line" id="intro2">我们看到的</div>
+  <div class="intro-line" id="intro3">往往只是一个视角，而非真相</div>
+</div>
+
+<!-- SCENE 1: Planes flying -->
+<div class="scene" id="scene1">
+  <div style="position:relative; width:100%; height:100%;">
+    <div class="lottie-plane p1" id="lottie-plane1"></div>
+    <div class="lottie-plane p2" id="lottie-plane2"></div>
+    <div class="lottie-plane p3" id="lottie-plane3"></div>
+    <!-- Wald character bottom-left -->
+    <div id="waldContainer" style="position:absolute; bottom:60px; left:80px; opacity:0;">
+      <div class="lottie-thinking" id="lottie-thinking"></div>
+    </div>
+    <!-- Text overlay -->
+    <div id="scene1Text" style="position:absolute; top:60px; left:80px; opacity:0;">
+      <div style="font-family:'Ma Shan Zheng',cursive; font-size:56px; color:var(--ink);">二战期间</div>
+      <div style="font-size:36px; color:#666; margin-top:12px;">美军统计返航战斗机的弹孔分布</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 2: Top-down plane + bullet holes -->
+<div class="scene" id="scene2">
+  <div style="position:relative;">
+    <svg class="topdown-svg" id="topPlane2" width="700" height="550" viewBox="0 0 700 550">
+      <ellipse class="sketch-fill" cx="350" cy="275" rx="55" ry="220"/>
+      <path class="sketch-fill draw-path" d="M295,200 L80,170 L70,200 L290,230Z"/>
+      <path class="sketch-fill draw-path" d="M405,200 L620,170 L630,200 L410,230Z"/>
+      <path class="sketch-fill" d="M320,480 L280,530 L290,540 L340,495Z"/>
+      <path class="sketch-fill" d="M380,480 L420,530 L410,540 L360,495Z"/>
+      <ellipse class="sketch-line" cx="350" cy="100" rx="25" ry="35" style="fill:rgba(0,0,0,0.05)"/>
+      <ellipse class="sketch-fill" cx="250" cy="195" rx="20" ry="35"/>
+      <ellipse class="sketch-fill" cx="450" cy="195" rx="20" ry="35"/>
+    </svg>
+    <div id="bulletContainer" style="position:absolute;top:0;left:0;width:700px;height:550px;pointer-events:none;"></div>
+    <!-- Arrow annotations -->
+    <div id="arrowLabel1" style="position:absolute; top:100px; left:50px; opacity:0; font-family:'Ma Shan Zheng',cursive; font-size:32px; color:var(--red);">
+      ← 弹孔密集区
+    </div>
+    <div id="arrowLabel2" style="position:absolute; top:100px; right:50px; opacity:0; font-family:'Ma Shan Zheng',cursive; font-size:32px; color:var(--red);">
+      弹孔密集区 →
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 3: Wald vs Military -->
+<div class="scene" id="scene3">
+  <div class="char-col" id="waldSide">
+    <div class="speech-bubble" id="waldBubble2">保护弹孔少的地方</div>
+    <svg width="160" height="350" viewBox="0 0 160 350">
+      <circle class="sketch-fill" cx="80" cy="50" r="35"/>
+      <circle style="fill:none;stroke:#1a1a1a;stroke-width:2;" cx="68" cy="45" r="12"/>
+      <circle style="fill:none;stroke:#1a1a1a;stroke-width:2;" cx="92" cy="45" r="12"/>
+      <path class="sketch-line" d="M50,35 Q60,15 80,18 Q100,15 110,35"/>
+      <path class="sketch-fill" d="M55,85 L45,250 L65,250 L80,200 L95,250 L115,250 L105,85Z"/>
+      <path class="sketch-line" d="M55,100 L20,180"/>
+      <path class="sketch-line" d="M105,100 L140,180"/>
+      <line class="sketch-line" x1="65" y1="250" x2="55" y2="340"/>
+      <line class="sketch-line" x1="95" y1="250" x2="105" y2="340"/>
+    </svg>
+    <div style="font-family:'Ma Shan Zheng',cursive; font-size:36px;">沃德</div>
+  </div>
+
+  <!-- Center plane with highlight -->
+  <div style="position:relative;">
+    <svg width="500" height="400" viewBox="0 0 500 400" id="scene3Plane2">
+      <ellipse class="sketch-fill" cx="250" cy="200" rx="40" ry="160"/>
+      <path class="sketch-fill" d="M210,140 L60,120 L50,140 L206,165Z"/>
+      <path class="sketch-fill" d="M290,140 L440,120 L450,140 L294,165Z"/>
+      <path class="sketch-fill" d="M230,350 L200,390 L210,395 L240,360Z"/>
+      <path class="sketch-fill" d="M270,350 L300,390 L290,395 L260,360Z"/>
+      <ellipse class="sketch-line" cx="250" cy="70" rx="18" ry="25" style="fill:rgba(0,0,0,0.05)"/>
+      <circle cx="150" cy="135" r="6" fill="#333"/>
+      <circle cx="120" cy="140" r="5" fill="#333"/>
+      <circle cx="350" cy="135" r="6" fill="#333"/>
+      <circle cx="380" cy="140" r="5" fill="#333"/>
+      <circle cx="240" cy="180" r="5" fill="#333"/>
+      <circle cx="260" cy="200" r="4" fill="#333"/>
+    </svg>
+    <!-- Red dashed circle on tail -->
+    <div class="highlight-dash" id="tailHL" style="bottom:10px;left:50%;width:140px;height:100px;margin-left:-70px;"></div>
+    <!-- Red dashed circle on engine -->
+    <div class="highlight-dash" id="engineHL" style="top:130px;left:180px;width:60px;height:80px;"></div>
+  </div>
+
+  <div class="char-col" id="milSide">
+    <div class="speech-bubble red" id="milBubble2">加固弹孔多的地方</div>
+    <svg width="160" height="350" viewBox="0 0 160 350">
+      <circle class="sketch-fill" cx="80" cy="50" r="35"/>
+      <path class="sketch-fill" d="M40,40 L120,40 L110,20 L50,20Z"/>
+      <rect class="sketch-fill" x="35" y="38" width="90" height="8" rx="2"/>
+      <circle cx="70" cy="48" r="3" fill="#1a1a1a"/>
+      <circle cx="90" cy="48" r="3" fill="#1a1a1a"/>
+      <path class="sketch-line" d="M75,62 Q80,67 85,62"/>
+      <path class="sketch-fill" d="M50,85 L45,250 L65,250 L80,200 L95,250 L115,250 L110,85Z"/>
+      <rect style="fill:#1a1a1a;" x="48" y="175" width="64" height="8" rx="2"/>
+      <path class="sketch-line" d="M50,100 L15,170"/>
+      <path class="sketch-line" d="M110,100 L145,170"/>
+      <line class="sketch-line" x1="65" y1="250" x2="55" y2="340"/>
+      <line class="sketch-line" x1="95" y1="250" x2="105" y2="340"/>
+    </svg>
+    <div style="font-family:'Ma Shan Zheng',cursive; font-size:36px;">军方</div>
+  </div>
+</div>
+
+<!-- SCENE 4: Summary -->
+<div class="scene" id="scene4">
+  <div class="summary-dashed" id="summaryBox2">
+    <div id="lottie-lightbulb" style="width:200px;height:200px;"></div>
+    <div>
+      <div style="font-family:'Ma Shan Zheng',cursive; font-size:48px; color:var(--ink);">
+        活着回来的飞机 ≠ 全部真相
+      </div>
+      <div style="font-size:32px; color:#666; margin-top:16px;">
+        那些没回来的飞机，才是最需要关注的数据
+      </div>
+    </div>
+  </div>
+  <div class="summary-title" id="summaryTitle2">幸存者偏差</div>
+</div>
+
+<!-- SCENE 5: Real life examples -->
+<div class="scene" id="scene5">
+  <div style="font-family:'Ma Shan Zheng',cursive; font-size:56px; color:var(--ink); opacity:0; margin-bottom:20px;" id="examplesTitle">
+    生活中的幸存者偏差
+  </div>
+  <div class="example-card" id="ex1">
+    <div class="example-icon">🎓</div>
+    <div>
+      <div class="example-title">「读书无用论」</div>
+      <div class="example-desc">只看到辍学成功的<span class="example-highlight">比尔·盖茨</span>，看不到千万辍学后挣扎的普通人</div>
+    </div>
+  </div>
+  <div class="example-card" id="ex2">
+    <div class="example-icon">💰</div>
+    <div>
+      <div class="example-title">「创业很简单」</div>
+      <div class="example-desc">媒体报道都是<span class="example-highlight">成功案例</span>，90%失败的公司无人问津</div>
+    </div>
+  </div>
+  <div class="example-card" id="ex3">
+    <div class="example-icon">🏥</div>
+    <div>
+      <div class="example-title">「老偏方治大病」</div>
+      <div class="example-desc">活着讲述的人说<span class="example-highlight">「我好了」</span>，没好的人已经说不了话了</div>
+    </div>
+  </div>
+  <div class="example-card" id="ex4">
+    <div class="example-icon">📱</div>
+    <div>
+      <div class="example-title">「以前的东西质量好」</div>
+      <div class="example-desc">留到现在的都是<span class="example-highlight">精品中的精品</span>，烂的早就扔了</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 6: Break free + Methods -->
+<div class="scene" id="scene6">
+  <div class="big-title" id="breakTitle2">打破困局</div>
+  <div class="methods-row" id="methodsRow">
+    <div class="method-pill" id="m1">🔍 寻找沉默证据</div>
+    <div class="method-pill" id="m2">📊 概率替代直觉</div>
+    <div class="method-pill" id="m3">🧠 系统认知框架</div>
+  </div>
+  <div id="lottie-search" style="width:300px;height:300px;opacity:0;"></div>
+</div>
+
+<!-- SCENE 7: Seatbelt example -->
+<div class="scene" id="scene7">
+  <div class="stat-col" id="noSB">
+    <svg width="100" height="120" viewBox="0 0 100 120">
+      <circle class="sketch-fill" cx="50" cy="25" r="20"/>
+      <path class="sketch-fill" d="M35,45 L30,110 L45,110 L50,80 L55,110 L70,110 L65,45Z"/>
+      <circle cx="43" cy="23" r="2.5" fill="#1a1a1a"/>
+      <circle cx="57" cy="23" r="2.5" fill="#1a1a1a"/>
+      <path style="fill:none;stroke:#1a1a1a;stroke-width:2;" d="M43,35 Q50,30 57,35"/>
+    </svg>
+    <div class="stat-num" style="color:var(--red);">90%</div>
+    <div class="stat-label">未系安全带</div>
+    <div class="stat-result" style="color:var(--red);">→ 死亡</div>
+  </div>
+
+  <div id="lottie-car" style="width:500px; height:350px;"></div>
+
+  <div class="stat-col" id="withSB">
+    <svg width="100" height="120" viewBox="0 0 100 120">
+      <circle class="sketch-fill" cx="50" cy="25" r="20"/>
+      <path class="sketch-fill" d="M35,45 L30,110 L45,110 L50,80 L55,110 L70,110 L65,45Z"/>
+      <line style="stroke:var(--red);stroke-width:3;" x1="38" y1="50" x2="62" y2="90"/>
+      <line style="stroke:var(--red);stroke-width:3;" x1="62" y1="50" x2="38" y2="90"/>
+      <circle cx="43" cy="23" r="2.5" fill="#1a1a1a"/>
+      <circle cx="57" cy="23" r="2.5" fill="#1a1a1a"/>
+      <path style="fill:none;stroke:#1a1a1a;stroke-width:2;" d="M43,33 Q50,38 57,33"/>
+    </svg>
+    <div class="stat-num" style="color:var(--green);">10%</div>
+    <div class="stat-label">系安全带</div>
+    <div class="stat-result" style="color:var(--green);">→ 幸存</div>
+  </div>
+</div>
+
+<!-- SCENE 8: Conclusion -->
+<div class="scene" id="scene8" style="background:#1a1a1a; bottom:0;">
+  <div style="display:flex; flex-direction:column; align-items:center; gap:30px;">
+    <div id="lottie-question" style="width:200px;height:200px;"></div>
+    <div class="conclusion-line" id="conc1">下次当你听到一个「铁证如山」的结论时</div>
+    <div class="conclusion-line" id="conc2">问问自己——那些沉默的数据去哪了？</div>
+    <div class="conclusion-quote" id="concQuote">
+      <p>「死人不会说话」</p>
+      <div class="author">—— 亚伯拉罕·沃德 (Abraham Wald)</div>
+    </div>
+    <div class="conclusion-line" id="conc3" style="margin-top:20px;">
+      <span style="color:var(--red);font-family:'Ma Shan Zheng',cursive;font-size:64px;letter-spacing:12px;">
+        多角度观察 · 多换位思考
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- SUBTITLE BAR -->
+<div class="subtitle-bar">
+  <div class="subtitle-text" id="subtitle"></div>
+</div>
+
+<script>
+// ===== LOTTIE INSTANCES =====
+const lotties = {};
+
+function loadLottie(containerId, path, loop = true) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+  const anim = lottie.loadAnimation({
+    container,
+    renderer: 'svg',
+    loop,
+    autoplay: false,
+    path
+  });
+  lotties[containerId] = anim;
+  return anim;
+}
+
+// Preload all lotties
+loadLottie('lottie-plane1', 'lottie/airplane.json');
+loadLottie('lottie-plane2', 'lottie/airplane.json');
+loadLottie('lottie-plane3', 'lottie/airplane.json');
+loadLottie('lottie-thinking', 'lottie/thinking.json');
+loadLottie('lottie-lightbulb', 'lottie/lightbulb.json');
+loadLottie('lottie-search', 'lottie/search.json');
+loadLottie('lottie-car', 'lottie/car.json');
+loadLottie('lottie-question', 'lottie/question.json');
+
+function playLottie(id) {
+  if (lotties[id]) lotties[id].play();
+}
+function stopLottie(id) {
+  if (lotties[id]) { lotties[id].stop(); }
+}
+
+// ===== AUDIO =====
+const audioFiles = [];
+const audioDurations = [5736, 8112, 6600, 11568, 7200, 12864, 4080, 18360, 10104];
+const BUFFER = 1800;
+
+for (let i = 0; i <= 8; i++) {
+  const a = new Audio(`audio/scene${String(i).padStart(2, '0')}.mp3`);
+  a.preload = 'auto';
+  audioFiles.push(a);
+}
+
+// Remap: we merged some original scenes, so map our scenes to audio
+// Scene 0→audio0, 1→audio1, 2→audio2, 3→audio3, 4→audio5(summary), 
+// 5→audio6(examples merged), 6→audio8(break+methods), 7→audio10(seatbelt), 8→audio12(conclusion)
+// Actually let's use original audio indices directly
+const sceneAudioMap = [0, 1, 2, 3, 5, 6, 8, 10, 12];
+
+let currentAudio = null;
+function playAudio(sceneIdx) {
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  const audioIdx = sceneIdx;
+  if (audioIdx >= 0 && audioIdx < audioFiles.length) {
+    currentAudio = audioFiles[audioIdx];
+    currentAudio.play().catch(() => {});
+  }
+}
+
+// ===== SCENE MANAGER =====
+const sceneIds = ['scene0','scene1','scene2','scene3','scene4','scene5','scene6','scene7','scene8'];
+let currentScene = -1;
+
+// Recalculate durations for our 9 scenes
+// Use original audio + buffer
+const sceneDurs = [5736, 8112, 6600, 11568, 7200, 12864, 4080, 18360, 10104];
+const sceneStarts = [];
+let cum = 0;
+sceneDurs.forEach(d => { sceneStarts.push(cum); cum += d + BUFFER; });
+const TOTAL = cum;
+
+const subtitles = [
+  '很多时候，我们看到的，往往只是一个视角，而非真相。',
+  '美军分析被击中的战斗机，试图找到最需要加固的部位。',
+  '他们发现机翼和机身布满弹孔，于是建议加强这些部位的防护。',
+  '然而统计学家沃德说：应该保护弹孔少的地方。因为中弹在那里的飞机，根本没飞回来。',
+  '我们只看到了「活下来」的样本，却忽略了「消失」的那些。这就是幸存者偏差。',
+  '人类天生依赖可见的经验，却忽略沉默的证据。幸存者偏差在生活中无处不在。',
+  '如何打破幸存者偏差的困局？寻找沉默证据，用概率替代直觉，建立系统认知框架。',
+  '车祸中90%死亡者未系安全带。但反过来看，几乎所有系安全带的人都幸存了。这就是概率思维。',
+  '真正的智慧，是学会多角度观察，多换位思考。不要只听幸存者的故事。',
+];
+
+function showSubtitle(text) {
+  const el = document.getElementById('subtitle');
+  gsap.to(el, { opacity: 0, duration: 0.2, onComplete: () => {
+    el.textContent = text;
+    gsap.to(el, { opacity: 1, duration: 0.3 });
+  }});
+}
+
+function goScene(idx) {
+  if (idx === currentScene || idx < 0 || idx >= sceneIds.length) return;
+  
+  // Hide current
+  if (currentScene >= 0) {
+    const old = document.getElementById(sceneIds[currentScene]);
+    gsap.to(old, { opacity: 0, duration: 0.4, onComplete: () => old.classList.remove('active') });
+  }
+  
+  currentScene = idx;
+  const el = document.getElementById(sceneIds[idx]);
+  el.classList.add('active');
+  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+  
+  // Audio
+  playAudio(idx);
+  
+  // Subtitle
+  showSubtitle(subtitles[idx]);
+  
+  // Progress
+  gsap.to('#progress', { width: ((sceneStarts[idx] + sceneDurs[idx]) / TOTAL * 100) + '%', duration: sceneDurs[idx] / 1000, ease: 'none' });
+  
+  // Run scene animation
+  sceneAnimations[idx]();
+}
+
+// ===== SCENE ANIMATIONS (GSAP) =====
+const sceneAnimations = [
+  // Scene 0: Black intro
+  () => {
+    const tl = gsap.timeline();
+    tl.to('#intro1', { opacity: 1, y: 0, duration: 0.8, delay: 0.5 })
+      .to('#intro2', { opacity: 1, y: 0, duration: 0.8 }, '-=0.3')
+      .to('#intro3', { opacity: 1, y: 0, duration: 1 }, '-=0.3');
+    // Set initial state
+    gsap.set(['#intro1','#intro2','#intro3'], { y: 30 });
+  },
+  
+  // Scene 1: Planes + thinking
+  () => {
+    gsap.to('#header', { opacity: 1, duration: 0.5 });
+    gsap.to('#watermark', { opacity: 0.6, duration: 0.5 });
+    
+    // Planes fly in with stagger
+    gsap.fromTo('.lottie-plane', 
+      { x: -300, opacity: 0 },
+      { x: 0, opacity: 1, duration: 1.2, stagger: 0.3, ease: 'power2.out',
+        onComplete: () => {
+          playLottie('lottie-plane1');
+          playLottie('lottie-plane2');
+          playLottie('lottie-plane3');
+        }
+      }
+    );
+    
+    // Thinking person appears
+    gsap.to('#waldContainer', { opacity: 1, duration: 0.8, delay: 1.5 });
+    setTimeout(() => playLottie('lottie-thinking'), 1500);
+    
+    // Text
+    gsap.to('#scene1Text', { opacity: 1, duration: 0.8, delay: 0.8 });
+  },
+  
+  // Scene 2: Bullet holes
+  () => {
+    gsap.to('#topPlane2', { opacity: 1, duration: 0.8 });
+    
+    // Anime.js for SVG path drawing
+    anime({
+      targets: '#topPlane2 .draw-path',
+      strokeDashoffset: [anime.setDashoffset, 0],
+      duration: 1500,
+      delay: anime.stagger(300),
+      easing: 'easeInOutSine'
+    });
+    
+    // Bullet holes with GSAP stagger
+    const positions = [
+      {x:130,y:170},{x:160,y:180},{x:110,y:190},
+      {x:530,y:170},{x:560,y:180},{x:500,y:190},
+      {x:310,y:220},{x:340,y:250},{x:360,y:280},{x:320,y:300},
+      {x:370,y:200},{x:330,y:340},{x:290,y:260},{x:380,y:320},
+    ];
+    
+    const container = document.getElementById('bulletContainer');
+    container.innerHTML = '';
+    
+    positions.forEach((p, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'bullet-dot';
+      dot.style.left = p.x + 'px';
+      dot.style.top = p.y + 'px';
+      container.appendChild(dot);
+      
+      gsap.to(dot, {
+        opacity: 1, scale: 1,
+        duration: 0.3,
+        delay: 1.5 + i * 0.12,
+        ease: 'back.out(2)',
+        onStart: () => {
+          // Impact ring
+          const ring = document.createElement('div');
+          ring.className = 'bullet-ring';
+          ring.style.left = p.x + 'px';
+          ring.style.top = p.y + 'px';
+          container.appendChild(ring);
+          gsap.fromTo(ring,
+            { opacity: 0.8, scale: 0.5 },
+            { opacity: 0, scale: 3, duration: 0.6, ease: 'power2.out', onComplete: () => ring.remove() }
+          );
+        }
+      });
+    });
+    
+    // Arrow labels
+    gsap.to('#arrowLabel1', { opacity: 1, duration: 0.5, delay: 3.5 });
+    gsap.to('#arrowLabel2', { opacity: 1, duration: 0.5, delay: 3.8 });
+  },
+  
+  // Scene 3: Wald vs Military
+  () => {
+    gsap.fromTo('#waldSide', { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.3 });
+    gsap.fromTo('#milSide', { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.6 });
+    gsap.to('#scene3Plane2', { opacity: 1, duration: 0.8, delay: 0.8 });
+    
+    // Speech bubbles with elastic pop
+    gsap.to('#milBubble2', { opacity: 1, scale: 1, duration: 0.5, delay: 1.5, ease: 'back.out(3)' });
+    gsap.to('#waldBubble2', { opacity: 1, scale: 1, duration: 0.5, delay: 2.5, ease: 'back.out(3)' });
+    
+    // Highlight circles
+    gsap.to('#tailHL', { opacity: 1, scale: 1, duration: 0.6, delay: 3.5, ease: 'back.out(2)' });
+    gsap.to('#engineHL', { opacity: 1, scale: 1, duration: 0.6, delay: 4, ease: 'back.out(2)' });
+  },
+  
+  // Scene 4: Summary
+  () => {
+    setTimeout(() => playLottie('lottie-lightbulb'), 300);
+    gsap.to('#summaryBox2', { opacity: 1, duration: 0.8, delay: 0.5 });
+    gsap.to('#summaryTitle2', { opacity: 1, duration: 1, delay: 1.5, ease: 'back.out(1.5)' });
+  },
+  
+  // Scene 5: Examples
+  () => {
+    gsap.to('#examplesTitle', { opacity: 1, duration: 0.6, delay: 0.3 });
+    gsap.to('#ex1', { opacity: 1, x: 0, duration: 0.7, delay: 0.8, ease: 'power3.out' });
+    gsap.to('#ex2', { opacity: 1, x: 0, duration: 0.7, delay: 1.6, ease: 'power3.out' });
+    gsap.to('#ex3', { opacity: 1, x: 0, duration: 0.7, delay: 2.4, ease: 'power3.out' });
+    gsap.to('#ex4', { opacity: 1, x: 0, duration: 0.7, delay: 3.2, ease: 'power3.out' });
+  },
+  
+  // Scene 6: Break free + methods
+  () => {
+    gsap.to('#breakTitle2', { opacity: 1, scale: 1, duration: 0.8, ease: 'back.out(2)' });
+    gsap.set('#breakTitle2', { scale: 0.5 });
+    
+    gsap.to('#m1', { opacity: 1, y: 0, duration: 0.6, delay: 1 });
+    gsap.to('#m2', { opacity: 1, y: 0, duration: 0.6, delay: 1.4 });
+    gsap.to('#m3', { opacity: 1, y: 0, duration: 0.6, delay: 1.8 });
+    
+    gsap.to('#lottie-search', { opacity: 1, duration: 0.5, delay: 2.2 });
+    setTimeout(() => playLottie('lottie-search'), 2200);
+  },
+  
+  // Scene 7: Seatbelt
+  () => {
+    setTimeout(() => playLottie('lottie-car'), 300);
+    gsap.fromTo('#noSB', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 1.5 });
+    gsap.fromTo('#withSB', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 3 });
+  },
+  
+  // Scene 8: Conclusion
+  () => {
+    setTimeout(() => playLottie('lottie-question'), 200);
+    gsap.fromTo('#conc1', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.5 });
+    gsap.fromTo('#conc2', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 2 });
+    gsap.fromTo('#concQuote', { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.8, delay: 3.5 });
+    gsap.fromTo('#conc3', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 1, delay: 5.5 });
+  },
+];
+
+// ===== START =====
+document.getElementById('startOverlay').addEventListener('click', () => {
+  gsap.to('#startOverlay', { opacity: 0, duration: 0.3, onComplete: () => {
+    document.getElementById('startOverlay').style.display = 'none';
+    // Auto-play all scenes
+    sceneIds.forEach((_, idx) => {
+      setTimeout(() => goScene(idx), sceneStarts[idx]);
+    });
+  }});
+});
+
+// Keyboard nav
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') goScene(currentScene + 1);
+  if (e.key === 'ArrowLeft') goScene(currentScene - 1);
+});
+</script>
+
+</body>
+</html>
