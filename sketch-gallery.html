@@ -15,7 +15,13 @@
   --gold:#eab308;--green:#22c55e;--red:#ef4444;--cyan:#22d3ee;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:"Inter","PingFang SC","Noto Sans SC",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6}
+body{background:var(--bg);color:var(--text);font-family:"Inter","PingFang SC","Noto Sans SC",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  background-position:center center;
+}
 ::selection{background:rgba(139,92,246,0.3)}
 
 /* ── Header ── */
@@ -39,7 +45,12 @@ body{background:var(--bg);color:var(--text);font-family:"Inter","PingFang SC","N
 
 /* ── Grid ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:24px 32px;max-width:1400px;margin:0 auto}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .2s ease;position:relative}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .2s ease;position:relative;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size:20px 20px;
+}
 .card:hover{background:var(--card-hover);border-color:var(--border-hover);transform:translateY(-2px)}
 .card svg{width:100px;height:100px;transition:transform .2s}
 .card:hover svg{transform:scale(1.05)}
@@ -66,7 +77,12 @@ body{background:var(--bg);color:var(--text);font-family:"Inter","PingFang SC","N
 .panel-overlay.open .panel{transform:translateX(0)}
 .panel-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
 .panel-close:hover{background:var(--card);color:var(--text)}
-.panel-preview{display:flex;justify-content:center;padding:32px 0;background:var(--card);border-radius:16px;margin-bottom:24px}
+.panel-preview{display:flex;justify-content:center;padding:32px 0;background:var(--card);border-radius:16px;margin-bottom:24px;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size:24px 24px;
+}
 .panel-preview svg{width:160px;height:160px}
 .panel h2{font-size:20px;font-weight:700;margin-bottom:4px}
 .panel .panel-key{font-size:12px;color:var(--purple);font-family:monospace;margin-bottom:16px}
@@ -246,11 +262,11 @@ function render() {
 
     gridEl.appendChild(card);
 
-    // Staggered entrance
-    gsap.fromTo(card, {opacity:0, y:12}, {opacity:1, y:0, duration:0.3, delay:Math.min(idx*0.02, 0.6), ease:'power2.out'});
-    // Draw animation
+    // Fast entrance — all cards appear almost instantly
+    gsap.fromTo(card, {opacity:0, y:8}, {opacity:1, y:0, duration:0.15, delay:Math.min(idx*0.008, 0.2), ease:'power2.out'});
+    // Quick draw animation
     const svg = card.querySelector('svg');
-    if (svg) setTimeout(() => SE.draw(svg), 100 + Math.min(idx * 30, 800));
+    if (svg) setTimeout(() => SE.draw(svg, {duration:0.25, stagger:0.03}), 50 + Math.min(idx * 10, 300));
   });
 }
 
