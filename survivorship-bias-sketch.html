@@ -9,7 +9,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1920px;height:1080px;overflow:hidden}
-body{background:#f5f0e8;font-family:'ZCOOL KuaiLe','Noto Sans SC',sans-serif;position:relative}
+body{background:#f5f0e8;font-family:'ZCOOL KuaiLe','Noto Sans SC',sans-serif;position:relative;
+  background-image:
+    linear-gradient(rgba(139,119,90,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,119,90,0.12) 1px, transparent 1px);
+  background-size:40px 40px}
 
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   background:
@@ -334,193 +338,193 @@ function start() {
     gsap.set(svg, {opacity:0, scale:0}); return svg;
   });
 
-  // ═══ S1: 引子 ═══
-  fadeIn('#s1', .3);
-  M.to('#s1t1',{opacity:1,duration:1.2,ease:'power2.out'},'+=.5');
-  hold(1.5);
-  M.to('#s1t2',{opacity:1,duration:.8});
-  hold(2);
-  fadeOut('#s1',.6);
+  // ═══ S1: 引子 (3s) ═══
+  fadeIn('#s1', .2);
+  M.to('#s1t1',{opacity:1,duration:.8,ease:'power2.out'},'+=.3');
+  hold(.8);
+  M.to('#s1t2',{opacity:1,duration:.5});
+  hold(1);
+  fadeOut('#s1',.4);
 
-  fadeIn('#wm',.4);
+  fadeIn('#wm',.3);
 
-  // ═══ S2: 成功符号 ═══
-  fadeIn('#s2',.4);
+  // ═══ S2: 成功符号 (3.5s) ═══
+  fadeIn('#s2',.3);
   sub('成功的故事铺天盖地…');
-  fadeIn('#s2title',.5);
-  hold(.5);
-  s2svgs.forEach((svg,i)=>{
-    M.to(svg,{opacity:1,duration:.2},`>+${i===0?.3:.15}`);
-    M.add(SketchEngine.drawAll(svg,{duration:.6,stagger:.08}),'<');
-    M.to(svg,{y:'-=12',duration:1.5,ease:'sine.inOut',yoyo:true,repeat:1},'<');
-  });
-  hold(1);
-  subOff();
-  fadeOut('#s2',.5);
-
-  // ═══ S3: 眼睛 ═══
-  fadeIn('#s3',.4);
-  sub('你有没有想过…');
-  fadeIn('#s3q',.6);
-  hold(1);
-  M.to('#s3eye',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s3eye svg',{duration:.8,stagger:.1}));
-  hold(1);
-  M.call(()=>{const e=document.getElementById('s3eye');e.innerHTML=I['eye-closed'];e.querySelector('svg').style.color='#64748b';});
+  fadeIn('#s2title',.4);
   hold(.3);
-  M.call(()=>{const e=document.getElementById('s3eye');e.innerHTML=I['eye-open'];e.querySelector('svg').style.color='#f97316';});
+  s2svgs.forEach((svg,i)=>{
+    M.to(svg,{opacity:1,duration:.15},`>+${i===0?.2:.1}`);
+    M.add(SketchEngine.drawAll(svg,{duration:.4,stagger:.06}),'<');
+    M.to(svg,{y:'-=10',duration:1,ease:'sine.inOut',yoyo:true,repeat:1},'<');
+  });
   hold(.5);
-  subChange('你看到的是真的吗？');
-  fadeIn('#s3q2',.6);
-  hold(2);
   subOff();
-  fadeOut('#s3',.5);
+  fadeOut('#s2',.3);
 
-  // ═══ S4: 二战飞机 ═══
-  fadeIn('#s4',.4);
-  sub('二战时期，军方统计了返航飞机的弹孔');
-  fadeIn('#s4title',.4);
+  // ═══ S3: 眼睛 (3s) ═══
+  fadeIn('#s3',.3);
+  sub('你有没有想过…');
+  fadeIn('#s3q',.4);
   hold(.5);
-  M.to('#s4plane',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s4plane svg',{duration:.4,stagger:.06}));
+  M.to('#s3eye',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s3eye svg',{duration:.5,stagger:.08}));
+  hold(.5);
+  M.call(()=>{const e=document.getElementById('s3eye');e.innerHTML=I['eye-closed'];e.querySelector('svg').style.color='#64748b';});
+  hold(.2);
+  M.call(()=>{const e=document.getElementById('s3eye');e.innerHTML=I['eye-open'];e.querySelector('svg').style.color='#f97316';});
+  hold(.3);
+  subChange('你看到的是真的吗？');
+  fadeIn('#s3q2',.4);
   hold(1);
+  subOff();
+  fadeOut('#s3',.3);
+
+  // ═══ S4: 二战飞机 (6s) ═══
+  fadeIn('#s4',.3);
+  sub('二战时期，军方统计了返航飞机的弹孔');
+  fadeIn('#s4title',.3);
+  hold(.3);
+  M.to('#s4plane',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s4plane svg',{duration:.3,stagger:.04}));
+  hold(.5);
   subChange('机翼和机身中弹最多');
   bulletSvgs.forEach((svg,i)=>{
-    M.to(svg,{opacity:1,scale:1,duration:.15,ease:'back.out(2)'},'>+.1');
+    M.to(svg,{opacity:1,scale:1,duration:.1,ease:'back.out(2)'},'>+.07');
     M.call(()=>{const bp=bulletPos[i];PS.burst(bp.x+bp.s/2,bp.y+bp.s/2,6,'#ef4444',25)},null,'<');
   });
-  hold(1);
+  hold(.5);
   subChange('军方建议加强机翼防护');
-  fadeIn('#s4label1',.5);
-  hold(2);
+  fadeIn('#s4label1',.3);
+  hold(1.2);
   subChange('但沃尔德说：应该保护机尾');
-  fadeIn('#s4label2',.5);
-  hold(2);
+  fadeIn('#s4label2',.3);
+  hold(1.2);
   subOff();
-  fadeOut('#s4',.5);
+  fadeOut('#s4',.3);
 
-  // ═══ S5: 沃尔德的洞察 ═══
-  fadeIn('#s5',.4);
+  // ═══ S5: 沃尔德的洞察 (5s) ═══
+  fadeIn('#s5',.3);
   sub('飞回来的，弹孔不致命');
-  fadeIn('#s5title',.4);
-  hold(.5);
-  M.to('#s5survived',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s5survived svg',{duration:.5,stagger:.05}));
-  fadeIn('#s5sl',.3);
-  hold(.5);
-  M.to('#s5vs',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s5vs svg',{duration:.4,stagger:.08}));
+  fadeIn('#s5title',.3);
   hold(.3);
+  M.to('#s5survived',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s5survived svg',{duration:.4,stagger:.04}));
+  fadeIn('#s5sl',.2);
+  hold(.3);
+  M.to('#s5vs',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s5vs svg',{duration:.3,stagger:.06}));
+  hold(.2);
   subChange('没飞回来的，才是致命部位');
-  M.to('#s5crashed',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s5crashed svg',{duration:.5,stagger:.05}));
-  fadeIn('#s5cl',.3);
+  M.to('#s5crashed',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s5crashed svg',{duration:.4,stagger:.04}));
+  fadeIn('#s5cl',.2);
   M.call(()=>PS.burst(1300,420,20,'#ef4444',60));
-  hold(1);
+  hold(.5);
   subOff();
-  fadeIn('#s5insight',.8);
-  hold(3);
-  fadeOut('#s5',.5);
+  fadeIn('#s5insight',.5);
+  hold(2);
+  fadeOut('#s5',.3);
 
-  // ═══ S6: 概念揭示 ═══
-  fadeIn('#s6',.3);
+  // ═══ S6: 概念揭示 (2.5s) ═══
+  fadeIn('#s6',.2);
   M.to('#s6text',{opacity:1,duration:0});
-  M.from('#s6text',{scale:.5,duration:1,ease:'back.out(1.7)'});
+  M.from('#s6text',{scale:.5,duration:.7,ease:'back.out(1.7)'});
   M.call(()=>PS.burst(960,540,50,'#c0392b',150));
-  fadeIn('#s6sub',.5);
-  hold(2.5);
-  fadeOut('#s6',.5);
-
-  // ═══ S7: 冰山 ═══
-  fadeIn('#s7',.4);
-  sub('你看到的只是冰山一角');
-  fadeIn('#s7title',.4);
-  hold(.5);
-  M.to('#s7iceberg',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s7iceberg svg',{duration:.6,stagger:.1}));
-  hold(.5);
-  fadeIn('#s7above',.4);
-  hold(.8);
-  subChange('水面下，是无数你不曾听闻的失败');
-  fadeIn('#s7below',.4);
-  hold(1);
-
-  M.to('#s7inf',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s7inf svg',{duration:.5,stagger:.06}));
-  fadeIn('#s7infl',.3);
-  M.to('#s7inv',{opacity:1,duration:.2},'>+.2');
-  M.add(SketchEngine.drawAll('#s7inv svg',{duration:.5,stagger:.06}),'<');
-  fadeIn('#s7invl',.3);
-  fadeIn('#s7divider',.3);
-  M.to('#s7ghost',{opacity:1,duration:.2},'>+.2');
-  M.add(SketchEngine.drawAll('#s7ghost svg',{duration:.5,stagger:.06}),'<');
-  fadeIn('#s7ghostl',.3);
-  hold(2);
-  subOff();
-  fadeOut('#s7',.5);
-
-  // ═══ S8: 归因谬误 ═══
-  fadeIn('#s8',.4);
-  sub('一大爷抽烟喝酒照样活到90…');
-  fadeIn('#s8title',.5);
-  hold(1);
-  fadeIn('#s8story',.6);
+  fadeIn('#s6sub',.3);
   hold(1.5);
-  fadeIn('#s8arrow',.3);
+  fadeOut('#s6',.3);
+
+  // ═══ S7: 冰山 (5s) ═══
+  fadeIn('#s7',.3);
+  sub('你看到的只是冰山一角');
+  fadeIn('#s7title',.3);
+  hold(.3);
+  M.to('#s7iceberg',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s7iceberg svg',{duration:.5,stagger:.08}));
+  hold(.3);
+  fadeIn('#s7above',.3);
   hold(.5);
+  subChange('水面下，是无数你不曾听闻的失败');
+  fadeIn('#s7below',.3);
+  hold(.5);
+
+  M.to('#s7inf',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s7inf svg',{duration:.4,stagger:.05}));
+  fadeIn('#s7infl',.2);
+  M.to('#s7inv',{opacity:1,duration:.15},'>+.1');
+  M.add(SketchEngine.drawAll('#s7inv svg',{duration:.4,stagger:.05}),'<');
+  fadeIn('#s7invl',.2);
+  fadeIn('#s7divider',.2);
+  M.to('#s7ghost',{opacity:1,duration:.15},'>+.1');
+  M.add(SketchEngine.drawAll('#s7ghost svg',{duration:.4,stagger:.05}),'<');
+  fadeIn('#s7ghostl',.2);
+  hold(1.2);
+  subOff();
+  fadeOut('#s7',.3);
+
+  // ═══ S8: 归因谬误 (4s) ═══
+  fadeIn('#s8',.3);
+  sub('一大爷抽烟喝酒照样活到90…');
+  fadeIn('#s8title',.4);
+  hold(.5);
+  fadeIn('#s8story',.4);
+  hold(1);
+  fadeIn('#s8arrow',.2);
+  hold(.3);
   subChange('就断言"烟酒无害"？');
-  fadeIn('#s8wrong',.5);
-  hold(.5);
-  M.to('#s8cross',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s8cross svg',{duration:.4,stagger:.08}));
+  fadeIn('#s8wrong',.3);
+  hold(.3);
+  M.to('#s8cross',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s8cross svg',{duration:.3,stagger:.06}));
   M.call(()=>PS.burst(1250,540,15,'#ef4444',40));
-  hold(2);
+  hold(1);
   subOff();
-  fadeOut('#s8',.5);
+  fadeOut('#s8',.3);
 
-  // ═══ S9: 三个框架 ═══
-  fadeIn('#s9',.4);
+  // ═══ S9: 三个框架 (4.5s) ═══
+  fadeIn('#s9',.3);
   sub('三个思维框架，打破幸存者偏差');
-  fadeIn('#s9title',.5);
-  hold(.5);
-  M.to('#fw1',{opacity:1,y:0,duration:.6,ease:'back.out(1.5)'});
-  M.to('#fwa1',{opacity:1,duration:.3},'+=.2');
-  hold(1);
+  fadeIn('#s9title',.4);
+  hold(.3);
+  M.to('#fw1',{opacity:1,y:0,duration:.4,ease:'back.out(1.5)'});
+  M.to('#fwa1',{opacity:1,duration:.2},'+=.1');
+  hold(.6);
   subChange('用概率思考，不靠个案');
-  M.to('#fw2',{opacity:1,y:0,duration:.6,ease:'back.out(1.5)'});
-  M.to('#fwa2',{opacity:1,duration:.3},'+=.2');
-  hold(1);
+  M.to('#fw2',{opacity:1,y:0,duration:.4,ease:'back.out(1.5)'});
+  M.to('#fwa2',{opacity:1,duration:.2},'+=.1');
+  hold(.6);
   subChange('关注整体样本，而非幸存子集');
-  M.to('#fw3',{opacity:1,y:0,duration:.6,ease:'back.out(1.5)'});
-  hold(2);
+  M.to('#fw3',{opacity:1,y:0,duration:.4,ease:'back.out(1.5)'});
+  hold(1.2);
   subOff();
-  fadeOut('#s9',.5);
+  fadeOut('#s9',.3);
 
-  // ═══ S10: 结尾 ═══
-  fadeIn('#s10',.4);
+  // ═══ S10: 结尾 (4s) ═══
+  fadeIn('#s10',.3);
   sub('真正的智慧在于看见别人看不到的盲区');
-  M.to('#s10plane',{opacity:1,duration:.2});
-  M.add(SketchEngine.drawAll('#s10plane svg',{duration:.8,stagger:.06}));
-  M.to('#s10thought',{opacity:1,duration:.2},'<+.3');
-  M.add(SketchEngine.drawAll('#s10thought svg',{duration:.5,stagger:.08}),'<');
-  M.to('#s10data',{opacity:1,duration:.2},'<+.2');
-  M.add(SketchEngine.drawAll('#s10data svg',{duration:.5,stagger:.08}),'<');
-  hold(1);
-  fadeIn('#s10main',.8);
+  M.to('#s10plane',{opacity:1,duration:.15});
+  M.add(SketchEngine.drawAll('#s10plane svg',{duration:.6,stagger:.05}));
+  M.to('#s10thought',{opacity:1,duration:.15},'<+.2');
+  M.add(SketchEngine.drawAll('#s10thought svg',{duration:.4,stagger:.06}),'<');
+  M.to('#s10data',{opacity:1,duration:.15},'<+.15');
+  M.add(SketchEngine.drawAll('#s10data svg',{duration:.4,stagger:.06}),'<');
+  hold(.5);
+  fadeIn('#s10main',.5);
   M.call(()=>PS.burst(960,750,40,'#c0392b',120));
-  hold(1);
-  fadeIn('#s10sub2',.6);
-  hold(3);
+  hold(.5);
+  fadeIn('#s10sub2',.4);
+  hold(1.5);
   subOff();
-  fadeOut('#s10',.6);
+  fadeOut('#s10',.4);
 
-  // ═══ S11: Credits ═══
-  M.to('#wm',{opacity:0,duration:.4});
-  fadeIn('#s11',.4);
-  M.to('#s11t',{opacity:1,duration:.8});
-  M.to('#s11s',{opacity:1,duration:.6},'+=.3');
-  hold(3);
-  fadeOut('#s11',1);
+  // ═══ S11: Credits (2.5s) ═══
+  M.to('#wm',{opacity:0,duration:.3});
+  fadeIn('#s11',.3);
+  M.to('#s11t',{opacity:1,duration:.5});
+  M.to('#s11s',{opacity:1,duration:.4},'+=.2');
+  hold(1.5);
+  fadeOut('#s11',.6);
 
   M.eventCallback('onUpdate',()=>{$('#prog').style.width=(M.progress()*100)+'%';});
   M.eventCallback('onComplete',()=>PS.clear());
