@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✏️ SciMotion Sketch Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --bg:#050510;--bg2:#0a0a1a;--card:rgba(255,255,255,0.04);--card-hover:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);--border-hover:rgba(255,255,255,0.16);
+  --text:#fff;--text2:rgba(255,255,255,0.55);--text3:rgba(255,255,255,0.3);
+  --blue:#3b82f6;--purple:#8b5cf6;--pink:#f472b6;--orange:#f97316;
+  --gold:#eab308;--green:#22c55e;--red:#ef4444;--cyan:#22d3ee;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Inter","PingFang SC","Noto Sans SC",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6}
+::selection{background:rgba(139,92,246,0.3)}
+
+/* ── Header ── */
+.header{text-align:center;padding:48px 32px 24px;position:relative}
+.header h1{font-size:32px;font-weight:800;letter-spacing:-0.5px}
+.header p{color:var(--text2);font-size:14px;margin-top:6px}
+.stats{display:flex;gap:24px;justify-content:center;margin-top:16px}
+.stat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3)}
+.stat b{color:var(--text);font-weight:700;font-size:16px}
+
+/* ── Toolbar ── */
+.toolbar{position:sticky;top:0;z-index:100;background:rgba(5,5,16,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 32px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+.search-box:focus{border-color:var(--purple)}
+.search-box::placeholder{color:var(--text3)}
+.filter-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap}
+.filter-btn:hover{border-color:var(--border-hover);color:var(--text)}
+.filter-btn.active{background:rgba(139,92,246,0.15);border-color:var(--purple);color:var(--purple)}
+.filter-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.filter-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-right:4px}
+
+/* ── Grid ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:24px 32px;max-width:1400px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .2s ease;position:relative}
+.card:hover{background:var(--card-hover);border-color:var(--border-hover);transform:translateY(-2px)}
+.card svg{width:100px;height:100px;transition:transform .2s}
+.card:hover svg{transform:scale(1.05)}
+.card .card-name{font-size:13px;font-weight:600;text-align:center}
+.card .card-key{font-size:10px;color:var(--text3);font-family:"SF Mono","Fira Code",monospace;text-align:center;word-break:break-all}
+.card .card-desc{font-size:10px;color:var(--text3);text-align:center;line-height:1.3;display:none}
+.card:hover .card-desc{display:block}
+.card:hover .card-key{display:none}
+.card .card-tags{position:absolute;top:8px;right:8px;display:flex;gap:3px}
+.card .tag{font-size:8px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:var(--text3)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--purple);color:white;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:200;pointer-events:none;opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── Empty State ── */
+.empty{text-align:center;padding:80px 32px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+/* ── Detail Panel ── */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+.panel-overlay.open{opacity:1;pointer-events:auto}
+.panel{position:fixed;right:0;top:0;bottom:0;width:420px;max-width:90vw;background:var(--bg2);border-left:1px solid var(--border);z-index:301;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);padding:32px;overflow-y:auto}
+.panel-overlay.open .panel{transform:translateX(0)}
+.panel-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.panel-close:hover{background:var(--card);color:var(--text)}
+.panel-preview{display:flex;justify-content:center;padding:32px 0;background:var(--card);border-radius:16px;margin-bottom:24px}
+.panel-preview svg{width:160px;height:160px}
+.panel h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.panel .panel-key{font-size:12px;color:var(--purple);font-family:monospace;margin-bottom:16px}
+.panel .panel-meta{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.panel .meta-row{display:flex;gap:8px;align-items:center;font-size:13px}
+.panel .meta-label{color:var(--text3);min-width:60px}
+.panel .meta-value{color:var(--text2)}
+.panel .code-block{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:"SF Mono","Fira Code",monospace;font-size:11px;line-height:1.5;color:var(--text2);overflow-x:auto;white-space:pre;max-height:300px;position:relative}
+.panel .code-block .copy-btn{position:absolute;top:8px;right:8px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit}
+.panel .code-block .copy-btn:hover{background:var(--card-hover);color:var(--text)}
+
+/* ── Footer ── */
+.footer{text-align:center;padding:40px 32px;color:var(--text3);font-size:12px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>✏️ SciMotion Sketch Gallery</h1>
+  <p>简笔画风格 SVG 图标库 — 搜索、预览、复制</p>
+  <div class="stats">
+    <div class="stat"><b id="totalCount">0</b> 图标</div>
+    <div class="stat"><b id="catCount">0</b> 分类</div>
+    <div class="stat"><b id="tagCount">0</b> 标签</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索图标名称、描述、key...">
+  <div class="filter-group">
+    <span class="filter-label">分类</span>
+    <div id="catFilters"></div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">项目</span>
+    <div id="tagFilters"></div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+<div class="empty" id="empty" style="display:none">
+  <div class="empty-icon">🔍</div>
+  <div>没有找到匹配的图标</div>
+</div>
+
+<div class="toast" id="toast">✅ SVG 已复制到剪贴板</div>
+
+<!-- Detail Panel -->
+<div class="panel-overlay" id="panelOverlay">
+  <div class="panel" id="panel">
+    <button class="panel-close" id="panelClose">✕</button>
+    <div class="panel-preview" id="panelPreview"></div>
+    <h2 id="panelName"></h2>
+    <div class="panel-key" id="panelKey"></div>
+    <div class="panel-meta" id="panelMeta"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">SVG Code</div>
+    <div class="code-block" id="panelCode"><button class="copy-btn" id="panelCopy">Copy</button></div>
+  </div>
+</div>
+
+<!-- Registry Script -->
+<script>
+// Inline the registry (remove the </script> closing issue by escaping)
+</script>
+<script src="icons/sketch-registry.js"></script>
+<script>
+
+// ── State ──
+let activeCategory = null;
+let activeTag = null;
+let searchQuery = '';
+
+// ── SketchEngine (minimal) ──
+class SE {
+  static _len(el) {
+    if (el.getTotalLength) return el.getTotalLength();
+    const t = el.tagName.toLowerCase();
+    if (t==='circle') return 2*Math.PI*parseFloat(el.getAttribute('r'));
+    if (t==='ellipse'){const a=parseFloat(el.getAttribute('rx')),b=parseFloat(el.getAttribute('ry'));return Math.PI*(3*(a+b)-Math.sqrt((3*a+b)*(a+3*b)));}
+    return 300;
+  }
+  static draw(container, {stagger=0.08,duration=0.4,ease="power2.inOut"}={}) {
+    const el = typeof container==='string'?document.querySelector(container):container;
+    if(!el) return;
+    const paths = el.querySelectorAll('path, line, circle, ellipse, rect, polyline, polygon');
+    const tl = gsap.timeline();
+    paths.forEach((p,i) => {
+      const len = SE._len(p);
+      gsap.set(p, {strokeDasharray:len, strokeDashoffset:len});
+      tl.to(p, {strokeDashoffset:0, duration, ease}, i*stagger);
+    });
+    return tl;
+  }
+}
+
+// ── Init ──
+const R = window.SketchIconRegistry;
+const gridEl = document.getElementById('grid');
+const emptyEl = document.getElementById('empty');
+const searchBox = document.getElementById('searchBox');
+const catFiltersEl = document.getElementById('catFilters');
+const tagFiltersEl = document.getElementById('tagFilters');
+
+// Stats
+document.getElementById('totalCount').textContent = R.count;
+document.getElementById('catCount').textContent = R.categories().length;
+document.getElementById('tagCount').textContent = R.tags().length;
+
+// Build filter buttons
+function buildFilters() {
+  // Categories
+  const cats = R.categories();
+  const catNames = {people:'👤 人物',science:'🔬 科学',objects:'📦 物品',vehicles:'✈️ 载具',charts:'📊 图表',symbols:'💡 符号',ui:'🔗 UI'};
+  catFiltersEl.innerHTML = `<button class="filter-btn active" data-cat="">全部</button>` +
+    cats.map(c => `<button class="filter-btn" data-cat="${c}">${catNames[c]||c}</button>`).join('');
+
+  catFiltersEl.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    catFiltersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeCategory = btn.dataset.cat || null;
+    render();
+  });
+
+  // Tags
+  const tags = R.tags();
+  const tagNames = {'base':'🧩 基础','survivorship-bias':'✈️ 幸存者偏差'};
+  tagFiltersEl.innerHTML = `<button class="filter-btn active" data-tag="">全部</button>` +
+    tags.map(t => `<button class="filter-btn" data-tag="${t}">${tagNames[t]||t}</button>`).join('');
+
+  tagFiltersEl.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    tagFiltersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTag = btn.dataset.tag || null;
+    render();
+  });
+}
+
+// ── Render Grid ──
+function render() {
+  let icons = R.all();
+
+  if (activeCategory) icons = icons.filter(i => i.category === activeCategory);
+  if (activeTag) icons = icons.filter(i => i.tags?.includes(activeTag));
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    icons = icons.filter(i =>
+      i.key.includes(q) || i.name?.toLowerCase().includes(q) || (i.desc||'').toLowerCase().includes(q)
+    );
+  }
+
+  gridEl.innerHTML = '';
+  emptyEl.style.display = icons.length === 0 ? 'block' : 'none';
+
+  icons.forEach((icon, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.key = icon.key;
+
+    const tagHtml = (icon.tags||[]).filter(t=>t!=='base').map(t =>
+      `<span class="tag">${t}</span>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="card-tags">${tagHtml}</div>
+      <div style="color:${icon.color||'#fff'}">${icon.svg}</div>
+      <div class="card-name">${icon.name||icon.key}</div>
+      <div class="card-key">${icon.key}</div>
+      <div class="card-desc">${icon.desc||''}</div>
+    `;
+
+    card.addEventListener('click', () => openPanel(icon));
+    card.addEventListener('dblclick', (e) => { e.preventDefault(); copyToClipboard(icon.svg, icon.key); });
+
+    gridEl.appendChild(card);
+
+    // Staggered entrance
+    gsap.fromTo(card, {opacity:0, y:12}, {opacity:1, y:0, duration:0.3, delay:Math.min(idx*0.02, 0.6), ease:'power2.out'});
+    // Draw animation
+    const svg = card.querySelector('svg');
+    if (svg) setTimeout(() => SE.draw(svg), 100 + Math.min(idx * 30, 800));
+  });
+}
+
+// ── Detail Panel ──
+const panelOverlay = document.getElementById('panelOverlay');
+const panelEl = document.getElementById('panel');
+
+function openPanel(icon) {
+  document.getElementById('panelPreview').innerHTML = `<div style="color:${icon.color||'#fff'}">${icon.svg}</div>`;
+  document.getElementById('panelName').textContent = icon.name || icon.key;
+  document.getElementById('panelKey').textContent = icon.key;
+
+  const meta = document.getElementById('panelMeta');
+  meta.innerHTML = '';
+  const rows = [
+    ['分类', icon.category],
+    ['颜色', `<span style="color:${icon.color}">${icon.color}</span>`],
+    ['标签', (icon.tags||[]).join(', ')],
+    ['场景', icon.scene || '—'],
+    ['描述', icon.desc || '—'],
+  ];
+  rows.forEach(([label, value]) => {
+    meta.innerHTML += `<div class="meta-row"><span class="meta-label">${label}</span><span class="meta-value">${value}</span></div>`;
+  });
+
+  // Code
+  const codeEl = document.getElementById('panelCode');
+  const formatted = icon.svg.replace(/></g, '>\n<').replace(/^/gm, '');
+  codeEl.innerHTML = `<button class="copy-btn" id="panelCopy">Copy</button>${escapeHtml(formatted)}`;
+  document.getElementById('panelCopy').onclick = () => copyToClipboard(icon.svg, icon.key);
+
+  // Draw animation in panel
+  const svg = document.querySelector('#panelPreview svg');
+  if (svg) setTimeout(() => SE.draw(svg, {duration:0.6, stagger:0.1}), 200);
+
+  panelOverlay.classList.add('open');
+}
+
+document.getElementById('panelClose').addEventListener('click', () => panelOverlay.classList.remove('open'));
+panelOverlay.addEventListener('click', e => { if (e.target === panelOverlay) panelOverlay.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') panelOverlay.classList.remove('open'); });
+
+// ── Copy ──
+function copyToClipboard(text, name) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`✅ ${name} SVG 已复制`);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(`✅ ${name} SVG 已复制`);
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Search ──
+searchBox.addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  render();
+});
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== searchBox) {
+    e.preventDefault();
+    searchBox.focus();
+  }
+});
+
+// ── Init ──
+buildFilters();
+render();
+</script>
+
+<div class="footer">
+  ✏️ SciMotion Sketch Gallery — <span id="footerCount"></span> icons · 双击图标快速复制 · 按 <kbd>/</kbd> 搜索 · Built by Helm 🎨
+  <script>document.getElementById('footerCount').textContent = R.count;</script>
+</div>
+
+</body>
+</html>
