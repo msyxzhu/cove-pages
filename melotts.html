@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeloTTS 调试台</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --text: #e0e0e8;
+    --text2: #888898;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --green: #00b894;
+    --red: #e17055;
+    --orange: #fdcb6e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+
+  .container {
+    max-width: 640px;
+    width: 100%;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  header p {
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    flex-shrink: 0;
+  }
+
+  .status-dot.connected { background: var(--green); }
+  .status-dot.loading { background: var(--orange); animation: pulse 1s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .server-input {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .server-input input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+
+  .server-input input:focus { border-color: var(--accent); }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .row > div { flex: 1; }
+
+  select, input[type="range"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    margin-bottom: 16px;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text2); }
+
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .speed-row input[type="range"] {
+    flex: 1;
+    padding: 0;
+    height: 6px;
+    border: none;
+    border-radius: 3px;
+    -webkit-appearance: none;
+    background: var(--border);
+  }
+
+  .speed-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  .speed-val {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 14px;
+    color: var(--accent2);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: linear-gradient(135deg, var(--accent), #5a4bd1);
+    color: white;
+    letter-spacing: 0.3px;
+  }
+
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .result {
+    margin-top: 16px;
+    display: none;
+  }
+
+  .result.show { display: block; }
+
+  .result audio {
+    width: 100%;
+    margin-top: 8px;
+    border-radius: 8px;
+  }
+
+  .meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .history {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .history-item {
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .history-item:hover { background: var(--border); }
+
+  .history-item .text {
+    font-size: 14px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-item .info {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .history-item audio {
+    width: 100%;
+    margin-top: 8px;
+    height: 32px;
+  }
+
+  footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  footer a { color: var(--accent2); text-decoration: none; }
+
+  .error-msg {
+    padding: 12px;
+    background: rgba(225, 112, 85, 0.15);
+    border: 1px solid rgba(225, 112, 85, 0.3);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  .error-msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🔊 MeloTTS 调试台</h1>
+    <p>多语言文字转语音 · 实时预览</p>
+  </header>
+
+  <!-- Server Connection -->
+  <div class="card">
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">未连接</span>
+    </div>
+    <label>API 服务器地址</label>
+    <div class="server-input">
+      <input type="text" id="serverUrl" placeholder="http://localhost:8765" value="">
+      <button class="btn" style="width:auto;padding:10px 20px;font-size:14px" onclick="checkServer()">连接</button>
+    </div>
+  </div>
+
+  <!-- TTS Controls -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>语言</label>
+        <select id="language" onchange="updateSpeakers()">
+          <option value="ZH">中文</option>
+          <option value="EN">English</option>
+          <option value="ES">Español</option>
+          <option value="FR">Français</option>
+          <option value="JP">日本語</option>
+          <option value="KR">한국어</option>
+        </select>
+      </div>
+      <div>
+        <label>说话人</label>
+        <select id="speaker">
+          <option value="ZH">ZH (默认)</option>
+        </select>
+      </div>
+    </div>
+
+    <label>语速</label>
+    <div class="speed-row">
+      <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSpeed()">
+      <span class="speed-val" id="speedVal">1.0x</span>
+    </div>
+
+    <label>文本 <span style="font-weight:400;text-transform:none">(最多 500 字)</span></label>
+    <textarea id="text" placeholder="输入要合成的文本..." maxlength="500">你好，欢迎使用 MeloTTS 文字转语音引擎。这是一个测试。</textarea>
+
+    <button class="btn" id="synthBtn" onclick="synthesize()" disabled>🎙 合成语音</button>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="result" id="result">
+      <audio id="audioPlayer" controls></audio>
+      <div class="meta">
+        <span>⏱ <span id="elapsed">-</span></span>
+        <span>🗣 <span id="usedSpeaker">-</span></span>
+        <span>📝 <span id="charCount">-</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <label>历史记录</label>
+    <div class="history" id="history">
+      <div style="text-align:center;color:var(--text2);padding:20px;font-size:13px">
+        还没有合成记录
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Powered by <a href="https://github.com/myshell-ai/MeloTTS" target="_blank">MeloTTS</a> · 
+    Built by Cove 🌊
+  </footer>
+</div>
+
+<script>
+const SPEAKERS = {
+  ZH: [{v:"ZH", l:"ZH (默认)"}],
+  EN: [{v:"EN-US",l:"EN-US 🇺🇸"},{v:"EN-BR",l:"EN-BR 🇬🇧"},{v:"EN_INDIA",l:"EN-India 🇮🇳"},{v:"EN-AU",l:"EN-AU 🇦🇺"},{v:"EN-Default",l:"EN-Default"}],
+  ES: [{v:"ES", l:"ES"}],
+  FR: [{v:"FR", l:"FR"}],
+  JP: [{v:"JP", l:"JP"}],
+  KR: [{v:"KR", l:"KR"}],
+};
+
+let serverOk = false;
+let history = [];
+
+// Load saved server URL
+const saved = localStorage.getItem('melotts_server');
+if (saved) document.getElementById('serverUrl').value = saved;
+
+function updateSpeakers() {
+  const lang = document.getElementById('language').value;
+  const sel = document.getElementById('speaker');
+  sel.innerHTML = '';
+  (SPEAKERS[lang] || []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.v;
+    opt.textContent = s.l;
+    sel.appendChild(opt);
+  });
+}
+
+function updateSpeed() {
+  document.getElementById('speedVal').textContent = parseFloat(document.getElementById('speed').value).toFixed(1) + 'x';
+}
+
+async function checkServer() {
+  const url = document.getElementById('serverUrl').value.replace(/\/+$/, '');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const btn = document.getElementById('synthBtn');
+
+  dot.className = 'status-dot loading';
+  txt.textContent = '连接中...';
+
+  try {
+    const resp = await fetch(url + '/health', { signal: AbortSignal.timeout(5000) });
+    const data = await resp.json();
+    if (data.status === 'ok') {
+      dot.className = 'status-dot connected';
+      txt.textContent = `已连接 · 已加载模型: ${data.loaded_models.length > 0 ? data.loaded_models.join(', ') : '(首次使用时加载)'}`;
+      serverOk = true;
+      btn.disabled = false;
+      localStorage.setItem('melotts_server', url);
+    }
+  } catch (e) {
+    dot.className = 'status-dot';
+    txt.textContent = `连接失败: ${e.message}`;
+    serverOk = false;
+    btn.disabled = true;
+  }
+}
+
+async function synthesize() {
+  if (!serverOk) return;
+
+  const url = document.getElementById('serverUrl').value.replace(/\/+$/, '');
+  const text = document.getElementById('text').value.trim();
+  const lang = document.getElementById('language').value;
+  const speaker = document.getElementById('speaker').value;
+  const speed = document.getElementById('speed').value;
+  const btn = document.getElementById('synthBtn');
+  const errEl = document.getElementById('errorMsg');
+
+  if (!text) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ 合成中...';
+  errEl.className = 'error-msg';
+
+  const t0 = Date.now();
+
+  try {
+    const params = new URLSearchParams({ text, language: lang, speaker, speed, format: 'wav' });
+    const resp = await fetch(url + '/tts?' + params, { signal: AbortSignal.timeout(60000) });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error || resp.statusText);
+    }
+
+    const blob = await resp.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const elapsed = parseInt(resp.headers.get('X-Elapsed-Ms') || (Date.now() - t0));
+    const usedSpeaker = resp.headers.get('X-Speaker') || speaker;
+
+    // Show result
+    const player = document.getElementById('audioPlayer');
+    player.src = audioUrl;
+    document.getElementById('elapsed').textContent = elapsed + 'ms';
+    document.getElementById('usedSpeaker').textContent = usedSpeaker;
+    document.getElementById('charCount').textContent = text.length + '字';
+    document.getElementById('result').className = 'result show';
+
+    player.play();
+
+    // Add to history
+    addHistory({ text, lang, speaker: usedSpeaker, speed, elapsed, audioUrl, time: new Date() });
+
+  } catch (e) {
+    errEl.textContent = '❌ ' + e.message;
+    errEl.className = 'error-msg show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎙 合成语音';
+  }
+}
+
+function addHistory(item) {
+  history.unshift(item);
+  if (history.length > 20) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('history');
+  if (history.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;font-size:13px">还没有合成记录</div>';
+    return;
+  }
+  el.innerHTML = history.map((h, i) => `
+    <div class="history-item">
+      <div class="text">${escHtml(h.text)}</div>
+      <div class="info">${h.lang} · ${h.speaker} · ${h.speed}x · ${h.elapsed}ms · ${h.time.toLocaleTimeString()}</div>
+      <audio src="${h.audioUrl}" controls preload="none"></audio>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Keyboard shortcut: Ctrl+Enter to synthesize
+document.getElementById('text').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    synthesize();
+  }
+});
+
+// Auto-connect on load
+if (document.getElementById('serverUrl').value) {
+  setTimeout(checkServer, 300);
+}
+</script>
+</body>
+</html>
