@@ -1,988 +1,821 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1080, height=1920">
-<title>幸存者偏差 — 高级版</title>
+<meta name="viewport" content="width=1920">
+<title>幸存者偏差 — 完整版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  width: 1080px; height: 1920px; overflow: hidden;
-  background: #050510; color: white; position: relative;
-  font-family: "PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
-  -webkit-font-smoothing: antialiased;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0a0a1a; font-family: "PingFang SC", "Noto Sans SC", system-ui, sans-serif; }
+
+/* Paper texture background */
+.paper-bg {
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(100,140,180,0.06) 39px, rgba(100,140,180,0.06) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(100,140,180,0.06) 39px, rgba(100,140,180,0.06) 40px),
+    linear-gradient(135deg, #f5f0e8 0%, #ebe5d9 50%, #e8e0d0 100%);
+  opacity: 0;
 }
 
-/* Shared canvas layers */
-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
-#bg-canvas { z-index: 0; }
-#fx-canvas { z-index: 50; }
-
+/* Scene container */
 .scene {
-  position: absolute; top: 0; left: 0;
-  width: 1080px; height: 1920px;
-  opacity: 0; z-index: 1; overflow: hidden;
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+}
+.scene.active { pointer-events: auto; }
+
+/* Persistent title */
+#persistent-title {
+  position: absolute; top: 36px; left: 48px; z-index: 100;
+  font-size: 28px; font-weight: 800; color: #e53e3e;
+  letter-spacing: 2px; opacity: 0;
+  font-style: italic;
 }
 
-/* ============ SCENE 1: HOOK ============ */
-#scene1 { background: transparent; }
-#scene1 .vignette {
-  position: absolute; width: 100%; height: 100%;
-  background: radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(5,5,16,0.85) 80%);
-}
-
-/* Floating icons that represent "success stories" */
-#scene1 .float-icons {
-  position: absolute; width: 100%; height: 100%;
-}
-#scene1 .float-icon {
-  position: absolute; font-size: 64px; opacity: 0;
-  filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
-}
-
-#scene1 .center-eye {
-  position: absolute; top: 700px; left: 50%; transform: translateX(-50%);
-  opacity: 0;
-}
-
-#scene1 .hook-text {
-  position: absolute; top: 1050px; width: 100%; text-align: center;
-  padding: 0 80px; opacity: 0;
-}
-#scene1 .hook-text h1 {
-  font-size: 64px; font-weight: 900; line-height: 1.5;
-  background: linear-gradient(135deg, #ff6b6b, #ffa500, #ff6b6b);
-  background-size: 200% 200%;
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-#scene1 .hook-text p {
-  font-size: 34px; color: rgba(255,255,255,0.5); margin-top: 16px; line-height: 1.7;
-}
-
-#scene1 .title-reveal {
-  position: absolute; top: 1420px; left: 50%; transform: translateX(-50%);
-  opacity: 0;
-}
-#scene1 .title-reveal .title-inner {
-  font-size: 80px; font-weight: 900; letter-spacing: 12px;
-  background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  position: relative;
-}
-#scene1 .title-reveal .title-line {
-  position: absolute; bottom: -10px; left: 0; width: 0; height: 4px;
-  background: linear-gradient(90deg, #ef4444, #f97316);
-}
-
-/* ============ SCENE 2: WWII ============ */
-#scene2 { background: transparent; }
-
-#scene2 .war-overlay {
-  position: absolute; width: 100%; height: 100%;
-  background: linear-gradient(180deg, rgba(20,10,5,0.9) 0%, rgba(30,15,10,0.7) 50%, rgba(20,10,5,0.9) 100%);
-}
-
-#scene2 .year-text {
-  position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
-  font-size: 200px; font-weight: 900; opacity: 0;
-  color: rgba(245,158,11,0.08);
-  letter-spacing: 20px;
-}
-
-#scene2 .scene-title {
-  position: absolute; top: 200px; width: 100%; text-align: center;
-  font-size: 48px; font-weight: 700; opacity: 0;
-  color: rgba(245,158,11,0.9);
-}
-
-/* Plane top-down view with proper detail */
-#scene2 .plane-group {
-  position: absolute; top: 380px; left: 50%; transform: translateX(-50%);
-  width: 800px; height: 600px; opacity: 0;
-}
-
-/* Heat map overlay on plane */
-#scene2 .heatmap-canvas {
-  position: absolute; top: 380px; left: 50%; transform: translateX(-50%);
-  z-index: 3; opacity: 0;
-}
-
-/* Decision bubbles */
-#scene2 .bubble {
-  position: absolute; left: 60px; right: 60px;
-  border-radius: 24px; padding: 36px 44px;
-  opacity: 0; transform: translateY(40px);
-}
-#scene2 .military-bubble {
-  top: 1050px;
-  background: rgba(239,68,68,0.06);
-  border: 1.5px solid rgba(239,68,68,0.25);
-}
-#scene2 .military-bubble::before {
-  content: ''; position: absolute; top: -12px; left: 60px;
-  width: 24px; height: 24px; background: rgba(239,68,68,0.06);
-  border-left: 1.5px solid rgba(239,68,68,0.25);
-  border-top: 1.5px solid rgba(239,68,68,0.25);
-  transform: rotate(45deg);
-}
-#scene2 .wald-bubble {
-  top: 1340px;
-  background: rgba(34,197,94,0.06);
-  border: 1.5px solid rgba(34,197,94,0.25);
-}
-
-.bubble .speaker {
-  font-size: 24px; font-weight: 700; letter-spacing: 2px;
-  margin-bottom: 12px;
-}
-.military-bubble .speaker { color: #f87171; }
-.wald-bubble .speaker { color: #4ade80; }
-.bubble .content {
-  font-size: 36px; font-weight: 600; line-height: 1.6;
-  color: rgba(255,255,255,0.85);
-}
-.bubble .emphasis { font-weight: 800; }
-.military-bubble .emphasis { color: #f87171; }
-.wald-bubble .emphasis { color: #4ade80; }
-
-/* ============ SCENE 3: INSIGHT ============ */
-#scene3 { background: transparent; }
-#scene3 .insight-bg {
-  position: absolute; width: 100%; height: 100%;
-  background: radial-gradient(ellipse at 50% 40%, rgba(34,197,94,0.05) 0%, transparent 60%);
-}
-
-#scene3 .scene-title {
-  position: absolute; top: 140px; width: 100%; text-align: center;
-  font-size: 52px; font-weight: 800; opacity: 0;
-}
-#scene3 .scene-title span {
-  background: linear-gradient(90deg, #4ade80, #22d3ee);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-
-/* Two plane comparison - side by side */
-#scene3 .planes-row {
-  position: absolute; top: 300px; left: 0; width: 1080px; height: 500px;
-}
-#scene3 .plane-col {
-  position: absolute; top: 0; width: 500px; text-align: center; opacity: 0;
-}
-#scene3 .plane-col.left { left: 20px; }
-#scene3 .plane-col.right { left: 560px; }
-#scene3 .plane-col .col-label {
-  font-size: 30px; font-weight: 700; margin-bottom: 12px;
-}
-#scene3 .left .col-label { color: #4ade80; }
-#scene3 .right .col-label { color: #f87171; }
-
-/* Animated arrow / flow */
-#scene3 .flow-arrow {
-  position: absolute; top: 850px; left: 50%; transform: translateX(-50%);
-  opacity: 0;
-}
-
-/* Logic cards */
-#scene3 .logic-card {
-  position: absolute; left: 60px; right: 60px;
-  border-radius: 20px; padding: 36px 40px;
-  opacity: 0; transform: scale(0.95);
-}
-#scene3 .logic-a {
-  top: 920px;
-  background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(34,211,238,0.05));
-  border: 1px solid rgba(74,222,128,0.2);
-}
-#scene3 .logic-b {
-  top: 1170px;
-  background: linear-gradient(135deg, rgba(248,113,113,0.08), rgba(251,146,60,0.05));
-  border: 1px solid rgba(248,113,113,0.2);
-}
-.logic-card .logic-num {
-  font-size: 48px; font-weight: 900; line-height: 1;
-  margin-bottom: 12px;
-}
-.logic-a .logic-num { color: #4ade80; }
-.logic-b .logic-num { color: #f87171; }
-.logic-card .logic-text {
-  font-size: 34px; font-weight: 500; line-height: 1.7;
-  color: rgba(255,255,255,0.8);
-}
-
-#scene3 .conclusion-text {
-  position: absolute; top: 1500px; left: 80px; right: 80px;
-  text-align: center; font-size: 44px; font-weight: 800;
-  line-height: 1.5; opacity: 0;
-  background: linear-gradient(135deg, #4ade80, #22d3ee);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-
-/* ============ SCENE 4: DAILY LIFE ============ */
-#scene4 { background: transparent; }
-
-#scene4 .scene-title {
-  position: absolute; top: 140px; width: 100%; text-align: center;
-  font-size: 52px; font-weight: 800; opacity: 0;
-}
-#scene4 .scene-title span {
-  background: linear-gradient(90deg, #c084fc, #f472b6);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-
-/* Iceberg visual */
-#scene4 .iceberg-container {
-  position: absolute; top: 280px; left: 50%; transform: translateX(-50%);
-  width: 800px; height: 900px; opacity: 0;
-}
-
-/* Water line */
-#scene4 .waterline {
-  position: absolute; top: 580px; left: 0; width: 1080px;
-  height: 3px; opacity: 0;
-  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
-}
-#scene4 .waterline-label-above {
-  position: absolute; top: 540px; right: 100px;
-  font-size: 28px; color: rgba(255,255,255,0.4); opacity: 0;
-}
-#scene4 .waterline-label-below {
-  position: absolute; top: 592px; right: 100px;
-  font-size: 28px; color: rgba(59,130,246,0.4); opacity: 0;
-}
-
-/* Examples as iceberg labels */
-#scene4 .ice-label {
-  position: absolute; left: 60px; right: 60px;
-  font-size: 32px; line-height: 1.6; opacity: 0;
-  padding: 20px 32px; border-radius: 16px;
-}
-#scene4 .ice-above {
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.85); font-weight: 600;
-}
-#scene4 .ice-below {
-  background: rgba(59,130,246,0.05);
-  color: rgba(147,197,253,0.7);
-}
-#scene4 .label-1a { top: 320px; }
-#scene4 .label-1b { top: 640px; }
-#scene4 .label-2a { top: 420px; }
-#scene4 .label-2b { top: 770px; }
-#scene4 .label-3a { top: 490px; }
-#scene4 .label-3b { top: 900px; }
-
-#scene4 .big-q {
-  position: absolute; top: 1100px; width: 100%;
-  text-align: center; padding: 0 80px;
-  font-size: 42px; font-weight: 800; line-height: 1.5;
-  opacity: 0; color: rgba(255,255,255,0.9);
-}
-#scene4 .big-q em {
-  font-style: normal; color: #f472b6; font-size: 48px;
-}
-
-/* ============ SCENE 5: CLOSING ============ */
-#scene5 { background: transparent; }
-#scene5 .close-bg {
-  position: absolute; width: 100%; height: 100%;
-  background: radial-gradient(ellipse at 50% 50%, rgba(15,23,42,0.9) 0%, rgba(5,5,16,0.95) 70%);
-}
-
-#scene5 .plane-silhouette {
-  position: absolute; top: 500px; left: 50%; transform: translateX(-50%);
-  opacity: 0;
-}
-
-#scene5 .closing-q {
-  position: absolute; top: 900px; width: 100%; text-align: center;
-  padding: 0 80px; opacity: 0;
-  font-size: 46px; font-weight: 700; line-height: 1.6;
-}
-#scene5 .closing-q span {
-  background: linear-gradient(135deg, #93c5fd, #c084fc, #f9a8d4);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-
-#scene5 .closing-answer {
-  position: absolute; top: 1150px; width: 100%; text-align: center;
-  padding: 0 100px; font-size: 36px; line-height: 1.7;
-  color: rgba(255,255,255,0.45); opacity: 0;
-}
-
-#scene5 .cta {
-  position: absolute; top: 1400px; left: 50%; transform: translateX(-50%) scale(0.8);
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  border-radius: 60px; padding: 22px 70px;
-  font-size: 36px; font-weight: 700; opacity: 0;
-  white-space: nowrap;
-  box-shadow: 0 0 40px rgba(99,102,241,0.3);
-}
-
-/* ============ SUBTITLES ============ */
+/* Subtitle bar */
 #subtitle-bar {
-  position: absolute; bottom: 140px; left: 50px; right: 50px;
-  text-align: center; z-index: 100; pointer-events: none;
-}
-#subtitle-bar .sub-text {
-  display: inline-block;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(16px);
-  border-radius: 14px; padding: 16px 32px;
-  font-size: 36px; line-height: 1.6;
-  color: white; opacity: 0; max-width: 100%;
-  letter-spacing: 0.5px;
+  position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+  z-index: 200; text-align: center;
+  max-width: 1400px; padding: 12px 40px;
+  background: rgba(0,0,0,0.65); border-radius: 12px;
+  color: #fff; font-size: 36px; font-weight: 500;
+  line-height: 1.6; letter-spacing: 1px;
+  opacity: 0;
 }
 
-#progress-bar {
-  position: absolute; bottom: 0; left: 0;
-  height: 3px; width: 0%;
-  background: linear-gradient(90deg, #6366f1, #ec4899);
-  z-index: 200;
+/* SVG icon styles */
+.icon-svg { display: inline-block; }
+.icon-svg path, .icon-svg circle, .icon-svg ellipse, .icon-svg rect, .icon-svg line {
+  stroke-dasharray: 1000; stroke-dashoffset: 1000;
 }
+
+/* Scene-specific styles */
+
+/* Scene 01 - Intro text */
+#s01 { background: #0a0a1a; flex-direction: column; gap: 20px; }
+#s01 .line { font-size: 52px; font-weight: 700; color: #e8e0d0; opacity: 0; }
+#s01 .line.red { color: #e53e3e; }
+
+/* Scene 02-04 - Paper scenes */
+.paper-scene { color: #2d3748; }
+.paper-scene .scene-title-text {
+  position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+  font-size: 42px; font-weight: 800; color: #2d3748;
+}
+
+/* Scene 05 - Concept reveal */
+#s05 { background: #0a0a1a; flex-direction: column; gap: 24px; }
+#s05 .big-title { font-size: 120px; font-weight: 900; color: #e53e3e; opacity: 0; }
+#s05 .sub-title { font-size: 36px; font-weight: 500; color: rgba(255,255,255,0.5); opacity: 0; letter-spacing: 8px; }
+#s05 .quote { font-size: 32px; color: rgba(255,255,255,0.7); opacity: 0; max-width: 900px; text-align: center; line-height: 1.8; border-left: 4px solid #e53e3e; padding-left: 24px; }
+
+/* Cards */
+.card {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 32px; opacity: 0;
+}
+.paper-scene .card {
+  background: rgba(255,255,255,0.5); border: 2px solid rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+.paper-scene .card.red-border { border: 2px dashed #e53e3e; }
+
+/* VS divider */
+.vs-text { font-size: 48px; font-weight: 900; color: #e53e3e; opacity: 0; }
+
+/* Ghost people */
+.ghost { opacity: 0.3; }
+
+/* Scene 12 credits */
+#s12 { background: #0a0a1a; flex-direction: column; gap: 20px; }
+#s12 .credit-line { font-size: 36px; color: rgba(255,255,255,0.6); opacity: 0; }
+#s12 .credit-brand { font-size: 48px; font-weight: 800; color: #e8e0d0; opacity: 0; }
 </style>
 </head>
 <body>
 
-<canvas id="bg-canvas" width="1080" height="1920"></canvas>
-<canvas id="fx-canvas" width="1080" height="1920"></canvas>
+<!-- Persistent title (shows from scene 02 onwards) -->
+<div id="persistent-title">– 幸存者偏差 –</div>
 
-<div class="scene" id="scene1">
-  <div class="vignette"></div>
-  <div class="float-icons" id="floatIcons"></div>
-  <!-- Large SVG "eye" that opens -->
-  <div class="center-eye">
-    <svg width="300" height="180" viewBox="0 0 300 180">
-      <defs>
-        <clipPath id="eyeClip">
-          <path id="eyeTop" d="M10 90 Q150 90 290 90" fill="none"/>
-          <path id="eyeBot" d="M10 90 Q150 90 290 90" fill="none"/>
-          <!-- Will be animated to open -->
-        </clipPath>
-        <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#f97316"/>
-          <stop offset="40%" stop-color="#b45309"/>
-          <stop offset="100%" stop-color="#1c1917"/>
-        </radialGradient>
-      </defs>
-      <!-- Eye white -->
-      <ellipse cx="150" cy="90" rx="130" ry="0" fill="rgba(255,255,255,0.9)" id="eyeWhite"/>
-      <!-- Iris -->
-      <circle cx="150" cy="90" r="0" fill="url(#irisGrad)" id="iris"/>
-      <!-- Pupil -->
-      <circle cx="150" cy="90" r="0" fill="#0a0a0a" id="pupil"/>
-      <!-- Eye outline -->
-      <path d="M10 90 Q150 90 290 90" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" fill="none" id="eyeOutlineTop"/>
-      <path d="M10 90 Q150 90 290 90" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" fill="none" id="eyeOutlineBot"/>
-      <!-- Reflection -->
-      <circle cx="165" cy="78" r="0" fill="rgba(255,255,255,0.8)" id="eyeReflect"/>
-    </svg>
-  </div>
-  <div class="hook-text">
-    <h1>为什么成功的故事<br>满天飞？</h1>
-    <p>而失败的，却悄无声息</p>
-  </div>
-  <div class="title-reveal">
-    <div class="title-inner">
-      幸存者偏差
-      <div class="title-line"></div>
-    </div>
+<!-- Subtitle bar -->
+<div id="subtitle-bar"></div>
+
+<!-- ═══════ SCENE 01: 引子 ═══════ -->
+<div class="scene" id="s01">
+  <div style="text-align:center;">
+    <div class="line" id="s01-l1">很多时候，我们看到的</div>
+    <div class="line" id="s01-l2">往往只是一个视角</div>
+    <div class="line red" id="s01-l3">而非真相</div>
   </div>
 </div>
 
-<div class="scene" id="scene2">
-  <div class="war-overlay"></div>
-  <div class="year-text">1943</div>
-  <div class="scene-title">盟军的轰炸机</div>
-  <div class="plane-group">
-    <svg width="800" height="600" viewBox="0 0 800 600" id="planeSvg">
-      <defs>
-        <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="rgba(148,163,184,0.15)"/>
-          <stop offset="100%" stop-color="rgba(71,85,105,0.1)"/>
-        </linearGradient>
-        <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <!-- Main fuselage -->
-      <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z"
-        fill="url(#metalGrad)" stroke="rgba(148,163,184,0.35)" stroke-width="1.5"/>
-      <!-- Nose -->
-      <path d="M100 300 C80 290 50 295 40 300 C50 305 80 310 100 300Z"
-        fill="rgba(148,163,184,0.1)" stroke="rgba(148,163,184,0.3)" stroke-width="1"/>
-      <!-- Left wing -->
-      <path d="M250 280 L80 120 L60 120 L40 140 L220 300"
-        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
-      <path d="M250 320 L80 480 L60 480 L40 460 L220 300"
-        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
-      <!-- Right wing -->
-      <path d="M550 280 L720 120 L740 120 L760 140 L580 300"
-        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
-      <path d="M550 320 L720 480 L740 480 L760 460 L580 300"
-        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
-      <!-- Tail -->
-      <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z"
-        fill="rgba(148,163,184,0.08)" stroke="rgba(148,163,184,0.3)" stroke-width="1.5"/>
-      <!-- Engines -->
-      <circle cx="100" cy="200" r="22" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.3)" stroke-width="1.5" stroke-dasharray="3 3" class="engine-ring"/>
-      <circle cx="100" cy="400" r="22" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.3)" stroke-width="1.5" stroke-dasharray="3 3" class="engine-ring"/>
-      <!-- Cockpit -->
-      <ellipse cx="120" cy="300" rx="35" ry="25" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.3)" stroke-width="1.5" stroke-dasharray="3 3" class="cockpit-ring"/>
-      <!-- Center crosshair -->
-      <line x1="380" y1="300" x2="420" y2="300" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
-      <line x1="400" y1="280" x2="400" y2="320" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
-    </svg>
-  </div>
-  <!-- Heatmap will be drawn via canvas -->
-  <canvas class="heatmap-canvas" id="heatmapCanvas" width="800" height="600"></canvas>
-  
-  <div class="bubble military-bubble">
-    <div class="speaker">🎖️ 军方决策</div>
-    <div class="content">在<span class="emphasis">弹孔最密集</span>的地方加装甲！</div>
-  </div>
-  <div class="bubble wald-bubble">
-    <div class="speaker">📊 亚伯拉罕 · 沃尔德</div>
-    <div class="content">"<span class="emphasis">你们搞反了。</span>"</div>
-  </div>
-</div>
-
-<div class="scene" id="scene3">
-  <div class="insight-bg"></div>
-  <div class="scene-title"><span>真相恰恰相反</span></div>
-  
-  <div class="planes-row">
-    <div class="plane-col left">
-      <div class="col-label">✅ 飞回来的</div>
-      <svg width="460" height="380" viewBox="0 0 800 600">
-        <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z"
-          fill="rgba(74,222,128,0.03)" stroke="rgba(74,222,128,0.25)" stroke-width="1.5"/>
-        <path d="M250 280 L80 120 L60 120 L40 140 L220 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
-        <path d="M250 320 L80 480 L60 480 L40 460 L220 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
-        <path d="M550 280 L720 120 L740 120 L760 140 L580 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
-        <path d="M550 320 L720 480 L740 480 L760 460 L580 300" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
-        <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z" fill="rgba(74,222,128,0.02)" stroke="rgba(74,222,128,0.2)" stroke-width="1"/>
-        <!-- Bullet holes on wings -->
-        <circle cx="140" cy="170" r="10" fill="rgba(239,68,68,0.7)" class="bhole"/>
-        <circle cx="180" cy="440" r="9" fill="rgba(239,68,68,0.7)" class="bhole"/>
-        <circle cx="650" cy="160" r="8" fill="rgba(239,68,68,0.7)" class="bhole"/>
-        <circle cx="680" cy="420" r="10" fill="rgba(239,68,68,0.7)" class="bhole"/>
-        <circle cx="300" cy="240" r="7" fill="rgba(239,68,68,0.6)" class="bhole"/>
-        <circle cx="500" cy="350" r="8" fill="rgba(239,68,68,0.6)" class="bhole"/>
-        <circle cx="350" cy="360" r="7" fill="rgba(239,68,68,0.6)" class="bhole"/>
-        <circle cx="600" cy="260" r="6" fill="rgba(239,68,68,0.5)" class="bhole"/>
+<!-- ═══════ SCENE 02: 二战飞机引入 ═══════ -->
+<div class="scene paper-scene" id="s02">
+  <div class="paper-bg" id="s02-bg"></div>
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+    <!-- Bomber SVG centered -->
+    <div id="s02-bomber" style="position:absolute;width:500px;height:400px;color:#4a5568;opacity:0;">
+      <svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%">
+        <path d="M20 80 Q20 60 60 54 L140 54 Q175 54 185 70 L192 80 L185 90 Q175 106 140 106 L60 106 Q20 100 20 80Z"/>
+        <path d="M185 70 Q196 75 196 80 Q196 85 185 90"/>
+        <ellipse cx="170" cy="80" rx="14" ry="10" stroke-dasharray="4 3"/>
+        <path d="M70 54 L30 10 L22 10 L18 16 L56 60"/>
+        <path d="M70 106 L30 150 L22 150 L18 144 L56 100"/>
+        <path d="M120 54 L148 20 L154 20 L158 26 L132 58"/>
+        <path d="M120 106 L148 140 L154 140 L158 134 L132 102"/>
+        <path d="M20 80 L8 68 L4 68 L4 92 L8 92 L20 80"/>
+        <circle cx="46" cy="30" r="8" stroke-dasharray="4 3"/>
+        <circle cx="46" cy="130" r="8" stroke-dasharray="4 3"/>
+        <circle cx="136" cy="32" r="7" stroke-dasharray="4 3"/>
+        <circle cx="136" cy="128" r="7" stroke-dasharray="4 3"/>
       </svg>
     </div>
-    <div class="plane-col right">
-      <div class="col-label">❌ 没回来的</div>
-      <svg width="460" height="380" viewBox="0 0 800 600">
-        <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z"
-          fill="rgba(248,113,113,0.03)" stroke="rgba(248,113,113,0.25)" stroke-width="1.5"/>
-        <path d="M250 280 L80 120 L60 120 L40 140 L220 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
-        <path d="M250 320 L80 480 L60 480 L40 460 L220 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
-        <path d="M550 280 L720 120 L740 120 L760 140 L580 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
-        <path d="M550 320 L720 480 L740 480 L760 460 L580 300" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
-        <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z" fill="rgba(248,113,113,0.02)" stroke="rgba(248,113,113,0.15)" stroke-width="1"/>
-        <!-- Critical zones highlighted -->
-        <circle cx="100" cy="200" r="28" fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
-        <circle cx="100" cy="400" r="28" fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
-        <ellipse cx="120" cy="300" rx="40" ry="30" fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
-        <!-- Explosion markers -->
-        <text x="100" y="207" font-size="28" fill="#ef4444" text-anchor="middle" font-weight="900">✕</text>
-        <text x="100" y="407" font-size="28" fill="#ef4444" text-anchor="middle" font-weight="900">✕</text>
-        <text x="120" y="307" font-size="32" fill="#ef4444" text-anchor="middle" font-weight="900">✕</text>
+    <!-- Bullet holes -->
+    <div id="s02-bullets" style="position:absolute;width:500px;height:400px;pointer-events:none;">
+    </div>
+    <!-- Annotation -->
+    <div id="s02-label" style="position:absolute;right:200px;top:50%;color:#e53e3e;font-size:28px;font-weight:700;opacity:0;">
+      中弹最多 →
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCENE 03: 沃尔德反转 ═══════ -->
+<div class="scene paper-scene" id="s03">
+  <div class="paper-bg" id="s03-bg"></div>
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+    <!-- Left: Wald -->
+    <div id="s03-wald" style="position:absolute;left:200px;top:200px;width:200px;color:#22c55e;opacity:0;">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <circle cx="50" cy="22" r="12"/>
+        <circle cx="44" cy="20" r="5" stroke-width="1.8"/>
+        <circle cx="56" cy="20" r="5" stroke-width="1.8"/>
+        <path d="M49 20 L51 20"/><path d="M38 20 L36 18"/><path d="M62 20 L64 18"/>
+        <path d="M50 34 L50 64"/><path d="M50 42 L28 52"/><path d="M50 42 L72 36"/>
+        <path d="M72 36 L78 32"/><path d="M74 28 L82 28 L82 40 L74 40Z" stroke-width="1.8"/>
+        <path d="M76 38 L76 34 L78 36 L80 32" stroke-width="1.5"/>
+        <path d="M50 64 L36 92"/><path d="M50 64 L64 92"/>
+      </svg>
+      <div style="text-align:center;font-size:22px;font-weight:700;margin-top:8px;color:#22c55e;">沃尔德</div>
+    </div>
+    <!-- Speech bubble: Wald -->
+    <div id="s03-bubble-wald" style="position:absolute;left:280px;top:160px;background:rgba(34,197,94,0.15);border:2px solid #22c55e;border-radius:16px;padding:12px 20px;font-size:24px;font-weight:700;color:#22c55e;opacity:0;">
+      保护引擎！
+    </div>
+    <!-- Right: Officer -->
+    <div id="s03-officer" style="position:absolute;right:200px;top:200px;width:200px;color:#f97316;opacity:0;">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <circle cx="50" cy="24" r="12"/>
+        <path d="M36 16 L64 16"/><path d="M34 16 L34 12 L66 12 L66 16"/>
+        <path d="M50 36 L50 64"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+        <path d="M50 64 L36 92"/><path d="M50 64 L64 92"/>
+        <path d="M34 44 L28 42 L28 48 L34 46"/><path d="M66 44 L72 42 L72 48 L66 46"/>
+        <circle cx="44" cy="54" r="3"/><circle cx="56" cy="54" r="3"/>
+      </svg>
+      <div style="text-align:center;font-size:22px;font-weight:700;margin-top:8px;color:#f97316;">军方</div>
+    </div>
+    <!-- Speech bubble: Officer -->
+    <div id="s03-bubble-officer" style="position:absolute;right:180px;top:160px;background:rgba(249,115,22,0.15);border:2px solid #f97316;border-radius:16px;padding:12px 20px;font-size:24px;font-weight:700;color:#f97316;opacity:0;">
+      加强机翼！
+    </div>
+    <!-- Center: small bomber with highlights -->
+    <div id="s03-bomber" style="position:absolute;top:300px;left:50%;transform:translateX(-50%);width:320px;color:#4a5568;opacity:0;">
+      <svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <path d="M20 80 Q20 60 60 54 L140 54 Q175 54 185 70 L192 80 L185 90 Q175 106 140 106 L60 106 Q20 100 20 80Z"/>
+        <path d="M70 54 L30 10 L22 10 L18 16 L56 60"/>
+        <path d="M70 106 L30 150 L22 150 L18 144 L56 100"/>
+        <path d="M120 54 L148 20 L154 20 L158 26 L132 58"/>
+        <path d="M120 106 L148 140 L154 140 L158 134 L132 102"/>
+        <path d="M20 80 L8 68 L4 68 L4 92 L8 92 L20 80"/>
+        <!-- Red circles: engine + cockpit -->
+        <circle cx="46" cy="30" r="14" stroke="#e53e3e" stroke-width="2.5" stroke-dasharray="6 4"/>
+        <circle cx="46" cy="130" r="14" stroke="#e53e3e" stroke-width="2.5" stroke-dasharray="6 4"/>
+        <ellipse cx="170" cy="80" rx="18" ry="14" stroke="#e53e3e" stroke-width="2.5" stroke-dasharray="6 4"/>
       </svg>
     </div>
   </div>
-  
-  <!-- Divider arrow -->
-  <div class="flow-arrow">
-    <svg width="60" height="60" viewBox="0 0 60 60">
-      <path d="M30 5 L30 45 M15 35 L30 50 L45 35" stroke="rgba(255,255,255,0.3)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    </svg>
-  </div>
-
-  <div class="logic-card logic-a">
-    <div class="logic-num">01</div>
-    <div class="logic-text">机翼中弹 → 飞机<strong style="color:#4ade80">能回来</strong> → 说明机翼<strong style="color:#4ade80">不致命</strong></div>
-  </div>
-  <div class="logic-card logic-b">
-    <div class="logic-num">02</div>
-    <div class="logic-text">引擎中弹 → 飞机<strong style="color:#f87171">没回来</strong> → 说明引擎<strong style="color:#f87171">才致命</strong></div>
-  </div>
-
-  <div class="conclusion-text">需要加固的，恰恰是<br>看不到弹孔的地方</div>
 </div>
 
-<div class="scene" id="scene4">
-  <div class="scene-title"><span>无处不在的偏差</span></div>
-  
-  <div class="iceberg-container" id="icebergContainer">
-    <canvas id="icebergCanvas" width="800" height="900"></canvas>
+<!-- ═══════ SCENE 04: 坠毁的真相 ═══════ -->
+<div class="scene paper-scene" id="s04">
+  <div class="paper-bg" id="s04-bg"></div>
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;gap:80px;">
+    <!-- Survived plane -->
+    <div id="s04-survived" style="text-align:center;opacity:0;">
+      <div style="width:360px;color:#22c55e;">
+        <svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+          <path d="M20 80 Q20 60 60 54 L140 54 Q175 54 185 70 L192 80 L185 90 Q175 106 140 106 L60 106 Q20 100 20 80Z"/>
+          <path d="M70 54 L30 10 L22 10 L18 16 L56 60"/>
+          <path d="M70 106 L30 150 L22 150 L18 144 L56 100"/>
+          <path d="M120 54 L148 20 L154 20 L158 26 L132 58"/>
+          <path d="M120 106 L148 140 L154 140 L158 134 L132 102"/>
+          <path d="M20 80 L8 68 L4 68 L4 92 L8 92 L20 80"/>
+          <circle cx="42" cy="24" r="5" fill="currentColor" opacity="0.5"/>
+          <circle cx="54" cy="136" r="4" fill="currentColor" opacity="0.4"/>
+          <path d="M174 12 L182 20 L196 4" stroke-width="3"/>
+        </svg>
+      </div>
+      <div style="font-size:28px;font-weight:700;color:#22c55e;margin-top:16px;">✓ 飞回来了</div>
+      <div style="font-size:20px;color:#4a5568;margin-top:8px;">弹孔在机翼 — 不致命</div>
+    </div>
+    <!-- VS -->
+    <div class="vs-text" id="s04-vs">VS</div>
+    <!-- Crashed plane -->
+    <div id="s04-crashed" style="text-align:center;opacity:0;">
+      <div style="width:360px;color:#ef4444;">
+        <svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+          <path d="M20 80 Q20 60 60 54 L140 54 Q175 54 185 70 L192 80 L185 90 Q175 106 140 106 L60 106 Q20 100 20 80Z" stroke-dasharray="6 4" opacity="0.5"/>
+          <path d="M70 54 L30 10 L22 10 L18 16 L56 60" opacity="0.4"/>
+          <path d="M70 106 L30 150 L22 150 L18 144 L56 100" opacity="0.4"/>
+          <circle cx="46" cy="30" r="14" stroke-width="2.5"/>
+          <path d="M38 22 L54 38 M54 22 L38 38" stroke-width="2.5"/>
+          <ellipse cx="170" cy="80" rx="16" ry="12" stroke-width="2.5"/>
+          <path d="M160 70 L180 90 M180 70 L160 90" stroke-width="2.5"/>
+          <path d="M46 12 L48 6 M34 20 L26 16 M58 20 L66 16"/>
+        </svg>
+      </div>
+      <div style="font-size:28px;font-weight:700;color:#ef4444;margin-top:16px;">✗ 没回来</div>
+      <div style="font-size:20px;color:#4a5568;margin-top:8px;">引擎/驾驶舱被击中 — 致命</div>
+    </div>
   </div>
-  <div class="waterline"></div>
-  <div class="waterline-label-above">你看到的 👆</div>
-  <div class="waterline-label-below">你看不到的 👇</div>
-
-  <div class="ice-label ice-above label-1a">📱 网红都光鲜亮丽</div>
-  <div class="ice-label ice-below label-1b">👻 千万个失败的尝试</div>
-  <div class="ice-label ice-above label-2a">💰 投资传奇赚了百倍</div>
-  <div class="ice-label ice-below label-2b">👻 倾家荡产的沉默</div>
-  <div class="ice-label ice-above label-3a">🎓 辍学创业成了富翁</div>
-  <div class="ice-label ice-below label-3b">👻 读书改变命运的不上新闻</div>
-
-  <div class="big-q">我们总是只看到幸存者<br>却忘了问——<br><em>那些没幸存的呢？</em></div>
 </div>
 
-<div class="scene" id="scene5">
-  <div class="close-bg"></div>
-  <div class="plane-silhouette">
-    <svg width="500" height="300" viewBox="0 0 800 600" opacity="0.15">
-      <path d="M100 300 C100 260 200 220 400 220 C600 220 700 260 700 300 C700 340 600 380 400 380 C200 380 100 340 100 300Z" fill="none" stroke="white" stroke-width="1"/>
-      <path d="M250 280 L80 120 L60 120 L40 140 L220 300" fill="none" stroke="white" stroke-width="1"/>
-      <path d="M250 320 L80 480 L60 480 L40 460 L220 300" fill="none" stroke="white" stroke-width="1"/>
-      <path d="M550 280 L720 120 L740 120 L760 140 L580 300" fill="none" stroke="white" stroke-width="1"/>
-      <path d="M550 320 L720 480 L740 480 L760 460 L580 300" fill="none" stroke="white" stroke-width="1"/>
-      <path d="M680 300 L760 260 L780 260 L780 340 L760 340 L680 300Z" fill="none" stroke="white" stroke-width="1"/>
-    </svg>
-  </div>
-  <div class="closing-q"><span>下次看到成功故事时<br>问问自己——</span></div>
-  <div class="closing-answer">我是不是只看到了<br>活着回来的飞机？</div>
-  <div class="cta">🧠 关注了解更多思维陷阱</div>
+<!-- ═══════ SCENE 05: 概念揭示 ═══════ -->
+<div class="scene" id="s05">
+  <div class="big-title" id="s05-title">幸存者偏差</div>
+  <div class="sub-title" id="s05-sub">SURVIVORSHIP BIAS</div>
+  <div class="quote" id="s05-quote">我们的认知，永远被幸存者的故事所筛选</div>
 </div>
 
-<div id="subtitle-bar"><div class="sub-text"></div></div>
-<div id="progress-bar"></div>
+<!-- ═══════ SCENE 06: 塔勒布 + 冰山 ═══════ -->
+<div class="scene paper-scene" id="s06">
+  <div class="paper-bg" id="s06-bg"></div>
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+    <!-- Iceberg center -->
+    <div id="s06-iceberg" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:340px;color:#3b82f6;opacity:0;">
+      <svg viewBox="0 0 100 120" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <path d="M4 44 L96 44" stroke-dasharray="4 4" opacity="0.5"/>
+        <path d="M40 44 L50 18 L62 44" stroke-width="2.5"/>
+        <path d="M40 44 L28 64 L22 80 L30 100 L50 112 L72 100 L78 78 L74 60 L62 44" stroke-width="2.5"/>
+        <path d="M8 44 Q14 40 20 44 Q26 48 32 44" opacity="0.3" stroke-width="1.5"/>
+        <path d="M68 44 Q74 40 80 44 Q86 48 92 44" opacity="0.3" stroke-width="1.5"/>
+        <path d="M44 56 L58 56" opacity="0.2"/><path d="M36 72 L66 72" opacity="0.15"/>
+      </svg>
+      <div style="position:absolute;top:22%;right:-140px;font-size:20px;color:#22c55e;font-weight:700;">← 你看到的</div>
+      <div style="position:absolute;top:65%;right:-180px;font-size:20px;color:#ef4444;font-weight:700;">← 你看不到的</div>
+    </div>
+    <!-- Left: success people -->
+    <div id="s06-success" style="position:absolute;left:120px;top:200px;display:flex;gap:24px;opacity:0;">
+      <div style="width:100px;color:#f472b6;text-align:center;">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:80px">
+          <circle cx="50" cy="22" r="12"/><path d="M50 34 L50 62"/><path d="M50 40 L30 48"/><path d="M50 40 L70 36"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+        <div style="font-size:14px;margin-top:4px;">网红</div>
+      </div>
+      <div style="width:100px;color:#eab308;text-align:center;">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:80px">
+          <circle cx="50" cy="20" r="11"/><path d="M50 31 L50 62"/>
+          <path d="M50 36 L38 44 L38 62 M50 36 L62 44 L62 62"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+        <div style="font-size:14px;margin-top:4px;">投资者</div>
+      </div>
+    </div>
+    <!-- Right: ghost people -->
+    <div id="s06-ghosts" style="position:absolute;right:100px;top:180px;display:flex;flex-wrap:wrap;gap:12px;width:320px;opacity:0;">
+      <!-- 9 ghost figures -->
+      <div style="width:60px;color:#475569;opacity:0.3;" class="ghost-fig">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="22" r="11"/><path d="M50 33 L50 62"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+      </div>
+      <div style="width:60px;color:#475569;opacity:0.25;" class="ghost-fig">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="22" r="11"/><path d="M50 33 L50 62"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+      </div>
+      <div style="width:60px;color:#475569;opacity:0.2;" class="ghost-fig">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="22" r="11"/><path d="M50 33 L50 62"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+      </div>
+      <div style="width:60px;color:#475569;opacity:0.35;" class="ghost-fig">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="22" r="11"/><path d="M50 33 L50 62"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+      </div>
+      <div style="width:60px;color:#475569;opacity:0.15;" class="ghost-fig">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="22" r="11"/><path d="M50 33 L50 62"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+      </div>
+      <div style="width:60px;color:#475569;opacity:0.2;" class="ghost-fig">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="22" r="11"/><path d="M50 33 L50 62"/><path d="M50 42 L30 54"/><path d="M50 42 L70 54"/>
+          <path d="M50 62 L36 90"/><path d="M50 62 L64 90"/>
+        </svg>
+      </div>
+    </div>
+    <!-- Numbers -->
+    <div id="s06-numbers" style="position:absolute;bottom:120px;left:50%;transform:translateX(-50%);display:flex;gap:80px;opacity:0;">
+      <div style="text-align:center;"><div style="font-size:56px;font-weight:900;color:#22c55e;">100</div><div style="font-size:18px;color:#4a5568;">成功者</div></div>
+      <div style="font-size:48px;font-weight:900;color:#64748b;line-height:80px;">vs</div>
+      <div style="text-align:center;"><div style="font-size:56px;font-weight:900;color:#ef4444;">9999</div><div style="font-size:18px;color:#4a5568;">失败者</div></div>
+    </div>
+  </div>
+</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<!-- ═══════ SCENE 07: 别人家的孩子 ═══════ -->
+<div class="scene paper-scene" id="s07">
+  <div class="paper-bg" id="s07-bg"></div>
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+    <!-- Mother -->
+    <div id="s07-mother" style="position:absolute;left:160px;top:250px;width:200px;color:#f472b6;opacity:0;">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <circle cx="36" cy="20" r="10"/>
+        <path d="M26 18 Q24 10 32 10 Q38 8 40 12 Q44 10 46 16"/>
+        <path d="M36 30 L36 60"/>
+        <path d="M36 40 L72 32"/><path d="M72 32 L80 30"/><path d="M72 32 L78 28"/><path d="M72 32 L76 26"/>
+        <path d="M36 42 L24 50 L30 58"/>
+        <path d="M36 60 L24 92"/><path d="M36 60 L48 92"/>
+        <path d="M32 18 L34 17" stroke-width="2"/><path d="M38 18 L40 17" stroke-width="2"/>
+        <path d="M33 24 L39 24" stroke-width="1.8"/>
+      </svg>
+    </div>
+    <!-- Good student -->
+    <div id="s07-good" style="position:absolute;left:600px;top:180px;text-align:center;opacity:0;">
+      <div style="font-size:24px;font-weight:700;color:#eab308;margin-bottom:12px;">「别人家的孩子」</div>
+      <div style="width:160px;color:#eab308;margin:0 auto;">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+          <circle cx="50" cy="22" r="10"/>
+          <circle cx="46" cy="20" r="1.5" fill="currentColor"/><circle cx="54" cy="20" r="1.5" fill="currentColor"/>
+          <path d="M46 26 Q50 30 54 26" stroke-width="1.8"/>
+          <path d="M50 32 L50 60"/>
+          <path d="M50 40 L30 34 L28 28"/><path d="M22 20 L34 20 L34 34 L22 34Z" stroke-width="1.8"/>
+          <path d="M50 42 L70 50"/>
+          <path d="M50 60 L38 90"/><path d="M50 60 L62 90"/>
+          <path d="M66 12 L68 8 L70 12 L66 10 L70 10Z" stroke-width="1" fill="currentColor" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+    <!-- Normal student -->
+    <div id="s07-normal" style="position:absolute;right:300px;top:180px;text-align:center;opacity:0;">
+      <div style="font-size:24px;font-weight:700;color:#64748b;margin-bottom:12px;">「普通的孩子」</div>
+      <div style="width:160px;color:#64748b;margin:0 auto;">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+          <circle cx="50" cy="30" r="10"/>
+          <path d="M50 40 L50 64"/><path d="M50 48 L32 58"/><path d="M50 48 L68 58"/>
+          <path d="M50 64 L38 90"/><path d="M50 64 L62 90"/>
+          <g stroke-dasharray="none">
+            <path d="M44 14 Q44 6 50 6 Q58 6 58 12 Q58 16 50 18" stroke-width="2"/>
+            <circle cx="50" cy="22" r="1.5" fill="currentColor"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <!-- Bottom text -->
+    <div id="s07-text" style="position:absolute;bottom:140px;left:50%;transform:translateX(-50%);font-size:28px;color:#4a5568;text-align:center;opacity:0;">
+      根本没有机会传到家长耳朵里
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCENE 08: 三个原因 ═══════ -->
+<div class="scene paper-scene" id="s08">
+  <div class="paper-bg" id="s08-bg"></div>
+  <div style="position:relative;width:100%;height:100%;padding:100px 160px;">
+    <div id="s08-title" style="font-size:48px;font-weight:900;color:#2d3748;text-align:center;opacity:0;margin-bottom:60px;">
+      为什么？
+    </div>
+    <div style="display:flex;gap:40px;justify-content:center;">
+      <!-- Card 1 -->
+      <div class="card paper-scene" id="s08-card1" style="flex:1;max-width:420px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">👁️</div>
+        <div style="font-size:24px;font-weight:800;color:#f97316;margin-bottom:12px;">① 选择性关注</div>
+        <div style="font-size:18px;color:#4a5568;line-height:1.6;">成功案例更容易传播<br>失败经验被过滤掉</div>
+      </div>
+      <!-- Card 2 -->
+      <div class="card paper-scene" id="s08-card2" style="flex:1;max-width:420px;text-align:center;">
+        <div style="width:100px;color:#94a3b8;margin:0 auto 16px;">
+          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+            <circle cx="50" cy="20" r="10"/><path d="M44 18 L42 16" stroke-width="1.5"/><path d="M56 18 L58 16" stroke-width="1.5"/>
+            <path d="M50 30 L50 56"/><path d="M50 38 L66 36 L70 30"/><path d="M70 30 L78 28" stroke-width="2"/>
+            <path d="M80 26 Q82 20 86 22 Q90 18 88 14" stroke-width="1.5" opacity="0.4"/>
+            <path d="M30 56 L70 56" stroke-width="2"/><path d="M32 56 L28 90" stroke-width="2.5"/><path d="M68 56 L72 90" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:#ef4444;margin-bottom:12px;">② 归因谬误</div>
+        <div style="font-size:18px;color:#4a5568;line-height:1.6;">抽了一辈子烟没得肺癌<br>≠ 烟酒无害</div>
+      </div>
+      <!-- Card 3 -->
+      <div class="card paper-scene" id="s08-card3" style="flex:1;max-width:420px;text-align:center;">
+        <div style="width:100px;color:#8b5cf6;margin:0 auto 16px;">
+          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+            <rect x="30" y="12" width="40" height="76" rx="6"/>
+            <path d="M44 18 L56 18" stroke-width="1.5" opacity="0.4"/><circle cx="50" cy="82" r="3" stroke-width="1.5"/>
+            <path d="M40 36 L60 36" stroke-width="1.5" opacity="0.5"/><path d="M40 44 L58 44" stroke-width="1.5" opacity="0.5"/>
+            <path d="M40 52 L60 52" stroke-width="1.5" opacity="0.5"/>
+            <path d="M18 40 Q8 50 18 60" stroke-width="2"/><path d="M14 58 L18 64 L22 58" stroke-width="1.8"/>
+            <path d="M82 60 Q92 50 82 40" stroke-width="2"/><path d="M78 42 L82 36 L86 42" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:#8b5cf6;margin-bottom:12px;">③ 信息茧房</div>
+        <div style="font-size:18px;color:#4a5568;line-height:1.6;">算法强化既有认知<br>误以为这就是普遍现象</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCENE 09: 打破困局 ═══════ -->
+<div class="scene paper-scene" id="s09">
+  <div class="paper-bg" id="s09-bg"></div>
+  <div style="position:relative;width:100%;height:100%;padding:100px 120px;">
+    <div id="s09-title" style="font-size:48px;font-weight:900;color:#2d3748;text-align:center;opacity:0;margin-bottom:60px;">
+      打破困局
+    </div>
+    <div style="display:flex;gap:40px;justify-content:center;">
+      <div class="card paper-scene red-border" id="s09-card1" style="flex:1;max-width:420px;text-align:center;">
+        <div style="font-size:64px;font-weight:900;color:#e53e3e;margin-bottom:8px;">01</div>
+        <div style="font-size:22px;font-weight:800;color:#2d3748;margin-bottom:12px;">寻找沉默的证据</div>
+        <div style="font-size:17px;color:#4a5568;line-height:1.6;">主动挖掘那些<br>未被讲述的故事</div>
+      </div>
+      <div class="card paper-scene red-border" id="s09-card2" style="flex:1;max-width:420px;text-align:center;">
+        <div style="font-size:64px;font-weight:900;color:#e53e3e;margin-bottom:8px;">02</div>
+        <div style="font-size:22px;font-weight:800;color:#2d3748;margin-bottom:12px;">概率替代直觉</div>
+        <div style="font-size:17px;color:#4a5568;line-height:1.6;">亿万富豪中<br><span style="font-size:36px;font-weight:900;color:#3b82f6;">85%</span> 有大学学历</div>
+      </div>
+      <div class="card paper-scene red-border" id="s09-card3" style="flex:1;max-width:420px;text-align:center;">
+        <div style="font-size:64px;font-weight:900;color:#e53e3e;margin-bottom:8px;">03</div>
+        <div style="font-size:22px;font-weight:800;color:#2d3748;margin-bottom:12px;">系统认知框架</div>
+        <div style="font-size:17px;color:#4a5568;line-height:1.6;">构建批判性的<br>思维体系</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCENE 10: 安全带案例 ═══════ -->
+<div class="scene paper-scene" id="s10">
+  <div class="paper-bg" id="s10-bg"></div>
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+    <!-- Left: car crash -->
+    <div id="s10-crash" style="position:absolute;left:120px;top:200px;width:300px;color:#ef4444;opacity:0;">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <path d="M6 52 L8 42 L18 38 L28 38 L34 46 L36 52"/>
+        <path d="M4 52 L38 52 L38 62 L4 62Z"/><circle cx="12" cy="64" r="5"/><circle cx="30" cy="64" r="5"/>
+        <path d="M94 52 L92 42 L82 38 L72 38 L66 46 L64 52"/>
+        <path d="M96 52 L62 52 L62 62 L96 62Z"/><circle cx="88" cy="64" r="5"/><circle cx="70" cy="64" r="5"/>
+        <path d="M44 50 L48 44 L50 52 L52 42 L56 50" stroke-width="2"/>
+        <path d="M46 34 L50 26" stroke-width="2"/><path d="M50 36 L50 28" stroke-width="2"/><path d="M54 34 L50 26" stroke-width="2"/>
+      </svg>
+    </div>
+    <!-- Center: comparison -->
+    <div id="s10-compare" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:40px;opacity:0;">
+      <!-- With seatbelt -->
+      <div style="display:flex;align-items:center;gap:24px;background:rgba(34,197,94,0.1);border:2px solid #22c55e;border-radius:16px;padding:20px 32px;">
+        <div style="width:80px;color:#22c55e;">
+          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+            <circle cx="50" cy="18" r="10"/><path d="M50 28 L50 58"/>
+            <path d="M40 30 L62 58" stroke-width="3.5" opacity="0.6"/><path d="M60 30 L38 58" stroke-width="3.5" opacity="0.6"/>
+            <path d="M50 58 L38 74 L34 90"/><path d="M50 58 L62 74 L66 90"/>
+            <path d="M72 12 L78 18 L90 4" stroke-width="3"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:800;color:#22c55e;">系安全带</div>
+          <div style="font-size:18px;color:#4a5568;">几乎全部存活</div>
+        </div>
+        <div style="font-size:48px;font-weight:900;color:#22c55e;margin-left:auto;">✓</div>
+      </div>
+      <!-- Without seatbelt -->
+      <div style="display:flex;align-items:center;gap:24px;background:rgba(239,68,68,0.1);border:2px solid #ef4444;border-radius:16px;padding:20px 32px;">
+        <div style="width:80px;color:#ef4444;opacity:0.6;">
+          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" style="width:100%">
+            <circle cx="50" cy="18" r="10"/><path d="M50 28 L50 58"/>
+            <path d="M50 38 L32 48"/><path d="M50 38 L68 48"/>
+            <path d="M50 58 L38 74 L34 90"/><path d="M50 58 L62 74 L66 90"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:800;color:#ef4444;">未系安全带</div>
+          <div style="font-size:18px;color:#4a5568;">90% 丧生</div>
+        </div>
+        <div style="font-size:48px;font-weight:900;color:#ef4444;margin-left:auto;">✗</div>
+      </div>
+    </div>
+    <!-- Bottom warning -->
+    <div id="s10-warning" style="position:absolute;bottom:100px;left:50%;transform:translateX(-50%);font-size:28px;font-weight:700;color:#e53e3e;opacity:0;text-align:center;">
+      只看幸存者 → 错误结论
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCENE 11: 结尾金句 ═══════ -->
+<div class="scene" id="s11">
+  <div style="text-align:center;">
+    <div id="s11-plane" style="width:600px;color:rgba(99,102,241,0.3);margin:0 auto 40px;opacity:0;">
+      <svg viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:100%">
+        <path d="M20 80 Q20 60 60 54 L140 54 Q175 54 185 70 L192 80 L185 90 Q175 106 140 106 L60 106 Q20 100 20 80Z"/>
+        <path d="M70 54 L30 10 L22 10 L18 16 L56 60"/><path d="M70 106 L30 150 L22 150 L18 144 L56 100"/>
+        <path d="M120 54 L148 20 L154 20 L158 26 L132 58"/><path d="M120 106 L148 140 L154 140 L158 134 L132 102"/>
+        <path d="M20 80 L8 68 L4 68 L4 92 L8 92 L20 80"/>
+      </svg>
+    </div>
+    <div id="s11-quote" style="font-size:52px;font-weight:900;color:#e53e3e;opacity:0;">看见看不见的</div>
+    <div id="s11-sub" style="font-size:28px;color:rgba(255,255,255,0.5);margin-top:24px;opacity:0;">沉默的数据，才是真相所在</div>
+  </div>
+</div>
+
+<!-- ═══════ SCENE 12: Credits ═══════ -->
+<div class="scene" id="s12">
+  <div style="text-align:center;">
+    <div class="credit-brand" id="s12-brand">✏️ 简笔画科普</div>
+    <div class="credit-line" id="s12-studio" style="margin-top:16px;">雾象 Fogsight</div>
+  </div>
+</div>
+
 <script>
-// ============ PARTICLE SYSTEM (Canvas) ============
-const bgCanvas = document.getElementById('bg-canvas');
-const bgCtx = bgCanvas.getContext('2d');
-const fxCanvas = document.getElementById('fx-canvas');
-const fxCtx = fxCanvas.getContext('2d');
+// ════════════════════════════════════════
+// ANIMATION ENGINE
+// ════════════════════════════════════════
 
-// Deterministic random
-let _seed = 42;
-function srand() { _seed = (_seed * 16807) % 2147483647; return _seed / 2147483647; }
-function srandRange(a,b) { return a + srand() * (b-a); }
+const MANIFEST = {
+  scene01: { duration: 5.76 },
+  scene02: { duration: 19.70 },
+  scene03: { duration: 16.87 },
+  scene04: { duration: 14.06 },
+  scene05: { duration: 9.91 },
+  scene06: { duration: 16.22 },
+  scene07: { duration: 18.36 },
+  scene08: { duration: 34.58 },
+  scene09: { duration: 30.50 },
+  scene10: { duration: 32.30 },
+  scene11: { duration: 19.37 },
+  scene12: { duration: 5.00 },
+};
 
-// Static stars (drawn once)
-function drawStars() {
-  _seed = 42;
-  bgCtx.clearRect(0, 0, 1080, 1920);
-  for (let i = 0; i < 250; i++) {
-    const x = srand()*1080, y = srand()*1920;
-    const r = srand()*1.2 + 0.2, a = srand()*0.4 + 0.1;
-    bgCtx.beginPath(); bgCtx.arc(x, y, r, 0, Math.PI*2);
-    bgCtx.fillStyle = `rgba(255,255,255,${a})`; bgCtx.fill();
-  }
+// Transition gap between scenes
+const GAP = 1.0;
+
+// Calculate start times
+let t = 0;
+const SCENES = [];
+for (const [id, info] of Object.entries(MANIFEST)) {
+  SCENES.push({ id, start: t, duration: info.duration });
+  t += info.duration + GAP;
 }
-drawStars();
+const TOTAL_DURATION = t - GAP;
 
-// Dynamic particles for Scene 1
-const particles = [];
-function initParticles() {
-  _seed = 100;
-  for (let i = 0; i < 60; i++) {
-    particles.push({
-      x: srandRange(0,1080), y: srandRange(0,1920),
-      vx: srandRange(-0.3,0.3), vy: srandRange(-0.8,-0.1),
-      r: srandRange(1,3), a: srandRange(0.05,0.2),
-      life: srandRange(0, 1),
-    });
-  }
-}
-initParticles();
-
-function drawParticles(time, sceneProgress) {
-  fxCtx.clearRect(0, 0, 1080, 1920);
-  if (sceneProgress < 0 || sceneProgress > 1) return;
-  
-  const alpha = sceneProgress < 0.1 ? sceneProgress/0.1 : sceneProgress > 0.9 ? (1-sceneProgress)/0.1 : 1;
-  
-  for (const p of particles) {
-    const phase = (p.life + time * 0.02) % 1;
-    const px = p.x + Math.sin(time * 0.5 + p.life * 10) * 30;
-    const py = (p.y + time * p.vy * 50) % 1920;
-    const pa = p.a * Math.sin(phase * Math.PI) * alpha;
-    if (pa <= 0) continue;
-    fxCtx.beginPath();
-    fxCtx.arc(((px % 1080) + 1080) % 1080, ((py % 1920) + 1920) % 1920, p.r, 0, Math.PI*2);
-    fxCtx.fillStyle = `rgba(251,191,36,${pa})`;
-    fxCtx.fill();
-  }
-}
-
-// ============ HEATMAP for Scene 2 ============
-const hmCanvas = document.getElementById('heatmapCanvas');
-const hmCtx = hmCanvas.getContext('2d');
-
-function drawHeatmap(intensity) {
-  hmCtx.clearRect(0, 0, 800, 600);
-  if (intensity <= 0) return;
-  
-  // Bullet impact points on wings and fuselage (NOT engines/cockpit)
-  const impacts = [
-    [140,170,20],[180,440,18],[650,160,16],[680,420,20],
-    [300,240,14],[500,350,16],[350,360,14],[600,260,12],
-    [200,180,12],[160,400,14],[620,170,12],[660,440,14],
-    [400,240,10],[450,350,12],[320,340,10],[550,270,10],
-  ];
-  
-  for (const [x, y, r] of impacts) {
-    const grad = hmCtx.createRadialGradient(x, y, 0, x, y, r * 2.5 * intensity);
-    grad.addColorStop(0, `rgba(239,68,68,${0.6 * intensity})`);
-    grad.addColorStop(0.4, `rgba(251,146,60,${0.3 * intensity})`);
-    grad.addColorStop(1, 'transparent');
-    hmCtx.beginPath();
-    hmCtx.arc(x, y, r * 2.5 * intensity, 0, Math.PI*2);
-    hmCtx.fillStyle = grad;
-    hmCtx.fill();
-  }
-}
-
-// ============ ICEBERG for Scene 4 ============
-const iceCanvas = document.getElementById('icebergCanvas');
-const iceCtx = iceCanvas.getContext('2d');
-
-function drawIceberg(reveal) {
-  iceCtx.clearRect(0, 0, 800, 900);
-  if (reveal <= 0) return;
-  
-  // Water line at y=300
-  const waterY = 300;
-  
-  // Above water - visible part (small)
-  const aboveAlpha = Math.min(1, reveal * 2);
-  iceCtx.save();
-  iceCtx.globalAlpha = aboveAlpha;
-  iceCtx.beginPath();
-  iceCtx.moveTo(320, waterY);
-  iceCtx.lineTo(400, waterY - 180);
-  iceCtx.lineTo(480, waterY);
-  iceCtx.closePath();
-  const aboveGrad = iceCtx.createLinearGradient(400, waterY-180, 400, waterY);
-  aboveGrad.addColorStop(0, 'rgba(219,234,254,0.9)');
-  aboveGrad.addColorStop(1, 'rgba(147,197,253,0.6)');
-  iceCtx.fillStyle = aboveGrad;
-  iceCtx.fill();
-  iceCtx.strokeStyle = 'rgba(219,234,254,0.4)';
-  iceCtx.lineWidth = 1;
-  iceCtx.stroke();
-  iceCtx.restore();
-  
-  // Below water - hidden part (massive) - revealed progressively
-  const belowReveal = Math.max(0, (reveal - 0.3) / 0.7);
-  if (belowReveal > 0) {
-    iceCtx.save();
-    iceCtx.globalAlpha = belowReveal * 0.7;
-    
-    // Water tint overlay
-    iceCtx.fillStyle = 'rgba(15,23,42,0.3)';
-    iceCtx.fillRect(0, waterY, 800, 600);
-    
-    iceCtx.beginPath();
-    iceCtx.moveTo(320, waterY);
-    iceCtx.lineTo(480, waterY);
-    iceCtx.lineTo(580, waterY + 150 * belowReveal);
-    iceCtx.lineTo(560, waterY + 350 * belowReveal);
-    iceCtx.lineTo(480, waterY + 500 * belowReveal);
-    iceCtx.lineTo(350, waterY + 520 * belowReveal);
-    iceCtx.lineTo(250, waterY + 400 * belowReveal);
-    iceCtx.lineTo(220, waterY + 200 * belowReveal);
-    iceCtx.closePath();
-    
-    const belowGrad = iceCtx.createLinearGradient(400, waterY, 400, waterY + 520 * belowReveal);
-    belowGrad.addColorStop(0, 'rgba(96,165,250,0.3)');
-    belowGrad.addColorStop(0.5, 'rgba(59,130,246,0.2)');
-    belowGrad.addColorStop(1, 'rgba(30,58,138,0.15)');
-    iceCtx.fillStyle = belowGrad;
-    iceCtx.fill();
-    iceCtx.strokeStyle = `rgba(96,165,250,${0.25 * belowReveal})`;
-    iceCtx.lineWidth = 1.5;
-    iceCtx.stroke();
-    iceCtx.restore();
-  }
-  
-  // Water line
-  iceCtx.save();
-  iceCtx.globalAlpha = aboveAlpha;
-  iceCtx.strokeStyle = 'rgba(59,130,246,0.35)';
-  iceCtx.lineWidth = 2;
-  iceCtx.setLineDash([8, 8]);
-  iceCtx.beginPath();
-  iceCtx.moveTo(50, waterY);
-  iceCtx.lineTo(750, waterY);
-  iceCtx.stroke();
-  iceCtx.restore();
-}
-
-// ============ FLOATING ICONS (Scene 1) ============
-(function() {
-  const icons = ['💰','🏆','📈','⭐','🎯','💎','🚀','👑','🔥','📱','💡','🎓'];
-  const container = document.getElementById('floatIcons');
-  _seed = 200;
-  icons.forEach((emoji, i) => {
-    const el = document.createElement('div');
-    el.className = 'float-icon';
-    el.textContent = emoji;
-    el.style.left = srandRange(60, 960) + 'px';
-    el.style.top = srandRange(100, 650) + 'px';
-    container.appendChild(el);
+// ── Draw-on utility ──
+function drawOn(container, opts = {}) {
+  const el = typeof container === 'string' ? document.querySelector(container) : container;
+  if (!el) return gsap.timeline();
+  const paths = el.querySelectorAll('path, line, circle, ellipse, rect, polyline, polygon');
+  const tl = gsap.timeline({ delay: opts.delay || 0 });
+  const dur = opts.duration || 0.5;
+  const stag = opts.stagger || 0.08;
+  paths.forEach((p, i) => {
+    let len;
+    if (p.getTotalLength) { try { len = p.getTotalLength(); } catch(e) { len = 300; } }
+    else if (p.tagName === 'circle') len = 2 * Math.PI * parseFloat(p.getAttribute('r'));
+    else if (p.tagName === 'ellipse') { const rx=parseFloat(p.getAttribute('rx')),ry=parseFloat(p.getAttribute('ry')); len = Math.PI*(3*(rx+ry)-Math.sqrt((3*rx+ry)*(rx+3*ry))); }
+    else len = 300;
+    gsap.set(p, { attr: { 'stroke-dasharray': len, 'stroke-dashoffset': len } });
+    tl.to(p, { attr: { 'stroke-dashoffset': 0 }, duration: dur, ease: 'power2.inOut' }, i * stag);
   });
-})();
+  return tl;
+}
 
-// ============ NARRATION ============
-const TOTAL = 125;
-const narrations = [
-  { start: 1, end: 5.5, text: "你有没有想过，为什么创业成功的故事满天飞" },
-  { start: 5.8, end: 9.5, text: "失败的却很少有人提起？" },
-  { start: 10, end: 14, text: "为什么名校辍学的人都成了亿万富翁" },
-  { start: 14.3, end: 17.5, text: "而你身边辍学的同学却不是这样？" },
-  { start: 18, end: 21.5, text: "这背后，藏着一个叫做幸存者偏差的思维陷阱" },
-  { start: 23, end: 26, text: "故事要从二战说起" },
-  { start: 26.5, end: 30, text: "1943年，盟军的轰炸机损失惨重" },
-  { start: 30.5, end: 34.5, text: "军方找来统计学家，研究怎么给飞机加装甲" },
-  { start: 35, end: 38.5, text: "他们检查了所有飞回来的飞机" },
-  { start: 39, end: 42, text: "发现弹孔主要集中在机翼和机身" },
-  { start: 42.5, end: 46, text: "于是军方决定，在弹孔密集处加装甲" },
-  { start: 46.5, end: 50.5, text: "但统计学家沃尔德说：等等，你们搞反了" },
-  { start: 52, end: 55.5, text: "你们看到的，是活着飞回来的飞机" },
-  { start: 56, end: 60, text: "那些被击中引擎和驾驶舱的飞机，根本就没回来" },
-  { start: 60.5, end: 64, text: "机翼上满是弹孔的飞机能飞回来" },
-  { start: 64.3, end: 67.5, text: "恰恰说明机翼被打中不致命" },
-  { start: 68, end: 73, text: "真正需要加固的，是那些看不到弹孔的地方" },
-  { start: 73.5, end: 77.5, text: "因为被打中那里的飞机，已经坠毁了" },
-  { start: 79, end: 82, text: "这种偏差无处不在" },
-  { start: 82.5, end: 86, text: "你看到的网红都光鲜亮丽" },
-  { start: 86.3, end: 89.5, text: "看不到的是千万个失败的尝试" },
-  { start: 90, end: 93.5, text: "你听到的投资传奇都赚了百倍" },
-  { start: 94, end: 97, text: "听不到的是倾家荡产的沉默" },
-  { start: 97.5, end: 102, text: "古人说读书无用，是因为成功的商人站在你面前" },
-  { start: 102.5, end: 108.5, text: "我们总是只看到幸存者，却忘了问：那些没幸存的呢？" },
-  { start: 110, end: 114, text: "下次当你看到一个令人羡慕的成功故事时" },
-  { start: 114.5, end: 118.5, text: "问自己：我是不是只看到了活着回来的飞机？" },
-  { start: 119, end: 124, text: "真相，往往藏在那些沉默的数据里" },
+// ── Master timeline ──
+const M = gsap.timeline({ paused: true });
+
+// Build scene animations
+function buildScene01(s) {
+  const tl = gsap.timeline();
+  tl.set('#s01', { opacity: 1, className: '+=active' });
+  tl.to('#s01-l1', { opacity: 1, y: 0, duration: 0.8 }, 0.5);
+  tl.from('#s01-l1', { y: 30, duration: 0.8 }, 0.5);
+  tl.to('#s01-l2', { opacity: 1, duration: 0.8 }, 1.8);
+  tl.from('#s01-l2', { y: 20, duration: 0.8 }, 1.8);
+  tl.to('#s01-l3', { opacity: 1, duration: 0.6 }, 3.2);
+  tl.from('#s01-l3', { scale: 1.3, duration: 0.6, ease: 'back.out(2)' }, 3.2);
+  tl.to('#s01', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene02(s) {
+  const tl = gsap.timeline();
+  tl.set('#s02', { opacity: 1, className: '+=active' });
+  tl.to('#s02-bg', { opacity: 1, duration: 0.5 }, 0);
+  tl.to('#persistent-title', { opacity: 1, duration: 0.5 }, 0.3);
+  tl.to('#s02-bomber', { opacity: 1, duration: 0.3 }, 0.5);
+  tl.add(drawOn('#s02-bomber svg', { duration: 0.4, stagger: 0.05 }), 0.5);
+  // Bullet holes appear one by one
+  const bulletPositions = [
+    [180,120],[220,100],[260,140],[300,110],[340,130],
+    [200,280],[240,260],[280,300],[320,270],[360,290],
+    [280,180],[300,200]
+  ];
+  const bulletsContainer = document.getElementById('s02-bullets');
+  bulletPositions.forEach((pos, i) => {
+    const dot = document.createElement('div');
+    dot.style.cssText = `position:absolute;left:${pos[0]}px;top:${pos[1]}px;width:16px;height:16px;border-radius:50%;background:#e53e3e;opacity:0;transform:translate(-50%,-50%);`;
+    bulletsContainer.appendChild(dot);
+    tl.to(dot, { opacity: 0.7, scale: 1, duration: 0.15 }, 6 + i * 0.4);
+    tl.from(dot, { scale: 2, duration: 0.15 }, 6 + i * 0.4);
+  });
+  tl.to('#s02-label', { opacity: 1, x: 0, duration: 0.5 }, 14);
+  tl.from('#s02-label', { x: 30, duration: 0.5 }, 14);
+  tl.to('#s02', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene03(s) {
+  const tl = gsap.timeline();
+  tl.set('#s03', { opacity: 1, className: '+=active' });
+  tl.to('#s03-bg', { opacity: 1, duration: 0.3 }, 0);
+  // Wald appears
+  tl.to('#s03-wald', { opacity: 1, duration: 0.5 }, 0.5);
+  tl.add(drawOn('#s03-wald svg', { duration: 0.3, stagger: 0.04 }), 0.5);
+  // Officer appears
+  tl.to('#s03-officer', { opacity: 1, duration: 0.5 }, 2);
+  tl.add(drawOn('#s03-officer svg', { duration: 0.3, stagger: 0.04 }), 2);
+  // Speech bubbles
+  tl.to('#s03-bubble-officer', { opacity: 1, scale: 1, duration: 0.4 }, 4);
+  tl.from('#s03-bubble-officer', { scale: 0.8, duration: 0.4 }, 4);
+  tl.to('#s03-bubble-wald', { opacity: 1, scale: 1, duration: 0.4 }, 6);
+  tl.from('#s03-bubble-wald', { scale: 0.8, duration: 0.4 }, 6);
+  // Bomber with highlights
+  tl.to('#s03-bomber', { opacity: 1, duration: 0.5 }, 8);
+  tl.add(drawOn('#s03-bomber svg', { duration: 0.3, stagger: 0.03 }), 8);
+  tl.to('#s03', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene04(s) {
+  const tl = gsap.timeline();
+  tl.set('#s04', { opacity: 1, className: '+=active' });
+  tl.to('#s04-bg', { opacity: 1, duration: 0.3 }, 0);
+  tl.to('#s04-survived', { opacity: 1, duration: 0.6 }, 0.5);
+  tl.from('#s04-survived', { x: -60, duration: 0.6 }, 0.5);
+  tl.add(drawOn('#s04-survived svg', { duration: 0.3, stagger: 0.03 }), 0.8);
+  tl.to('#s04-vs', { opacity: 1, duration: 0.3 }, 3);
+  tl.from('#s04-vs', { scale: 2, duration: 0.3, ease: 'back.out(2)' }, 3);
+  tl.to('#s04-crashed', { opacity: 1, duration: 0.6 }, 4);
+  tl.from('#s04-crashed', { x: 60, duration: 0.6 }, 4);
+  tl.add(drawOn('#s04-crashed svg', { duration: 0.3, stagger: 0.03 }), 4.3);
+  tl.to('#s04', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene05(s) {
+  const tl = gsap.timeline();
+  tl.set('#s05', { opacity: 1, className: '+=active' });
+  tl.to('#s05-title', { opacity: 1, scale: 1, duration: 0.8, ease: 'back.out(2)' }, 0.5);
+  tl.from('#s05-title', { scale: 0.3, duration: 0.8, ease: 'back.out(2)' }, 0.5);
+  tl.to('#s05-sub', { opacity: 1, duration: 0.6 }, 2);
+  tl.from('#s05-sub', { y: 20, duration: 0.6 }, 2);
+  tl.to('#s05-quote', { opacity: 1, duration: 0.8 }, 4);
+  tl.from('#s05-quote', { y: 30, duration: 0.8 }, 4);
+  tl.to('#s05', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene06(s) {
+  const tl = gsap.timeline();
+  tl.set('#s06', { opacity: 1, className: '+=active' });
+  tl.to('#s06-bg', { opacity: 1, duration: 0.3 }, 0);
+  tl.to('#s06-iceberg', { opacity: 1, duration: 0.8 }, 1);
+  tl.add(drawOn('#s06-iceberg svg', { duration: 0.5, stagger: 0.06 }), 1);
+  tl.to('#s06-success', { opacity: 1, duration: 0.6 }, 4);
+  tl.from('#s06-success', { x: -40, duration: 0.6 }, 4);
+  tl.to('#s06-ghosts', { opacity: 1, duration: 0.8 }, 7);
+  tl.from('#s06-ghosts', { x: 40, duration: 0.8 }, 7);
+  tl.to('#s06-numbers', { opacity: 1, duration: 0.6 }, 10);
+  tl.from('#s06-numbers', { y: 30, duration: 0.6 }, 10);
+  tl.to('#s06', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene07(s) {
+  const tl = gsap.timeline();
+  tl.set('#s07', { opacity: 1, className: '+=active' });
+  tl.to('#s07-bg', { opacity: 1, duration: 0.3 }, 0);
+  tl.to('#s07-mother', { opacity: 1, duration: 0.6 }, 0.5);
+  tl.add(drawOn('#s07-mother svg', { duration: 0.3, stagger: 0.04 }), 0.5);
+  tl.to('#s07-good', { opacity: 1, duration: 0.6 }, 3);
+  tl.from('#s07-good', { y: -20, duration: 0.6 }, 3);
+  tl.add(drawOn('#s07-good svg', { duration: 0.3, stagger: 0.04 }), 3.3);
+  tl.to('#s07-normal', { opacity: 1, duration: 0.6 }, 8);
+  tl.from('#s07-normal', { y: 20, duration: 0.6 }, 8);
+  tl.to('#s07-text', { opacity: 1, duration: 0.6 }, 13);
+  tl.from('#s07-text', { y: 20, duration: 0.6 }, 13);
+  tl.to('#s07', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene08(s) {
+  const tl = gsap.timeline();
+  tl.set('#s08', { opacity: 1, className: '+=active' });
+  tl.to('#s08-bg', { opacity: 1, duration: 0.3 }, 0);
+  tl.to('#s08-title', { opacity: 1, duration: 0.5 }, 0.3);
+  tl.from('#s08-title', { y: -20, duration: 0.5 }, 0.3);
+  tl.to('#s08-card1', { opacity: 1, duration: 0.6 }, 2);
+  tl.from('#s08-card1', { y: 40, duration: 0.6 }, 2);
+  tl.to('#s08-card2', { opacity: 1, duration: 0.6 }, 12);
+  tl.from('#s08-card2', { y: 40, duration: 0.6 }, 12);
+  tl.to('#s08-card3', { opacity: 1, duration: 0.6 }, 24);
+  tl.from('#s08-card3', { y: 40, duration: 0.6 }, 24);
+  tl.to('#s08', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene09(s) {
+  const tl = gsap.timeline();
+  tl.set('#s09', { opacity: 1, className: '+=active' });
+  tl.to('#s09-bg', { opacity: 1, duration: 0.3 }, 0);
+  tl.to('#s09-title', { opacity: 1, duration: 0.5 }, 0.3);
+  tl.from('#s09-title', { y: -20, duration: 0.5 }, 0.3);
+  tl.to('#s09-card1', { opacity: 1, duration: 0.6 }, 2);
+  tl.from('#s09-card1', { y: 40, duration: 0.6 }, 2);
+  tl.to('#s09-card2', { opacity: 1, duration: 0.6 }, 12);
+  tl.from('#s09-card2', { y: 40, duration: 0.6 }, 12);
+  tl.to('#s09-card3', { opacity: 1, duration: 0.6 }, 22);
+  tl.from('#s09-card3', { y: 40, duration: 0.6 }, 22);
+  tl.to('#s09', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene10(s) {
+  const tl = gsap.timeline();
+  tl.set('#s10', { opacity: 1, className: '+=active' });
+  tl.to('#s10-bg', { opacity: 1, duration: 0.3 }, 0);
+  tl.to('#s10-crash', { opacity: 1, duration: 0.6 }, 1);
+  tl.add(drawOn('#s10-crash svg', { duration: 0.3, stagger: 0.04 }), 1);
+  tl.to('#s10-compare', { opacity: 1, duration: 0.8 }, 5);
+  tl.from('#s10-compare', { y: 30, duration: 0.8 }, 5);
+  tl.to('#s10-warning', { opacity: 1, duration: 0.5 }, 22);
+  tl.from('#s10-warning', { scale: 0.9, duration: 0.5 }, 22);
+  tl.to('#s10', { opacity: 0, duration: 0.6 }, s.duration - 0.3);
+  return tl;
+}
+
+function buildScene11(s) {
+  const tl = gsap.timeline();
+  tl.set('#s11', { opacity: 1, className: '+=active' });
+  tl.to('#s11-plane', { opacity: 1, duration: 1 }, 0.5);
+  tl.add(drawOn('#s11-plane svg', { duration: 0.6, stagger: 0.05 }), 0.5);
+  tl.to('#s11-quote', { opacity: 1, duration: 0.8 }, 6);
+  tl.from('#s11-quote', { scale: 0.8, duration: 0.8, ease: 'back.out(2)' }, 6);
+  tl.to('#s11-sub', { opacity: 1, duration: 0.6 }, 10);
+  tl.from('#s11-sub', { y: 20, duration: 0.6 }, 10);
+  tl.to('#s11', { opacity: 0, duration: 0.8 }, s.duration - 0.5);
+  return tl;
+}
+
+function buildScene12(s) {
+  const tl = gsap.timeline();
+  tl.set('#s12', { opacity: 1, className: '+=active' });
+  tl.to('#s12-brand', { opacity: 1, duration: 0.8 }, 0.5);
+  tl.from('#s12-brand', { y: 20, duration: 0.8 }, 0.5);
+  tl.to('#s12-studio', { opacity: 1, duration: 0.6 }, 1.5);
+  tl.to('#s12', { opacity: 0, duration: 1 }, s.duration - 1);
+  return tl;
+}
+
+const builders = [
+  buildScene01, buildScene02, buildScene03, buildScene04,
+  buildScene05, buildScene06, buildScene07, buildScene08,
+  buildScene09, buildScene10, buildScene11, buildScene12
 ];
 
-// ============ MASTER TIMELINE ============
-const master = gsap.timeline({ paused: true });
-
-// Tracking objects for canvas animations
-const canvasState = {
-  heatmapIntensity: 0,
-  icebergReveal: 0,
-  scene1Progress: 0,
-};
-
-// ------ SCENE 1 (0-22s): HOOK ------
-const s1 = gsap.timeline();
-s1.fromTo('#scene1', {opacity:0}, {opacity:1, duration:1}, 0);
-s1.to(canvasState, {scene1Progress:1, duration:22, ease:'none'}, 0);
-
-// Float icons appear scattered
-document.querySelectorAll('#scene1 .float-icon').forEach((el, i) => {
-  s1.fromTo(el, {opacity:0, scale:0, rotation: -30 + i*10},
-    {opacity: 0.6, scale:1, rotation:0, duration:0.5, ease:'back.out(1.5)'}, 0.3 + i*0.15);
-  // Gentle floating
-  s1.to(el, {y: -20 + (i%4)*10, duration:3+i%2, yoyo:true, repeat:3, ease:'sine.inOut'}, 1+i*0.1);
+SCENES.forEach((s, i) => {
+  M.add(builders[i](s), s.start);
 });
 
-// Eye opens
-s1.fromTo('#scene1 .center-eye', {opacity:0}, {opacity:1, duration:0.3}, 0.5);
-s1.to('#eyeWhite', {attr:{ry:65}, duration:0.8, ease:'power2.out'}, 2.5);
-s1.to('#iris', {attr:{r:40}, duration:0.6, ease:'power2.out'}, 2.8);
-s1.to('#pupil', {attr:{r:18}, duration:0.5}, 3);
-s1.to('#eyeReflect', {attr:{r:8}, duration:0.3}, 3.2);
-s1.to('#eyeOutlineTop', {attr:{d:'M10 90 Q150 20 290 90'}, duration:0.8, ease:'power2.out'}, 2.5);
-s1.to('#eyeOutlineBot', {attr:{d:'M10 90 Q150 160 290 90'}, duration:0.8, ease:'power2.out'}, 2.5);
-
-// Pupil dilates (focus)
-s1.to('#pupil', {attr:{r:22}, duration:0.3, yoyo:true, repeat:1}, 4);
-
-// Text appears
-s1.fromTo('#scene1 .hook-text', {opacity:0, y:30}, {opacity:1, y:0, duration:0.8, ease:'power2.out'}, 4.5);
-
-// Fade icons to draw attention to text
-s1.to('#scene1 .float-icons', {opacity:0.15, duration:1}, 6);
-
-// Title reveal with underline
-s1.fromTo('#scene1 .title-reveal', {opacity:0, scale:0.6}, {opacity:1, scale:1, duration:0.7, ease:'back.out(1.5)'}, 15);
-s1.to('#scene1 .title-reveal .title-line', {width:'100%', duration:0.5, ease:'power2.inOut'}, 16);
-// Pulse
-s1.to('#scene1 .title-reveal', {scale:1.03, duration:0.3, yoyo:true, repeat:2, ease:'sine.inOut'}, 17);
-
-s1.to('#scene1', {opacity:0, duration:0.8}, 21.2);
-master.add(s1, 0);
-
-// ------ SCENE 2 (22-51s): WWII ------
-const s2 = gsap.timeline();
-s2.fromTo('#scene2', {opacity:0}, {opacity:1, duration:0.8}, 0);
-
-// Year bg text fade in
-s2.fromTo('#scene2 .year-text', {opacity:0, scale:0.8}, {opacity:1, scale:1, duration:1.5, ease:'power1.out'}, 0);
-s2.fromTo('#scene2 .scene-title', {opacity:0, y:-20}, {opacity:1, y:0, duration:0.7}, 0.5);
-
-// Plane flies in from left
-s2.fromTo('#scene2 .plane-group', {opacity:0, x:-200, rotation:-5},
-  {opacity:1, x:0, rotation:0, duration:1.5, ease:'power2.out'}, 3);
-
-// Gentle plane hovering
-s2.to('#scene2 .plane-group', {y:-8, duration:2, yoyo:true, repeat:5, ease:'sine.inOut'}, 5);
-
-// Heatmap builds up
-s2.fromTo('#scene2 .heatmap-canvas', {opacity:0}, {opacity:1, duration:0.3}, 8);
-s2.to(canvasState, {heatmapIntensity:1, duration:4, ease:'power1.inOut'}, 8);
-
-// Engine rings pulse to show they're "clean"
-s2.to('.engine-ring', {stroke:'rgba(96,165,250,0.6)', duration:0.5, yoyo:true, repeat:3}, 10);
-s2.to('.cockpit-ring', {stroke:'rgba(96,165,250,0.6)', duration:0.5, yoyo:true, repeat:3}, 10);
-
-// Military decision
-s2.fromTo('#scene2 .military-bubble', {opacity:0, y:40}, {opacity:1, y:0, duration:0.6, ease:'power2.out'}, 16);
-
-// Wald's counter
-s2.fromTo('#scene2 .wald-bubble', {opacity:0, y:40}, {opacity:1, y:0, duration:0.6, ease:'power2.out'}, 22);
-// Wald bubble glow
-s2.to('#scene2 .wald-bubble', {
-  boxShadow:'0 0 30px rgba(34,197,94,0.2)', duration:0.4, yoyo:true, repeat:2
-}, 23);
-
-s2.to('#scene2', {opacity:0, duration:0.8}, 28.2);
-master.add(s2, 22);
-
-// ------ SCENE 3 (51-78s): INSIGHT ------
-const s3 = gsap.timeline();
-s3.fromTo('#scene3', {opacity:0}, {opacity:1, duration:0.8}, 0);
-s3.fromTo('#scene3 .scene-title', {opacity:0, y:-30}, {opacity:1, y:0, duration:0.8}, 0.3);
-
-// Both planes appear side by side
-s3.fromTo('#scene3 .plane-col.left', {opacity:0, x:-60}, {opacity:1, x:0, duration:0.8, ease:'power2.out'}, 1);
-s3.fromTo('#scene3 .plane-col.right', {opacity:0, x:60}, {opacity:1, x:0, duration:0.8, ease:'power2.out'}, 1.5);
-
-// Bullet holes on survived plane pop in
-document.querySelectorAll('#scene3 .left .bhole').forEach((el, i) => {
-  s3.fromTo(el, {r:0, opacity:0}, {r: el.getAttribute('r'), opacity:1, duration:0.2}, 3 + i*0.15);
-});
-
-// Critical zones on crashed plane pulse
-s3.to('#scene3 .right svg circle[r="28"]', {attr:{r:32}, duration:0.4, yoyo:true, repeat:2, ease:'sine.inOut'}, 5);
-s3.to('#scene3 .right svg ellipse', {attr:{rx:45, ry:35}, duration:0.4, yoyo:true, repeat:2, ease:'sine.inOut'}, 5);
-
-// Flow arrow
-s3.fromTo('#scene3 .flow-arrow', {opacity:0, y:-15}, {opacity:1, y:0, duration:0.5}, 7);
-
-// Logic cards
-s3.fromTo('#scene3 .logic-a', {opacity:0, scale:0.95, y:15}, {opacity:1, scale:1, y:0, duration:0.6, ease:'power2.out'}, 8);
-s3.fromTo('#scene3 .logic-b', {opacity:0, scale:0.95, y:15}, {opacity:1, scale:1, y:0, duration:0.6, ease:'power2.out'}, 13);
-
-// Conclusion
-s3.fromTo('#scene3 .conclusion-text', {opacity:0, scale:0.9}, {opacity:1, scale:1, duration:1, ease:'power2.out'}, 20);
-
-s3.to('#scene3', {opacity:0, duration:0.8}, 26.2);
-master.add(s3, 51);
-
-// ------ SCENE 4 (78-109s): DAILY LIFE ------
-const s4 = gsap.timeline();
-s4.fromTo('#scene4', {opacity:0}, {opacity:1, duration:0.8}, 0);
-s4.fromTo('#scene4 .scene-title', {opacity:0, y:-30}, {opacity:1, y:0, duration:0.8}, 0.3);
-
-// Iceberg reveals
-s4.fromTo('#scene4 .iceberg-container', {opacity:0}, {opacity:1, duration:0.5}, 1);
-s4.to(canvasState, {icebergReveal:0.3, duration:2, ease:'power1.out'}, 1.5); // Tip first
-s4.fromTo('#scene4 .waterline', {opacity:0}, {opacity:1, duration:0.5}, 2);
-s4.fromTo('#scene4 .waterline-label-above', {opacity:0}, {opacity:1, duration:0.5}, 3);
-
-// Example 1 above
-s4.fromTo('#scene4 .label-1a', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 4);
-// Reveal below water
-s4.to(canvasState, {icebergReveal:0.6, duration:2, ease:'power1.inOut'}, 6);
-s4.fromTo('#scene4 .waterline-label-below', {opacity:0}, {opacity:1, duration:0.5}, 6.5);
-s4.fromTo('#scene4 .label-1b', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 7);
-
-// Example 2
-s4.fromTo('#scene4 .label-2a', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 10);
-s4.to(canvasState, {icebergReveal:0.8, duration:1.5, ease:'power1.inOut'}, 11);
-s4.fromTo('#scene4 .label-2b', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 12);
-
-// Example 3
-s4.fromTo('#scene4 .label-3a', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 15);
-s4.to(canvasState, {icebergReveal:1, duration:1.5, ease:'power1.inOut'}, 16);
-s4.fromTo('#scene4 .label-3b', {opacity:0, x:-40}, {opacity:1, x:0, duration:0.5}, 17);
-
-// Big question
-s4.fromTo('#scene4 .big-q', {opacity:0, y:30}, {opacity:1, y:0, duration:1, ease:'power2.out'}, 22);
-
-s4.to('#scene4', {opacity:0, duration:0.8}, 30.2);
-master.add(s4, 78);
-
-// ------ SCENE 5 (109-125s): CLOSING ------
-const s5 = gsap.timeline();
-s5.fromTo('#scene5', {opacity:0}, {opacity:1, duration:1}, 0);
-s5.fromTo('#scene5 .plane-silhouette', {opacity:0, y:20}, {opacity:1, y:0, duration:1.5, ease:'power1.out'}, 0.5);
-s5.to('#scene5 .plane-silhouette', {y:-10, duration:4, yoyo:true, repeat:1, ease:'sine.inOut'}, 2);
-
-s5.fromTo('#scene5 .closing-q', {opacity:0, y:20}, {opacity:1, y:0, duration:0.8}, 2);
-s5.fromTo('#scene5 .closing-answer', {opacity:0, y:15}, {opacity:1, y:0, duration:0.8}, 6);
-s5.fromTo('#scene5 .cta', {opacity:0, scale:0.8}, {opacity:1, scale:1, duration:0.5, ease:'back.out(1.5)'}, 10);
-s5.to('#scene5 .cta', {scale:1.04, duration:0.4, yoyo:true, repeat:3, ease:'sine.inOut'}, 11);
-s5.to('#scene5', {opacity:0, duration:1.5}, 14.5);
-master.add(s5, 109);
-
-// ============ SUBTITLE ENGINE ============
-const subEl = document.querySelector('#subtitle-bar .sub-text');
-const progEl = document.getElementById('progress-bar');
-let lastSub = -1;
-
-function updateSubs(t) {
-  let found = -1;
-  for (let i = 0; i < narrations.length; i++) {
-    if (t >= narrations[i].start && t <= narrations[i].end) { found = i; break; }
-  }
-  if (found !== lastSub) {
-    lastSub = found;
-    if (found >= 0) {
-      subEl.textContent = narrations[found].text;
-      gsap.fromTo(subEl, {opacity:0, y:6}, {opacity:1, y:0, duration:0.2});
-    } else {
-      gsap.to(subEl, {opacity:0, duration:0.15});
-    }
-  }
-  progEl.style.width = (t/TOTAL*100) + '%';
+// ── Render mode (for Puppeteer) ──
+const isRender = new URLSearchParams(location.search).has('render');
+if (isRender) {
+  M.pause();
+  window.seekTo = function(t) {
+    M.seek(t);
+    M.pause();
+  };
+  window.TOTAL_DURATION = TOTAL_DURATION;
+  window.FPS = 30;
+  console.log(`[render] ready. duration=${TOTAL_DURATION.toFixed(2)}s`);
+} else {
+  // Auto-play preview mode
+  M.play();
 }
-
-// ============ CANVAS UPDATE LOOP ============
-function updateCanvas(time) {
-  drawHeatmap(canvasState.heatmapIntensity);
-  drawIceberg(canvasState.icebergReveal);
-  // Scene 1 particles
-  if (time < 22) {
-    drawParticles(time, canvasState.scene1Progress);
-  } else {
-    fxCtx.clearRect(0, 0, 1080, 1920);
-  }
-}
-
-// ============ GLOBAL API ============
-window.TOTAL_DURATION = TOTAL;
-window.seekTo = function(s) {
-  master.seek(s);
-  updateSubs(s);
-  updateCanvas(s);
-};
-
-let _playing = false, _startT = 0;
-window.play = function() { _playing = true; _startT = performance.now(); _tick(); };
-window.pause = function() { _playing = false; };
-function _tick() {
-  if (!_playing) return;
-  const t = (performance.now() - _startT) / 1000;
-  if (t >= TOTAL) { _playing = false; return; }
-  window.seekTo(t);
-  requestAnimationFrame(_tick);
-}
-document.addEventListener('click', () => { if (!_playing) play(); else pause(); });
-window.seekTo(0.01);
 </script>
 </body>
 </html>
