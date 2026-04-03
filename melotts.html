@@ -5,530 +5,393 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MeloTTS 调试台</title>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface2: #1a1a26;
-    --border: #2a2a3a;
-    --text: #e0e0e8;
-    --text2: #888898;
-    --accent: #6c5ce7;
-    --accent2: #a29bfe;
-    --green: #00b894;
-    --red: #e17055;
-    --orange: #fdcb6e;
-  }
+:root {
+  --bg: #08080d; --s1: #101018; --s2: #181824; --s3: #22223a;
+  --bd: #2a2a40; --tx: #d8d8e8; --tx2: #707088;
+  --ac: #6c5ce7; --ac2: #a29bfe; --gn: #00b894; --rd: #e17055; --or: #fdcb6e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system,"PingFang SC","Noto Sans SC","Segoe UI",sans-serif;
+  background: var(--bg); color: var(--tx);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:20px 12px;
+}
+.wrap { max-width:720px; width:100%; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+h1 {
+  font-size:24px; font-weight:800; text-align:center; margin-bottom:4px;
+  background:linear-gradient(135deg,var(--ac2),var(--ac));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.sub { text-align:center; color:var(--tx2); font-size:13px; margin-bottom:20px; }
 
-  body {
-    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 16px;
-  }
+.card { background:var(--s1); border:1px solid var(--bd); border-radius:10px; padding:20px; margin-bottom:12px; }
 
-  .container {
-    max-width: 640px;
-    width: 100%;
-  }
+/* Status */
+.status { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--s2); border-radius:6px; font-size:12px; margin-bottom:14px; }
+.dot { width:7px;height:7px;border-radius:50%;background:var(--rd);flex-shrink:0; }
+.dot.ok { background:var(--gn); }
+.dot.ld { background:var(--or); animation:p 1s infinite; }
+@keyframes p { 50%{opacity:.3} }
 
-  header {
-    text-align: center;
-    margin-bottom: 32px;
-  }
+.srv-row { display:flex; gap:6px; margin-bottom:14px; }
+.srv-row input {
+  flex:1; background:var(--s2); border:1px solid var(--bd); border-radius:6px;
+  padding:8px 10px; color:var(--tx); font-size:13px; outline:none;
+  font-family:"SF Mono","Fira Code",monospace;
+}
+.srv-row input:focus { border-color:var(--ac); }
 
-  header h1 {
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 6px;
-  }
+/* Labels */
+label { display:block; font-size:11px; color:var(--tx2); margin-bottom:4px; text-transform:uppercase; letter-spacing:.5px; font-weight:600; }
 
-  header p {
-    color: var(--text2);
-    font-size: 14px;
-  }
+/* Row layouts */
+.r2 { display:flex; gap:10px; margin-bottom:12px; }
+.r2>div { flex:1; }
+.r3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px; }
 
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 16px;
-  }
+select {
+  width:100%; background:var(--s2); border:1px solid var(--bd); border-radius:6px;
+  padding:8px 10px; color:var(--tx); font-size:13px; outline:none; cursor:pointer;
+}
+select:focus { border-color:var(--ac); }
 
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    padding: 10px 14px;
-    background: var(--surface2);
-    border-radius: 8px;
-    font-size: 13px;
-  }
+/* Sliders */
+.slider-group { margin-bottom:14px; }
+.slider-row { display:flex; align-items:center; gap:10px; }
+.slider-row input[type=range] {
+  flex:1; -webkit-appearance:none; height:4px; background:var(--bd);
+  border-radius:2px; outline:none; border:none; padding:0;
+}
+.slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:16px;height:16px;border-radius:50%;
+  background:var(--ac); cursor:pointer; border:2px solid var(--bg);
+}
+.sval {
+  font-family:"SF Mono","Fira Code",monospace; font-size:13px;
+  color:var(--ac2); min-width:36px; text-align:right;
+}
 
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    flex-shrink: 0;
-  }
+/* Param info */
+.param-hint {
+  font-size:11px; color:var(--tx2); margin-top:2px; line-height:1.4;
+}
 
-  .status-dot.connected { background: var(--green); }
-  .status-dot.loading { background: var(--orange); animation: pulse 1s infinite; }
+textarea {
+  width:100%; min-height:80px; background:var(--s2); border:1px solid var(--bd);
+  border-radius:6px; padding:10px; color:var(--tx); font-size:14px; line-height:1.5;
+  outline:none; resize:vertical; font-family:inherit; margin-bottom:12px;
+}
+textarea:focus { border-color:var(--ac); }
+textarea::placeholder { color:var(--tx2); }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
+.btn {
+  width:100%; padding:12px; border:none; border-radius:8px; font-size:15px;
+  font-weight:700; cursor:pointer; transition:all .15s;
+  background:linear-gradient(135deg,var(--ac),#5a4bd1); color:#fff;
+}
+.btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(108,92,231,.3); }
+.btn:active { transform:translateY(0); }
+.btn:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
 
-  .server-input {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
+.sm-btn {
+  padding:8px 14px; font-size:12px; font-weight:600; border:none; border-radius:6px;
+  cursor:pointer; background:var(--ac); color:#fff; transition:all .15s;
+}
+.sm-btn:hover { background:var(--ac2); }
 
-  .server-input input {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
-    font-family: "SF Mono", "Fira Code", monospace;
-  }
+/* Presets */
+.presets { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.preset {
+  padding:5px 10px; font-size:11px; border:1px solid var(--bd); border-radius:5px;
+  background:var(--s2); color:var(--tx2); cursor:pointer; transition:all .15s;
+}
+.preset:hover { border-color:var(--ac); color:var(--tx); }
+.preset.active { border-color:var(--ac); background:rgba(108,92,231,.15); color:var(--ac2); }
 
-  .server-input input:focus { border-color: var(--accent); }
+/* Result */
+.result { margin-top:12px; display:none; }
+.result.show { display:block; }
+.result audio { width:100%; margin-top:6px; border-radius:6px; }
+.meta { display:flex; gap:14px; margin-top:8px; font-size:11px; color:var(--tx2); flex-wrap:wrap; }
 
-  label {
-    display: block;
-    font-size: 12px;
-    color: var(--text2);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-  }
+/* Error */
+.err { padding:10px; background:rgba(225,112,85,.12); border:1px solid rgba(225,112,85,.25); border-radius:6px; color:var(--rd); font-size:12px; margin-top:10px; display:none; }
+.err.show { display:block; }
 
-  .row { display: flex; gap: 12px; margin-bottom: 16px; }
-  .row > div { flex: 1; }
+/* History */
+.hist-item { padding:10px; background:var(--s2); border-radius:6px; margin-bottom:6px; }
+.hist-item .t { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
+.hist-item .i { font-size:10px; color:var(--tx2); font-family:"SF Mono",monospace; }
+.hist-item audio { width:100%; height:28px; margin-top:6px; }
 
-  select, input[type="range"] {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-  }
+.history { max-height:300px; overflow-y:auto; }
 
-  select:focus { border-color: var(--accent); }
+footer { margin-top:24px; text-align:center; font-size:11px; color:var(--tx2); }
+footer a { color:var(--ac2); text-decoration:none; }
 
-  textarea {
-    width: 100%;
-    min-height: 120px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    color: var(--text);
-    font-size: 15px;
-    line-height: 1.6;
-    outline: none;
-    resize: vertical;
-    font-family: inherit;
-    margin-bottom: 16px;
-  }
-
-  textarea:focus { border-color: var(--accent); }
-  textarea::placeholder { color: var(--text2); }
-
-  .speed-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .speed-row input[type="range"] {
-    flex: 1;
-    padding: 0;
-    height: 6px;
-    border: none;
-    border-radius: 3px;
-    -webkit-appearance: none;
-    background: var(--border);
-  }
-
-  .speed-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-    border: 2px solid var(--bg);
-  }
-
-  .speed-val {
-    font-family: "SF Mono", "Fira Code", monospace;
-    font-size: 14px;
-    color: var(--accent2);
-    min-width: 40px;
-    text-align: right;
-  }
-
-  .btn {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: linear-gradient(135deg, var(--accent), #5a4bd1);
-    color: white;
-    letter-spacing: 0.3px;
-  }
-
-  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3); }
-  .btn:active { transform: translateY(0); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-  .result {
-    margin-top: 16px;
-    display: none;
-  }
-
-  .result.show { display: block; }
-
-  .result audio {
-    width: 100%;
-    margin-top: 8px;
-    border-radius: 8px;
-  }
-
-  .meta {
-    display: flex;
-    gap: 16px;
-    margin-top: 10px;
-    font-size: 12px;
-    color: var(--text2);
-  }
-
-  .meta span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .history {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .history-item {
-    padding: 12px;
-    background: var(--surface2);
-    border-radius: 8px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .history-item:hover { background: var(--border); }
-
-  .history-item .text {
-    font-size: 14px;
-    margin-bottom: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .history-item .info {
-    font-size: 11px;
-    color: var(--text2);
-  }
-
-  .history-item audio {
-    width: 100%;
-    margin-top: 8px;
-    height: 32px;
-  }
-
-  footer {
-    margin-top: 32px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--text2);
-  }
-
-  footer a { color: var(--accent2); text-decoration: none; }
-
-  .error-msg {
-    padding: 12px;
-    background: rgba(225, 112, 85, 0.15);
-    border: 1px solid rgba(225, 112, 85, 0.3);
-    border-radius: 8px;
-    color: var(--red);
-    font-size: 13px;
-    margin-top: 12px;
-    display: none;
-  }
-
-  .error-msg.show { display: block; }
+/* Reset button */
+.reset-row { display:flex; justify-content:flex-end; margin-bottom:10px; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="container">
-  <header>
-    <h1>🔊 MeloTTS 调试台</h1>
-    <p>多语言文字转语音 · 实时预览</p>
-  </header>
+<h1>🔊 MeloTTS 调试台</h1>
+<p class="sub">调参数 · 听效果 · 中文 / English</p>
 
-  <!-- Server Connection -->
-  <div class="card">
-    <div class="status-bar">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">未连接</span>
+<!-- Server -->
+<div class="card">
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <span id="stxt">未连接</span>
+  </div>
+  <div class="srv-row">
+    <input id="srv" placeholder="http://localhost:8765" value="https://innovation-occasionally-complement-monica.trycloudflare.com">
+    <button class="sm-btn" onclick="connect()">连接</button>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="card">
+  <!-- Language / Speaker -->
+  <div class="r2">
+    <div>
+      <label>语言</label>
+      <select id="lang" onchange="updSpk()">
+        <option value="ZH">中文 ZH</option>
+        <option value="EN">English EN</option>
+      </select>
     </div>
-    <label>API 服务器地址</label>
-    <div class="server-input">
-      <input type="text" id="serverUrl" placeholder="http://localhost:8765" value="https://innovation-occasionally-complement-monica.trycloudflare.com">
-      <button class="btn" style="width:auto;padding:10px 20px;font-size:14px" onclick="checkServer()">连接</button>
+    <div>
+      <label>说话人</label>
+      <select id="spk"></select>
     </div>
   </div>
 
-  <!-- TTS Controls -->
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>语言</label>
-        <select id="language" onchange="updateSpeakers()">
-          <option value="ZH">中文</option>
-          <option value="EN">English</option>
-          <option value="ES">Español</option>
-          <option value="FR">Français</option>
-          <option value="JP">日本語</option>
-          <option value="KR">한국어</option>
-        </select>
-      </div>
-      <div>
-        <label>说话人</label>
-        <select id="speaker">
-          <option value="ZH">ZH (默认)</option>
-        </select>
-      </div>
+  <!-- Presets -->
+  <label>预设</label>
+  <div class="presets" id="presets"></div>
+
+  <!-- All sliders -->
+  <div class="slider-group">
+    <label>Speed <span style="font-weight:400;text-transform:none">— 语速</span></label>
+    <div class="slider-row">
+      <input type="range" id="speed" min="0.3" max="2.5" step="0.05" value="1.0" oninput="updVal(this)">
+      <span class="sval" id="speed_v">1.00</span>
     </div>
-
-    <label>语速</label>
-    <div class="speed-row">
-      <input type="range" id="speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSpeed()">
-      <span class="speed-val" id="speedVal">1.0x</span>
-    </div>
-
-    <label>文本 <span style="font-weight:400;text-transform:none">(最多 500 字)</span></label>
-    <textarea id="text" placeholder="输入要合成的文本..." maxlength="500">你好，欢迎使用 MeloTTS 文字转语音引擎。这是一个测试。</textarea>
-
-    <button class="btn" id="synthBtn" onclick="synthesize()" disabled>🎙 合成语音</button>
-
-    <div class="error-msg" id="errorMsg"></div>
-
-    <div class="result" id="result">
-      <audio id="audioPlayer" controls></audio>
-      <div class="meta">
-        <span>⏱ <span id="elapsed">-</span></span>
-        <span>🗣 <span id="usedSpeaker">-</span></span>
-        <span>📝 <span id="charCount">-</span></span>
-      </div>
-    </div>
+    <div class="param-hint">1.0 = 正常速度。&lt;1 慢，&gt;1 快。影响 length_scale = 1/speed</div>
   </div>
 
-  <!-- History -->
-  <div class="card">
-    <label>历史记录</label>
-    <div class="history" id="history">
-      <div style="text-align:center;color:var(--text2);padding:20px;font-size:13px">
-        还没有合成记录
-      </div>
+  <div class="slider-group">
+    <label>SDP Ratio <span style="font-weight:400;text-transform:none">— 随机时长预测比例</span></label>
+    <div class="slider-row">
+      <input type="range" id="sdp_ratio" min="0.0" max="1.0" step="0.05" value="0.2" oninput="updVal(this)">
+      <span class="sval" id="sdp_ratio_v">0.20</span>
     </div>
+    <div class="param-hint">控制韵律随机性。0 = 确定性韵律（单调），1 = 完全随机韵律（多变但可能不稳定）</div>
   </div>
 
-  <footer>
-    Powered by <a href="https://github.com/myshell-ai/MeloTTS" target="_blank">MeloTTS</a> · 
-    Built by Cove 🌊
-  </footer>
+  <div class="slider-group">
+    <label>Noise Scale <span style="font-weight:400;text-transform:none">— 音色噪声</span></label>
+    <div class="slider-row">
+      <input type="range" id="noise_scale" min="0.0" max="2.0" step="0.05" value="0.6" oninput="updVal(this)">
+      <span class="sval" id="noise_scale_v">0.60</span>
+    </div>
+    <div class="param-hint">声音的表现力/情感变化。0 = 平淡机械，高值 = 更有表情但可能失真</div>
+  </div>
+
+  <div class="slider-group">
+    <label>Noise Scale W <span style="font-weight:400;text-transform:none">— 音素时长噪声</span></label>
+    <div class="slider-row">
+      <input type="range" id="noise_scale_w" min="0.0" max="2.0" step="0.05" value="0.8" oninput="updVal(this)">
+      <span class="sval" id="noise_scale_w_v">0.80</span>
+    </div>
+    <div class="param-hint">每个音素时长的随机性。0 = 均匀节奏，高值 = 更自然但可能出现异常停顿</div>
+  </div>
+
+  <div class="reset-row">
+    <button class="sm-btn" onclick="resetParams()" style="background:var(--s3);">↻ 重置默认</button>
+  </div>
+
+  <!-- Text -->
+  <label>文本</label>
+  <textarea id="text" placeholder="输入要合成的文本…" maxlength="1000">我最近在学习 machine learning，希望能够在未来的 AI 领域有所建树。</textarea>
+
+  <button class="btn" id="go" onclick="synth()" disabled>🎙 合成 (Ctrl+Enter)</button>
+
+  <div class="err" id="err"></div>
+  <div class="result" id="res">
+    <audio id="aud" controls></audio>
+    <div class="meta" id="meta"></div>
+  </div>
+</div>
+
+<!-- History -->
+<div class="card">
+  <label>历史</label>
+  <div class="history" id="hist">
+    <div style="text-align:center;color:var(--tx2);padding:16px;font-size:12px">暂无记录</div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/myshell-ai/MeloTTS" target="_blank">MeloTTS</a> · Cove 🌊
+</footer>
 </div>
 
 <script>
-const SPEAKERS = {
-  ZH: [{v:"ZH", l:"ZH (默认)"}],
+const SPKS = {
+  ZH: [{v:"ZH",l:"ZH 默认"}],
   EN: [{v:"EN-US",l:"EN-US 🇺🇸"},{v:"EN-BR",l:"EN-BR 🇬🇧"},{v:"EN_INDIA",l:"EN-India 🇮🇳"},{v:"EN-AU",l:"EN-AU 🇦🇺"},{v:"EN-Default",l:"EN-Default"}],
-  ES: [{v:"ES", l:"ES"}],
-  FR: [{v:"FR", l:"FR"}],
-  JP: [{v:"JP", l:"JP"}],
-  KR: [{v:"KR", l:"KR"}],
 };
 
-let serverOk = false;
-let history = [];
+const PRESETS = [
+  {name:"默认", speed:1.0, sdp:0.2, ns:0.6, nsw:0.8},
+  {name:"新闻播报", speed:1.1, sdp:0.0, ns:0.3, nsw:0.4},
+  {name:"温柔朗读", speed:0.85, sdp:0.15, ns:0.5, nsw:0.6},
+  {name:"情感丰富", speed:0.95, sdp:0.5, ns:1.0, nsw:1.0},
+  {name:"快速低噪", speed:1.3, sdp:0.1, ns:0.2, nsw:0.3},
+  {name:"慢速清晰", speed:0.7, sdp:0.1, ns:0.4, nsw:0.5},
+  {name:"最大随机", speed:1.0, sdp:1.0, ns:1.5, nsw:1.5},
+  {name:"机器人", speed:1.2, sdp:0.0, ns:0.0, nsw:0.0},
+];
 
-// Load saved server URL
-const saved = localStorage.getItem('melotts_server');
-if (saved) document.getElementById('serverUrl').value = saved;
+const DEFAULTS = {speed:1.0, sdp_ratio:0.2, noise_scale:0.6, noise_scale_w:0.8};
+let ok = false, hist = [];
 
-function updateSpeakers() {
-  const lang = document.getElementById('language').value;
-  const sel = document.getElementById('speaker');
-  sel.innerHTML = '';
-  (SPEAKERS[lang] || []).forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.v;
-    opt.textContent = s.l;
-    sel.appendChild(opt);
+// Init
+const saved = localStorage.getItem('melo_srv');
+if (saved) $('srv').value = saved;
+updSpk();
+renderPresets();
+
+function $(id){ return document.getElementById(id); }
+
+function updSpk(){
+  const s = $('spk');
+  s.innerHTML = '';
+  (SPKS[$('lang').value]||[]).forEach(o=>{
+    const op = document.createElement('option');
+    op.value=o.v; op.textContent=o.l; s.appendChild(op);
   });
 }
 
-function updateSpeed() {
-  document.getElementById('speedVal').textContent = parseFloat(document.getElementById('speed').value).toFixed(1) + 'x';
+function updVal(el){
+  $(el.id+'_v').textContent = parseFloat(el.value).toFixed(2);
+  // Deactivate presets
+  document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
 }
 
-async function checkServer() {
-  const url = document.getElementById('serverUrl').value.replace(/\/+$/, '');
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  const btn = document.getElementById('synthBtn');
+function setParam(id, val){
+  $(id).value = val;
+  $(id+'_v').textContent = parseFloat(val).toFixed(2);
+}
 
-  dot.className = 'status-dot loading';
-  txt.textContent = '连接中...';
+function resetParams(){
+  setParam('speed', DEFAULTS.speed);
+  setParam('sdp_ratio', DEFAULTS.sdp_ratio);
+  setParam('noise_scale', DEFAULTS.noise_scale);
+  setParam('noise_scale_w', DEFAULTS.noise_scale_w);
+  document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.preset').classList.add('active');
+}
 
+function renderPresets(){
+  const c = $('presets');
+  c.innerHTML = PRESETS.map((p,i)=>`<div class="preset${i===0?' active':''}" onclick="applyPreset(${i})">${p.name}</div>`).join('');
+}
+
+function applyPreset(i){
+  const p = PRESETS[i];
+  setParam('speed', p.speed);
+  setParam('sdp_ratio', p.sdp);
+  setParam('noise_scale', p.ns);
+  setParam('noise_scale_w', p.nsw);
+  document.querySelectorAll('.preset').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.preset')[i].classList.add('active');
+}
+
+async function connect(){
+  const u = $('srv').value.replace(/\/+$/,'');
+  $('dot').className='dot ld'; $('stxt').textContent='连接中…';
   try {
-    const resp = await fetch(url + '/health', { signal: AbortSignal.timeout(5000) });
-    const data = await resp.json();
-    if (data.status === 'ok') {
-      dot.className = 'status-dot connected';
-      txt.textContent = `已连接 · 已加载模型: ${data.loaded_models.length > 0 ? data.loaded_models.join(', ') : '(首次使用时加载)'}`;
-      serverOk = true;
-      btn.disabled = false;
-      localStorage.setItem('melotts_server', url);
+    const r = await fetch(u+'/health',{signal:AbortSignal.timeout(5000)});
+    const d = await r.json();
+    if(d.status==='ok'){
+      $('dot').className='dot ok';
+      $('stxt').textContent=`已连接${d.loaded_models.length?' · 模型: '+d.loaded_models.join(', '):''}`;
+      ok=true; $('go').disabled=false;
+      localStorage.setItem('melo_srv',u);
     }
-  } catch (e) {
-    dot.className = 'status-dot';
-    txt.textContent = `连接失败: ${e.message}`;
-    serverOk = false;
-    btn.disabled = true;
+  } catch(e){
+    $('dot').className='dot'; $('stxt').textContent='连接失败: '+e.message;
+    ok=false; $('go').disabled=true;
   }
 }
 
-async function synthesize() {
-  if (!serverOk) return;
+async function synth(){
+  if(!ok) return;
+  const url = $('srv').value.replace(/\/+$/,'');
+  const text = $('text').value.trim();
+  if(!text) return;
 
-  const url = document.getElementById('serverUrl').value.replace(/\/+$/, '');
-  const text = document.getElementById('text').value.trim();
-  const lang = document.getElementById('language').value;
-  const speaker = document.getElementById('speaker').value;
-  const speed = document.getElementById('speed').value;
-  const btn = document.getElementById('synthBtn');
-  const errEl = document.getElementById('errorMsg');
+  const btn = $('go');
+  btn.disabled=true; btn.textContent='⏳ 合成中…';
+  $('err').className='err';
 
-  if (!text) return;
-
-  btn.disabled = true;
-  btn.textContent = '⏳ 合成中...';
-  errEl.className = 'error-msg';
-
-  const t0 = Date.now();
+  const params = {
+    text,
+    language: $('lang').value,
+    speaker: $('spk').value,
+    speed: $('speed').value,
+    sdp_ratio: $('sdp_ratio').value,
+    noise_scale: $('noise_scale').value,
+    noise_scale_w: $('noise_scale_w').value,
+  };
 
   try {
-    const params = new URLSearchParams({ text, language: lang, speaker, speed, format: 'wav' });
-    const resp = await fetch(url + '/tts?' + params, { signal: AbortSignal.timeout(60000) });
+    const qs = new URLSearchParams(params);
+    const r = await fetch(url+'/tts?'+qs, {signal:AbortSignal.timeout(120000)});
+    if(!r.ok){ const e=await r.json(); throw new Error(e.error||r.statusText); }
+    const blob = await r.blob();
+    const au = URL.createObjectURL(blob);
+    const ms = r.headers.get('X-Elapsed-Ms')||'?';
+    const spk = r.headers.get('X-Speaker')||params.speaker;
+    const prm = r.headers.get('X-Params')||'';
 
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.error || resp.statusText);
-    }
+    $('aud').src=au; $('res').className='result show';
+    $('meta').innerHTML = `<span>⏱ ${ms}ms</span><span>🗣 ${spk}</span><span>📝 ${text.length}字</span><span style="font-family:monospace">${prm}</span>`;
+    $('aud').play();
 
-    const blob = await resp.blob();
-    const audioUrl = URL.createObjectURL(blob);
-    const elapsed = parseInt(resp.headers.get('X-Elapsed-Ms') || (Date.now() - t0));
-    const usedSpeaker = resp.headers.get('X-Speaker') || speaker;
-
-    // Show result
-    const player = document.getElementById('audioPlayer');
-    player.src = audioUrl;
-    document.getElementById('elapsed').textContent = elapsed + 'ms';
-    document.getElementById('usedSpeaker').textContent = usedSpeaker;
-    document.getElementById('charCount').textContent = text.length + '字';
-    document.getElementById('result').className = 'result show';
-
-    player.play();
-
-    // Add to history
-    addHistory({ text, lang, speaker: usedSpeaker, speed, elapsed, audioUrl, time: new Date() });
-
-  } catch (e) {
-    errEl.textContent = '❌ ' + e.message;
-    errEl.className = 'error-msg show';
+    hist.unshift({text,lang:params.language,spk,params:prm,ms,au,time:new Date()});
+    if(hist.length>30) hist.pop();
+    renderHist();
+  } catch(e){
+    $('err').textContent='❌ '+e.message; $('err').className='err show';
   } finally {
-    btn.disabled = false;
-    btn.textContent = '🎙 合成语音';
+    btn.disabled=false; btn.textContent='🎙 合成 (Ctrl+Enter)';
   }
 }
 
-function addHistory(item) {
-  history.unshift(item);
-  if (history.length > 20) history.pop();
-  renderHistory();
+function renderHist(){
+  const el=$('hist');
+  if(!hist.length){ el.innerHTML='<div style="text-align:center;color:var(--tx2);padding:16px;font-size:12px">暂无记录</div>'; return; }
+  el.innerHTML = hist.map(h=>`<div class="hist-item">
+    <div class="t">${esc(h.text)}</div>
+    <div class="i">${h.lang} · ${h.spk} · ${h.ms}ms · ${h.params} · ${h.time.toLocaleTimeString()}</div>
+    <audio src="${h.au}" controls preload="none"></audio>
+  </div>`).join('');
 }
 
-function renderHistory() {
-  const el = document.getElementById('history');
-  if (history.length === 0) {
-    el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;font-size:13px">还没有合成记录</div>';
-    return;
-  }
-  el.innerHTML = history.map((h, i) => `
-    <div class="history-item">
-      <div class="text">${escHtml(h.text)}</div>
-      <div class="info">${h.lang} · ${h.speaker} · ${h.speed}x · ${h.elapsed}ms · ${h.time.toLocaleTimeString()}</div>
-      <audio src="${h.audioUrl}" controls preload="none"></audio>
-    </div>
-  `).join('');
-}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// Keyboard shortcut: Ctrl+Enter to synthesize
-document.getElementById('text').addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    e.preventDefault();
-    synthesize();
-  }
+$('text').addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();synth();}
 });
 
-// Auto-connect on load
-if (document.getElementById('serverUrl').value) {
-  setTimeout(checkServer, 300);
-}
+if($('srv').value) setTimeout(connect,300);
 </script>
 </body>
 </html>
