@@ -22,6 +22,7 @@ h1{font-size:24px;font-weight:800;text-align:center;margin-bottom:4px;background
 label{display:block;font-size:11px;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
 .r2{display:flex;gap:10px;margin-bottom:12px}.r2>div{flex:1}
 .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.r4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 select,input[type=text]{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;color:var(--tx);font-size:13px;outline:none;cursor:pointer}
 select:focus,input[type=text]:focus{border-color:var(--ac)}
 .sg{margin-bottom:12px}
@@ -59,12 +60,16 @@ footer a{color:var(--ac2);text-decoration:none}
 .tag{display:inline-block;padding:2px 6px;font-size:10px;border-radius:3px;margin-right:3px}
 .tag.m{background:rgba(108,92,231,.2);color:var(--ac2)}
 .tag.f{background:rgba(253,121,168,.2);color:#fd79a8}
+.tag.r{background:rgba(0,184,148,.2);color:var(--gn)}
+.dl-row{display:flex;gap:6px;margin-top:8px}
+.dl-btn{padding:5px 10px;font-size:11px;font-weight:600;border:1px solid var(--bd);border-radius:5px;background:var(--s2);color:var(--tx2);cursor:pointer;transition:all .15s;text-decoration:none}
+.dl-btn:hover{border-color:var(--ac);color:var(--tx)}
 </style>
 </head>
 <body>
 <div class="w">
 <h1>🎙 Azure TTS 调试台</h1>
-<p class="sub">Azure Cognitive Services · SSML 精细控制 · 情感风格</p>
+<p class="sub">Azure Cognitive Services · SSML 精细控制 · 情感风格 · 角色扮演</p>
 
 <div class="card">
   <div class="status"><div class="dot" id="dot"></div><span id="stxt">未连接</span></div>
@@ -75,15 +80,19 @@ footer a{color:var(--ac2);text-decoration:none}
 </div>
 
 <div class="card">
-  <!-- Voice -->
-  <div class="r2">
-    <div style="flex:2">
+  <!-- Voice + Style + Role -->
+  <div class="r3">
+    <div>
       <label>Voice 声音</label>
       <select id="voice" onchange="updVoice()"></select>
     </div>
-    <div style="flex:1">
+    <div>
       <label>Style 风格</label>
       <select id="style"></select>
+    </div>
+    <div>
+      <label>Role 角色</label>
+      <select id="role"></select>
     </div>
   </div>
   <div id="vinfo" class="voice-info"></div>
@@ -131,14 +140,23 @@ footer a{color:var(--ac2);text-decoration:none}
     </div>
   </div>
 
-  <div class="reset-row">
-    <button class="sm" onclick="showSSML()" style="background:var(--s3)">📋 预览 SSML</button>
-    <button class="sm" onclick="resetAll()" style="background:var(--s3)">↻ 重置</button>
+  <!-- Output Format -->
+  <div class="r4" style="margin-top:4px">
+    <div>
+      <label>Output Format 输出格式</label>
+      <select id="fmt"></select>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <div class="reset-row" style="margin-bottom:0;width:100%;justify-content:flex-end">
+        <button class="sm" onclick="showSSML()" style="background:var(--s3)">📋 预览 SSML</button>
+        <button class="sm" onclick="resetAll()" style="background:var(--s3)">↻ 重置</button>
+      </div>
+    </div>
   </div>
 
   <div class="ssml-box" id="ssml"></div>
 
-  <label>文本</label>
+  <label style="margin-top:12px">文本</label>
   <textarea id="text" placeholder="输入文本…" maxlength="2000">在二战期间，统计学家亚伯拉罕·瓦尔德面对一个看似简单的问题。军方请他分析返航轰炸机上的弹孔分布，以决定哪些部位需要加装装甲。</textarea>
 
   <button class="btn" id="go" onclick="synth()" disabled>🎙 合成 (Ctrl+Enter)</button>
@@ -146,6 +164,7 @@ footer a{color:var(--ac2);text-decoration:none}
   <div class="result" id="res">
     <audio id="aud" controls></audio>
     <div class="meta" id="meta"></div>
+    <div class="dl-row" id="dlrow"></div>
   </div>
 </div>
 
@@ -158,18 +177,29 @@ footer a{color:var(--ac2);text-decoration:none}
 </div>
 
 <script>
-let VOICES={}, ok=false, hist=[];
+let VOICES={}, FORMATS={}, ok=false, hist=[], lastBlob=null, lastFmtKey='mp3-24k-96';
 const $=id=>document.getElementById(id);
 
+const ROLE_LABELS = {
+  "default":"默认","Girl":"女孩","Boy":"男孩",
+  "YoungAdultFemale":"青年女","YoungAdultMale":"青年男",
+  "OlderAdultFemale":"中年女","OlderAdultMale":"中年男",
+  "SeniorFemale":"老年女","SeniorMale":"老年男",
+  "Narrator":"旁白",
+};
+
 const PRESETS = [
-  {name:"🎭 emo 科普", voice:"zh-CN-YunxiNeural", style:"depressed", deg:1.3, rate:"-10%", pitch:"-2st", vol:"0%"},
-  {name:"📖 沉稳叙述", voice:"zh-CN-YunjianNeural", style:"narration-relaxed", deg:1.0, rate:"-5%", pitch:"-1st", vol:"0%"},
-  {name:"🎬 纪录片", voice:"zh-CN-YunjianNeural", style:"documentary-narration", deg:1.2, rate:"0%", pitch:"0st", vol:"0%"},
-  {name:"😔 忧郁", voice:"zh-CN-YunxiNeural", style:"sad", deg:1.5, rate:"-15%", pitch:"-3st", vol:"0%"},
-  {name:"💬 轻松聊天", voice:"zh-CN-YunxiNeural", style:"chat", deg:1.0, rate:"5%", pitch:"0st", vol:"0%"},
-  {name:"📰 新闻", voice:"zh-CN-YunyangNeural", style:"narration-professional", deg:1.0, rate:"0%", pitch:"0st", vol:"0%"},
-  {name:"🌸 温柔女声", voice:"zh-CN-XiaoxiaoNeural", style:"gentle", deg:1.2, rate:"-5%", pitch:"0st", vol:"0%"},
-  {name:"😢 感伤女声", voice:"zh-CN-XiaomoNeural", style:"depressed", deg:1.4, rate:"-10%", pitch:"-1st", vol:"0%"},
+  {name:"🎭 emo 科普", voice:"zh-CN-YunxiNeural", style:"depressed", role:"default", deg:1.3, rate:"-10%", pitch:"-2st", vol:"0%"},
+  {name:"📖 沉稳叙述", voice:"zh-CN-YunjianNeural", style:"narration-relaxed", role:"default", deg:1.0, rate:"-5%", pitch:"-1st", vol:"0%"},
+  {name:"🎬 纪录片", voice:"zh-CN-YunjianNeural", style:"documentary-narration", role:"default", deg:1.2, rate:"0%", pitch:"0st", vol:"0%"},
+  {name:"🎬 纪录片·旁白", voice:"zh-CN-YunjianNeural", style:"documentary-narration", role:"Narrator", deg:1.2, rate:"-5%", pitch:"-1st", vol:"0%"},
+  {name:"👴 老者讲述", voice:"zh-CN-YunjianNeural", style:"narration-relaxed", role:"SeniorMale", deg:1.0, rate:"-10%", pitch:"-2st", vol:"0%"},
+  {name:"😔 忧郁", voice:"zh-CN-YunxiNeural", style:"sad", role:"default", deg:1.5, rate:"-15%", pitch:"-3st", vol:"0%"},
+  {name:"💬 轻松聊天", voice:"zh-CN-YunxiNeural", style:"chat", role:"default", deg:1.0, rate:"5%", pitch:"0st", vol:"0%"},
+  {name:"📰 新闻", voice:"zh-CN-YunyangNeural", style:"narration-professional", role:"default", deg:1.0, rate:"0%", pitch:"0st", vol:"0%"},
+  {name:"🌸 温柔女声", voice:"zh-CN-XiaoxiaoNeural", style:"gentle", role:"default", deg:1.2, rate:"-5%", pitch:"0st", vol:"0%"},
+  {name:"😢 感伤女声", voice:"zh-CN-XiaomoNeural", style:"depressed", role:"default", deg:1.4, rate:"-10%", pitch:"-1st", vol:"0%"},
+  {name:"👧 少女视角", voice:"zh-CN-XiaomoNeural", style:"gentle", role:"Girl", deg:1.0, rate:"0%", pitch:"+1st", vol:"0%"},
 ];
 
 function renderPresets(){
@@ -178,7 +208,9 @@ function renderPresets(){
 
 function applyPreset(i){
   const p=PRESETS[i];
-  $('voice').value=p.voice; updVoice(); $('style').value=p.style;
+  $('voice').value=p.voice; updVoice();
+  $('style').value=p.style;
+  $('role').value=p.role;
   $('stydeg').value=p.deg; $('stydeg_v').textContent=p.deg.toFixed(2);
   $('rate').value=parseInt(p.rate); $('rate_v').textContent=p.rate;
   $('pitch').value=parseInt(p.pitch); $('pitch_v').textContent=p.pitch;
@@ -192,6 +224,8 @@ function resetAll(){
   $('pitch').value=0; $('pitch_v').textContent='0st';
   $('vol').value=0; $('vol_v').textContent='0%';
   $('style').value='default';
+  $('role').value='default';
+  $('fmt').value='mp3-24k-96';
   document.querySelectorAll('.pre').forEach(el=>el.classList.remove('on'));
 }
 
@@ -202,14 +236,31 @@ function uv(el,suffix){
   document.querySelectorAll('.pre').forEach(el=>el.classList.remove('on'));
 }
 
+function populateFormats(){
+  const sel=$('fmt');
+  sel.innerHTML='';
+  for(const[k,f] of Object.entries(FORMATS)){
+    const o=document.createElement('option');
+    o.value=k; o.textContent=f.label;
+    sel.appendChild(o);
+  }
+  sel.value='mp3-24k-96';
+}
+
 async function connect(){
   const u=$('srv').value.replace(/\/+$/,'');
   $('dot').className='dot ld'; $('stxt').textContent='连接中…';
   try{
-    const r=await fetch(u+'/voices',{signal:AbortSignal.timeout(5000)});
-    VOICES=await r.json();
+    const [vr, fr] = await Promise.all([
+      fetch(u+'/voices',{signal:AbortSignal.timeout(5000)}),
+      fetch(u+'/formats',{signal:AbortSignal.timeout(5000)}).catch(()=>null),
+    ]);
+    VOICES=await vr.json();
+    if(fr && fr.ok) FORMATS=await fr.json();
+    else FORMATS={"mp3-24k-96":{"id":"audio-24khz-96kbitrate-mono-mp3","label":"MP3 24kHz 96kbps","mime":"audio/mpeg"}};
     populateVoices();
-    $('dot').className='dot ok'; $('stxt').textContent='已连接 · '+Object.keys(VOICES).length+' voices';
+    populateFormats();
+    $('dot').className='dot ok'; $('stxt').textContent='已连接 · '+Object.keys(VOICES).length+' voices · '+Object.keys(FORMATS).length+' formats';
     ok=true; $('go').disabled=false;
     localStorage.setItem('aztts_srv',u);
   }catch(e){
@@ -234,13 +285,31 @@ function populateVoices(){
 function updVoice(){
   const id=$('voice').value;
   const v=VOICES[id]; if(!v) return;
+  // Styles
   const st=$('style');
   st.innerHTML='';
   (v.styles||['default']).forEach(s=>{
     const o=document.createElement('option'); o.value=s; o.textContent=s; st.appendChild(o);
   });
+  // Roles
+  const rl=$('role');
+  rl.innerHTML='';
+  const roles=v.roles||['default'];
+  roles.forEach(r=>{
+    const o=document.createElement('option'); o.value=r;
+    o.textContent=ROLE_LABELS[r]||r;
+    rl.appendChild(o);
+  });
+  // Info
   const g=v.gender==='Male'?'<span class="tag m">男声</span>':'<span class="tag f">女声</span>';
-  $('vinfo').innerHTML=`${g} ${v.name} · ${v.age} · ${v.styles.length} styles · <code>${id}</code>`;
+  const rc=roles.filter(r=>r!=='default').length;
+  const roleInfo=rc>0?` · <span class="tag r">${rc} roles</span>`:'';
+  $('vinfo').innerHTML=`${g} ${v.name} · ${v.age} · ${v.styles.length} styles${roleInfo} · <code>${id}</code>`;
+}
+
+function getFmtId(){
+  const k=$('fmt').value;
+  return (FORMATS[k]||{}).id||'audio-24khz-96kbitrate-mono-mp3';
 }
 
 async function showSSML(){
@@ -263,6 +332,8 @@ function getParams(){
     rate:$('rate').value+'%',
     pitch:$('pitch').value+'st',
     volume:$('vol').value+'%',
+    role:$('role').value,
+    output_format:getFmtId(),
   };
 }
 
@@ -280,14 +351,21 @@ async function synth(){
     const r=await fetch(url+'/tts?'+qs,{signal:AbortSignal.timeout(30000)});
     if(!r.ok){const e=await r.json();throw new Error(e.error||r.statusText);}
     const blob=await r.blob();
+    lastBlob=blob;
+    lastFmtKey=$('fmt').value;
     const au=URL.createObjectURL(blob);
     const ms=r.headers.get('X-Elapsed-Ms')||'?';
+    const fmtLabel=(FORMATS[$('fmt').value]||{}).label||$('fmt').value;
+    const roleLabel=$('role').value!=='default'?` · 🎭 ${ROLE_LABELS[$('role').value]||$('role').value}`:'';
 
     $('aud').src=au; $('res').className='result show';
-    $('meta').innerHTML=`<span>⏱ ${ms}ms</span><span>🗣 ${p.voice.split('-').slice(-1)[0]}</span><span>🎭 ${p.style}</span><span>💪 ${parseFloat(p.style_degree).toFixed(2)}</span><span>⚡ ${p.rate}</span><span>🎵 ${p.pitch}</span>`;
+    $('meta').innerHTML=`<span>⏱ ${ms}ms</span><span>🗣 ${p.voice.split('-').slice(-1)[0]}</span><span>🎭 ${p.style}</span><span>💪 ${parseFloat(p.style_degree).toFixed(2)}</span><span>⚡ ${p.rate}</span><span>🎵 ${p.pitch}</span>${roleLabel}<span>📀 ${fmtLabel}</span>`;
+    // Download button
+    const ext=lastFmtKey.startsWith('wav')?'wav':lastFmtKey.startsWith('ogg')?'ogg':'mp3';
+    $('dlrow').innerHTML=`<a class="dl-btn" href="${au}" download="tts-output.${ext}">⬇ 下载音频</a>`;
     $('aud').play();
 
-    hist.unshift({text:p.text,voice:p.voice,style:p.style,deg:p.style_degree,rate:p.rate,pitch:p.pitch,ms,au,time:new Date()});
+    hist.unshift({text:p.text,voice:p.voice,style:p.style,role:p.role,deg:p.style_degree,rate:p.rate,pitch:p.pitch,fmt:fmtLabel,ms,au,time:new Date()});
     if(hist.length>30)hist.pop();
     renderHist();
   }catch(e){
@@ -300,11 +378,14 @@ async function synth(){
 function renderHist(){
   const el=$('hist');
   if(!hist.length){el.innerHTML='<div style="text-align:center;color:var(--tx2);padding:16px;font-size:12px">暂无</div>';return;}
-  el.innerHTML=hist.map(h=>`<div class="hi">
+  el.innerHTML=hist.map(h=>{
+    const roleStr=h.role&&h.role!=='default'?` · role=${h.role}`:'';
+    return `<div class="hi">
     <div class="t">${esc(h.text)}</div>
-    <div class="i">${h.voice} · ${h.style} · deg=${h.deg} · rate=${h.rate} · pitch=${h.pitch} · ${h.ms}ms</div>
+    <div class="i">${h.voice} · ${h.style}${roleStr} · deg=${h.deg} · rate=${h.rate} · pitch=${h.pitch} · ${h.fmt} · ${h.ms}ms</div>
     <audio src="${h.au}" controls preload="none"></audio>
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
