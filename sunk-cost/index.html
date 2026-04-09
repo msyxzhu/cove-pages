@@ -2,350 +2,588 @@
 <html lang="zh-CN" translate="no">
 <head>
 <meta charset="UTF-8">
-<meta name="google" content="notranslate">
-<meta http-equiv="Content-Language" content="zh-CN">
 <meta name="viewport" content="width=1920">
-<title>沉没成本 — 场景01-02</title>
+<meta name="google" content="notranslate">
+<title>沉没成本 — 完整版</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0a1a;font-family:"PingFang SC","Noto Sans SC",system-ui,sans-serif;cursor:none!important}
-.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none}
-#subtitle{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-size:36px;font-weight:500;color:#fff;z-index:200;text-align:center;white-space:nowrap;opacity:0}
-#play-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:999;background:rgba(0,0,0,0.6);cursor:pointer}
-#play-hint span{font-size:48px;color:#fff;border:3px solid #fff;border-radius:50%;width:120px;height:120px;display:flex;align-items:center;justify-content:center}
-.draw-svg path,.draw-svg circle,.draw-svg ellipse,.draw-svg rect,.draw-svg line,.draw-svg polyline{stroke-dasharray:1000;stroke-dashoffset:1000}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0a1a;font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;color:#fff}
+.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;overflow:hidden}
+.draw path,.draw circle,.draw line,.draw polyline{stroke-dasharray:2000;stroke-dashoffset:2000}
+
+/* ═══ SCENE 1: Cinema ═══ */
+#s01{flex-direction:column}
+#screen-glow{position:absolute;top:100px;left:50%;transform:translateX(-50%);width:860px;height:380px;background:linear-gradient(180deg,#1a1a3a,#12122a);border:3px solid #333;border-radius:10px;box-shadow:0 0 80px rgba(80,80,180,0.15);opacity:0;overflow:hidden}
+#screen-content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#screen-content .bar{width:55%;height:8px;background:rgba(255,255,255,0.06);border-radius:4px}
+#screen-content .bar.short{width:30%}
+#screen-boring{font-size:80px;opacity:0;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+#seats-row{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);display:flex;gap:36px}
+.seat{width:90px;opacity:0}.seat svg{width:100%}
+#main-char{position:absolute;bottom:230px;left:50%;transform:translateX(-50%);width:110px;opacity:0}
+#main-char svg{width:100%}
+#price-tag{position:absolute;top:130px;right:360px;font-size:52px;font-weight:900;color:#eab308;opacity:0}
+#price-tag span{font-size:26px;font-weight:500;opacity:0.7}
+.choice{position:absolute;top:200px;padding:18px 36px;border-radius:22px;font-size:38px;font-weight:800;opacity:0;white-space:nowrap}
+#choice-l{left:280px;background:rgba(34,197,94,0.15);border:2px solid #22c55e;color:#22c55e}
+#choice-r{right:280px;background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444}
+
+/* ═══ SCENE 2: Reveal ═══ */
+#s02{flex-direction:row;gap:80px;padding:0 120px}
+.card{width:420px;height:480px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;opacity:0;position:relative}
+.card-icon{font-size:100px;margin-bottom:16px}.card-label{font-size:34px;font-weight:700;margin-bottom:8px}.card-value{font-size:72px;font-weight:900}.card-status{font-size:26px;margin-top:16px;font-weight:700}
+#money-card .card-label{color:#eab308}#money-card .card-status{color:#ef4444}
+#time-card .card-label{color:#3b82f6}#time-card .card-status{color:#22c55e}
+#red-x{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:200px;color:#ef4444;opacity:0;z-index:5}
+#vs-text{font-size:56px;font-weight:900;color:rgba(255,255,255,0.2);opacity:0;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+#s02-label{position:absolute;top:60px;width:100%;text-align:center;font-size:34px;color:rgba(255,255,255,0.35);letter-spacing:4px;opacity:0}
+#reveal-text{position:absolute;bottom:120px;width:100%;text-align:center;font-size:44px;font-weight:700;line-height:1.6;opacity:0}
+#reveal-text .hl{color:#eab308;text-shadow:0 0 20px rgba(234,179,8,0.3)}
+
+/* ═══ SCENE 3: Concorde ═══ */
+#s03{flex-direction:column}
+#concorde{position:absolute;top:200px;left:-400px;width:500px;opacity:0}
+#concorde svg{width:100%}
+#cost-counter{position:absolute;top:550px;left:200px;font-size:64px;font-weight:900;color:#ef4444;opacity:0;font-variant-numeric:tabular-nums}
+#flags{position:absolute;top:200px;right:200px;display:flex;gap:40px;opacity:0}
+.flag{font-size:80px}
+#flag-bubble{position:absolute;top:340px;right:140px;padding:16px 28px;border-radius:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-size:30px;color:rgba(255,255,255,0.5);opacity:0}
+
+/* ═══ SCENE 4: Concept ═══ */
+#s04{flex-direction:column}
+#concept-title{font-size:96px;font-weight:900;letter-spacing:8px;opacity:0}
+#concept-en{font-size:36px;color:rgba(255,255,255,0.3);margin-top:16px;opacity:0}
+#concept-def{font-size:32px;color:rgba(255,255,255,0.5);margin-top:24px;opacity:0}
+
+/* ═══ SCENE 5: Love ═══ */
+#s05{flex-direction:column}
+#couple{position:absolute;top:250px;left:50%;transform:translateX(-50%);display:flex;gap:80px;align-items:center;opacity:0}
+.person-icon{font-size:100px}
+#heart-crack{font-size:120px;position:relative;opacity:0}
+#love-bubble{position:absolute;top:180px;right:300px;padding:16px 28px;border-radius:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-size:30px;opacity:0}
+#timeline-arrow{position:absolute;bottom:250px;left:200px;right:200px;height:60px;opacity:0;display:flex;align-items:center}
+#timeline-arrow .past{flex:1;height:4px;background:rgba(255,255,255,0.15)}
+#timeline-arrow .future{flex:1;height:4px;background:linear-gradient(90deg,#3b82f6,#22c55e)}
+#timeline-arrow .dot{width:16px;height:16px;border-radius:50%;background:#fff;flex-shrink:0}
+#past-label{position:absolute;left:200px;bottom:210px;font-size:24px;color:rgba(255,255,255,0.3);opacity:0}
+#future-label{position:absolute;right:200px;bottom:210px;font-size:24px;color:#22c55e;opacity:0}
+
+/* ═══ SCENE 6: Buffet ═══ */
+#s06{flex-direction:column}
+#buffet-person{position:absolute;top:250px;left:50%;transform:translateX(-50%);opacity:0}
+#buffet-person svg{width:180px}
+#plates{position:absolute;top:500px;left:50%;transform:translateX(-50%);display:flex;gap:20px;opacity:0}
+.plate{font-size:60px}
+#buffet-price{position:absolute;top:180px;left:50%;transform:translateX(-50%);font-size:48px;color:#eab308;opacity:0}
+#stomach-icon{position:absolute;top:450px;right:350px;font-size:80px;opacity:0}
+#buffet-msg{position:absolute;bottom:200px;text-align:center;width:100%;font-size:34px;color:rgba(255,255,255,0.6);opacity:0}
+
+/* ═══ SCENE 7: Stocks ═══ */
+#s07{flex-direction:column}
+#stock-chart{position:absolute;top:150px;left:150px;right:150px;height:500px;opacity:0}
+#stock-chart svg{width:100%;height:100%}
+#stock-person{position:absolute;bottom:250px;right:300px;opacity:0}
+#stock-person svg{width:120px}
+#stock-bubble{position:absolute;bottom:400px;right:200px;padding:16px 28px;border-radius:16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);font-size:30px;color:#f87171;opacity:0}
+#stock-msg{position:absolute;bottom:150px;text-align:center;width:100%;font-size:36px;font-weight:700;color:rgba(255,255,255,0.5);opacity:0}
+
+/* ═══ SCENE 8: Brain Bug ═══ */
+#s08{flex-direction:column}
+#scale{position:absolute;top:200px;left:50%;transform:translateX(-50%);width:600px;opacity:0}
+#scale svg{width:100%}
+#scale-lose{position:absolute;top:380px;left:280px;text-align:center;opacity:0}
+#scale-gain{position:absolute;top:340px;right:280px;text-align:center;opacity:0}
+.scale-emoji{font-size:60px}.scale-amount{font-size:28px;margin-top:8px;font-weight:700}
+#kahneman-label{position:absolute;bottom:320px;font-size:28px;color:rgba(255,255,255,0.4);opacity:0;text-align:center;width:100%}
+#loss-aversion-tag{position:absolute;bottom:260px;font-size:40px;font-weight:800;color:#ef4444;opacity:0;text-align:center;width:100%}
+#brain-icon{position:absolute;top:200px;right:250px;font-size:120px;opacity:0}
+#lock-icon{position:absolute;top:240px;right:290px;font-size:50px;opacity:0}
+#brain-msg{position:absolute;bottom:180px;text-align:center;width:100%;font-size:30px;color:rgba(255,255,255,0.5);opacity:0}
+
+/* ═══ SCENE 9: Solution ═══ */
+#s09{flex-direction:column}
+#reset-btn{position:absolute;top:250px;left:50%;transform:translateX(-50%);width:160px;height:160px;border-radius:50%;background:rgba(59,130,246,0.15);border:3px solid #3b82f6;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:0;cursor:pointer}
+#question-mark{position:absolute;top:250px;left:50%;transform:translateX(-50%);font-size:120px;color:#eab308;opacity:0}
+#zero-q1{position:absolute;top:440px;text-align:center;width:100%;font-size:36px;opacity:0}
+#zero-q2{position:absolute;top:500px;text-align:center;width:100%;font-size:36px;opacity:0}
+#zero-q3{position:absolute;top:560px;text-align:center;width:100%;font-size:40px;font-weight:700;color:#eab308;opacity:0}
+#zero-choices{position:absolute;bottom:200px;display:flex;gap:60px;left:50%;transform:translateX(-50%);opacity:0}
+.zero-choice{padding:18px 48px;border-radius:20px;font-size:34px;font-weight:700}
+#zc-yes{background:rgba(34,197,94,0.15);border:2px solid #22c55e;color:#22c55e}
+#zc-no{background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444}
+
+/* ═══ SCENE 10: Ending ═══ */
+#s10{flex-direction:column}
+#ending-person{position:absolute;top:350px;left:50%;transform:translateX(-50%);opacity:0}
+#ending-person svg{width:120px}
+#road-past{position:absolute;top:500px;left:0;width:50%;height:200px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(255,255,255,0.06));opacity:0}
+#road-future{position:absolute;top:500px;right:0;width:50%;height:200px;background:linear-gradient(90deg,rgba(59,130,246,0.1),rgba(34,197,94,0.15));opacity:0}
+#ending-text{position:absolute;top:200px;text-align:center;width:100%;font-size:52px;font-weight:700;color:#eab308;line-height:1.5;opacity:0}
+#ending-credit{position:absolute;bottom:120px;text-align:center;width:100%;font-size:28px;color:rgba(255,255,255,0.25);opacity:0}
+
+/* ── Subtitles ── */
+#subtitle-bar{position:absolute;bottom:40px;left:80px;right:80px;text-align:center;z-index:200;pointer-events:none}
+#sub-text{display:inline-block;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border-radius:14px;padding:14px 32px;font-size:36px;line-height:1.6;opacity:0;max-width:100%}
+#progress{position:absolute;bottom:0;left:0;height:4px;width:0%;background:linear-gradient(90deg,#3b82f6,#8b5cf6,#f472b6);z-index:300}
+#play-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;text-align:center;pointer-events:none}
+#play-hint .icon{font-size:80px;opacity:0.4;margin-bottom:16px}
+#play-hint .text{font-size:28px;color:rgba(255,255,255,0.35)}
 </style>
 </head>
 <body>
 
-<div id="play-hint"><span>▶</span></div>
-
-<!-- ═══ SUBTITLE ═══ -->
-<div id="subtitle"></div>
-
-<!-- ═══ S01: 电影院困境 ═══ -->
+<!-- ═══ Scene 01: Cinema Hook ═══ -->
 <div class="scene" id="s01">
-  <div style="position:relative;width:100%;height:100%">
-    <!-- 银幕 -->
-    <svg id="s01-screen" class="draw-svg" style="position:absolute;top:60px;left:460px;width:1000px;height:500px;opacity:0" viewBox="0 0 500 250" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="10" y="10" width="480" height="230" rx="4"/>
-      <rect id="s01-screen-inner" x="20" y="20" width="460" height="210" rx="2" fill="rgba(60,80,120,0.15)" stroke="none"/>
-      <!-- film reel lines -->
-      <path d="M80 120 L160 90 M200 140 L300 110 M340 130 L420 100" stroke="#4a5568" stroke-width="1.5" opacity="0.3"/>
-    </svg>
-    <!-- 银幕光晕 -->
-    <div id="s01-glow" style="position:absolute;top:80px;left:510px;width:900px;height:460px;background:radial-gradient(ellipse at center,rgba(100,140,200,0.08) 0%,transparent 70%);opacity:0"></div>
-    <!-- 银幕闪红overlay -->
-    <div id="s01-red-flash" style="position:absolute;top:70px;left:470px;width:980px;height:490px;background:rgba(229,62,62,0.12);border-radius:4px;opacity:0"></div>
-    <!-- 😴 on screen -->
-    <div id="s01-boring" style="position:absolute;top:200px;left:880px;font-size:80px;opacity:0">😴</div>
-
-    <!-- ¥80 价格标签 -->
-    <div id="s01-price" style="position:absolute;top:100px;right:200px;background:#eab308;color:#0a0a1a;font-size:36px;font-weight:900;padding:12px 28px;border-radius:12px;opacity:0;transform:scale(0)">¥80</div>
-
-    <!-- 5个座位 -->
-    <svg id="s01-seats" class="draw-svg" style="position:absolute;bottom:180px;left:360px;width:1200px;height:200px;opacity:1" viewBox="0 0 600 100" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <!-- seat 1 -->
-      <rect x="30" y="20" width="60" height="45" rx="8"/><rect x="35" y="55" width="50" height="15" rx="4"/><line x1="40" y1="70" x2="40" y2="90"/><line x1="80" y1="70" x2="80" y2="90"/>
-      <!-- seat 2 -->
-      <rect x="130" y="20" width="60" height="45" rx="8"/><rect x="135" y="55" width="50" height="15" rx="4"/><line x1="140" y1="70" x2="140" y2="90"/><line x1="180" y1="70" x2="180" y2="90"/>
-      <!-- seat 3 (center) -->
-      <rect x="230" y="20" width="60" height="45" rx="8"/><rect x="235" y="55" width="50" height="15" rx="4"/><line x1="240" y1="70" x2="240" y2="90"/><line x1="280" y1="70" x2="280" y2="90"/>
-      <!-- seat 4 -->
-      <rect x="330" y="20" width="60" height="45" rx="8"/><rect x="335" y="55" width="50" height="15" rx="4"/><line x1="340" y1="70" x2="340" y2="90"/><line x1="380" y1="70" x2="380" y2="90"/>
-      <!-- seat 5 -->
-      <rect x="430" y="20" width="60" height="45" rx="8"/><rect x="435" y="55" width="50" height="15" rx="4"/><line x1="440" y1="70" x2="440" y2="90"/><line x1="480" y1="70" x2="480" y2="90"/>
-    </svg>
-
-    <!-- 小人 (坐在中间座位上) -->
-    <svg id="s01-person" class="draw-svg" style="position:absolute;bottom:310px;left:880px;width:120px;height:160px;opacity:0" viewBox="0 0 100 130" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="20" r="14"/>
-      <!-- happy face (default) -->
-      <g id="s01-face-happy">
-        <circle cx="42" cy="18" r="2" fill="#e2e8f0" stroke="none"/>
-        <circle cx="58" cy="18" r="2" fill="#e2e8f0" stroke="none"/>
-        <path d="M42 26 Q50 34 58 26" stroke-width="2"/>
-      </g>
-      <!-- sad face (hidden) -->
-      <g id="s01-face-sad" opacity="0">
-        <circle cx="42" cy="16" r="2" fill="#e2e8f0" stroke="none"/>
-        <circle cx="58" cy="16" r="2" fill="#e2e8f0" stroke="none"/>
-        <path d="M42 28 Q50 22 58 28" stroke-width="2"/>
-        <!-- sweat drop -->
-        <path d="M66 12 Q68 8 70 12 Q68 16 66 12" stroke-width="1.5"/>
-      </g>
-      <path d="M50 34 L50 75"/>
-      <path d="M50 45 L28 60"/><path d="M50 45 L72 60"/>
-      <path d="M50 75 L34 110"/><path d="M50 75 L66 110"/>
-    </svg>
-
-    <!-- 选项气泡 -->
-    <div id="s01-opt-leave" style="position:absolute;top:340px;left:560px;opacity:0;transform:scale(0)">
-      <div style="background:rgba(34,197,94,0.15);border:2px solid #22c55e;border-radius:16px;padding:16px 28px;font-size:32px;font-weight:700;color:#22c55e">🚪 走</div>
-    </div>
-    <div id="s01-opt-stay" style="position:absolute;top:340px;right:460px;opacity:0;transform:scale(0)">
-      <div style="background:rgba(229,62,62,0.15);border:2px solid #e53e3e;border-radius:16px;padding:16px 28px;font-size:32px;font-weight:700;color:#e53e3e">😤 忍着看完</div>
-    </div>
+  <div id="screen-glow">
+    <div id="screen-content"><div class="bar"></div><div class="bar short"></div><div class="bar"></div><div class="bar short"></div></div>
+    <div id="screen-boring">😴</div>
   </div>
+  <div id="price-tag">¥80 <span>电影票</span></div>
+  <div id="seats-row">
+    <div class="seat draw"><svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><path d="M15 20Q15 10 25 10L75 10Q85 10 85 20L85 55Q85 65 75 65L25 65Q15 65 15 55Z"/><path d="M20 65L20 75M80 65L80 75"/></svg></div>
+    <div class="seat draw"><svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><path d="M15 20Q15 10 25 10L75 10Q85 10 85 20L85 55Q85 65 75 65L25 65Q15 65 15 55Z"/><path d="M20 65L20 75M80 65L80 75"/></svg></div>
+    <div class="seat draw"><svg viewBox="0 0 100 80" fill="none" stroke="#777" stroke-width="2.5" stroke-linecap="round"><path d="M15 20Q15 10 25 10L75 10Q85 10 85 20L85 55Q85 65 75 65L25 65Q15 65 15 55Z"/><path d="M20 65L20 75M80 65L80 75"/></svg></div>
+    <div class="seat draw"><svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><path d="M15 20Q15 10 25 10L75 10Q85 10 85 20L85 55Q85 65 75 65L25 65Q15 65 15 55Z"/><path d="M20 65L20 75M80 65L80 75"/></svg></div>
+    <div class="seat draw"><svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><path d="M15 20Q15 10 25 10L75 10Q85 10 85 20L85 55Q85 65 75 65L25 65Q15 65 15 55Z"/><path d="M20 65L20 75M80 65L80 75"/></svg></div>
+  </div>
+  <div id="main-char" class="draw">
+    <svg viewBox="0 0 100 120" fill="none" stroke="#ddd" stroke-width="2.5" stroke-linecap="round">
+      <circle cx="50" cy="25" r="18"/>
+      <path d="M50 43L50 80"/><path d="M50 55L30 70M50 55L70 70"/><path d="M50 80L35 110M50 80L65 110"/>
+      <g id="face-happy"><circle cx="42" cy="22" r="2.5" fill="#ddd" stroke="none"/><circle cx="58" cy="22" r="2.5" fill="#ddd" stroke="none"/><path d="M40 30Q50 38 60 30" stroke-width="2"/></g>
+      <g id="face-bored" opacity="0"><line x1="38" y1="20" x2="46" y2="23" stroke-width="2"/><line x1="62" y1="20" x2="54" y2="23" stroke-width="2"/><path d="M42 33Q50 28 58 33" stroke-width="2"/></g>
+    </svg>
+  </div>
+  <div class="choice" id="choice-l">🚪 走</div>
+  <div class="choice" id="choice-r">😤 忍着看完</div>
 </div>
 
-<!-- ═══ S02: 揭示矛盾 ═══ -->
+<!-- ═══ Scene 02: Reveal ═══ -->
 <div class="scene" id="s02">
-  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
-    <!-- 左半屏：钞票 -->
-    <div style="position:absolute;left:200px;top:200px;width:500px;text-align:center">
-      <svg id="s02-money" class="draw-svg" style="width:320px;height:200px;margin:0 auto;display:block" viewBox="0 0 200 120" fill="none" stroke="#eab308" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="10" y="10" width="180" height="100" rx="6"/>
-        <rect x="20" y="20" width="160" height="80" rx="3" stroke-width="1.5" stroke-dasharray="6 4"/>
-        <text x="100" y="68" text-anchor="middle" font-size="36" font-weight="900" fill="none" stroke="#eab308" stroke-width="2">¥80</text>
-        <!-- decorative lines -->
-        <path d="M30 35 Q45 30 60 35" stroke-width="1.5" opacity="0.5"/>
-        <path d="M140 85 Q155 80 170 85" stroke-width="1.5" opacity="0.5"/>
-        <circle cx="35" cy="60" r="8" stroke-width="1.5" opacity="0.4"/>
-        <circle cx="165" cy="60" r="8" stroke-width="1.5" opacity="0.4"/>
-      </svg>
-      <!-- ❌ -->
-      <svg id="s02-cross" style="position:absolute;top:20px;left:90px;width:320px;height:200px;opacity:0" viewBox="0 0 200 120" fill="none" stroke="#e53e3e" stroke-width="6" stroke-linecap="round">
-        <line x1="40" y1="25" x2="160" y2="95"/>
-        <line x1="160" y1="25" x2="40" y2="95"/>
-      </svg>
-      <div id="s02-spent-label" style="margin-top:16px;font-size:28px;font-weight:700;color:#e53e3e;opacity:0">已花出 · 不可回收</div>
-    </div>
-
-    <!-- VS 分割线 -->
-    <div id="s02-vs" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0">
-      <div style="width:4px;height:200px;background:linear-gradient(to bottom,transparent,#4a5568,transparent);margin:0 auto"></div>
-      <div style="font-size:42px;font-weight:900;color:#4a5568;text-align:center;margin-top:-120px">VS</div>
-    </div>
-
-    <!-- 右半屏：时钟 -->
-    <div style="position:absolute;right:200px;top:200px;width:500px;text-align:center">
-      <svg id="s02-clock" class="draw-svg" style="width:240px;height:240px;margin:0 auto;display:block" viewBox="0 0 120 120" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="60" cy="60" r="50"/>
-        <!-- ticks -->
-        <line x1="60" y1="14" x2="60" y2="20"/><line x1="60" y1="100" x2="60" y2="106"/>
-        <line x1="14" y1="60" x2="20" y2="60"/><line x1="100" y1="60" x2="106" y2="60"/>
-        <line x1="26" y1="26" x2="30" y2="30"/><line x1="90" y1="26" x2="86" y2="30"/>
-        <line x1="26" y1="94" x2="30" y2="90"/><line x1="90" y1="94" x2="86" y2="90"/>
-        <!-- hour hand -->
-        <line id="s02-hour" x1="60" y1="60" x2="60" y2="32" stroke-width="3"/>
-        <!-- minute hand -->
-        <line id="s02-minute" x1="60" y1="60" x2="80" y2="60" stroke-width="2"/>
-        <circle cx="60" cy="60" r="3" fill="#22c55e" stroke="none"/>
-      </svg>
-      <!-- green border highlight (initially hidden) -->
-      <div id="s02-clock-border" style="position:absolute;top:195px;left:50%;transform:translateX(-50%);width:260px;height:260px;border:4px solid #22c55e;border-radius:50%;opacity:0;box-shadow:0 0 30px rgba(34,197,94,0.3)"></div>
-      <div id="s02-time-label" style="margin-top:20px;font-size:42px;font-weight:900;color:#22c55e;opacity:0;transform:scale(0)">2小时</div>
-      <div id="s02-control-label" style="margin-top:8px;font-size:22px;font-weight:600;color:rgba(34,197,94,0.7);opacity:0">← 你能控制的</div>
-    </div>
-  </div>
+  <div id="s02-label">你真正在选择的是什么？</div>
+  <div class="card" id="money-card"><div class="card-icon">💸</div><div class="card-label">票价</div><div class="card-value">¥80</div><div class="card-status">已花出 · 不可回收</div><div id="red-x">✕</div></div>
+  <div id="vs-text">VS</div>
+  <div class="card" id="time-card"><div class="card-icon">⏰</div><div class="card-label">时间</div><div class="card-value">2小时</div><div class="card-status">你还能选择 ✓</div></div>
+  <div id="reveal-text">你要不要再搭上<br><span class="hl">两小时的生命</span>？</div>
 </div>
 
-<!-- ═══ AUDIO ═══ -->
-<audio id="audio-s01" src="audio/scene01.mp3" preload="auto"></audio>
-<audio id="audio-s02" src="audio/scene02.mp3" preload="auto"></audio>
+<!-- ═══ Scene 03: Concorde ═══ -->
+<div class="scene" id="s03">
+  <div id="concorde" class="draw">
+    <svg viewBox="0 0 500 200" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round">
+      <path d="M10 100 L120 95 L200 70 L350 60 L480 55 L490 58 L480 62 L350 68 L280 100 L200 105 L120 105Z"/>
+      <path d="M350 60 L380 30 L400 30 L380 58"/>
+      <path d="M120 100 L90 130 L140 125 L150 105"/>
+      <path d="M430 56 L450 40 L470 40 L460 57"/>
+    </svg>
+  </div>
+  <div id="cost-counter">£0</div>
+  <div id="flags"><span class="flag">🇬🇧</span><span class="flag">🇫🇷</span></div>
+  <div id="flag-bubble">"已经投了这么多了..."</div>
+</div>
+
+<!-- ═══ Scene 04: Concept Definition ═══ -->
+<div class="scene" id="s04">
+  <div id="concept-title">沉 没 成 本</div>
+  <div id="concept-en">Sunk Cost</div>
+  <div id="concept-def">已经付出、无法收回的成本</div>
+</div>
+
+<!-- ═══ Scene 05: Love ═══ -->
+<div class="scene" id="s05">
+  <div id="couple"><span class="person-icon">👤</span><div id="heart-crack">💔</div><span class="person-icon">👤</span></div>
+  <div id="love-bubble">"都在一起3年了..."</div>
+  <div id="timeline-arrow"><div class="past"></div><div class="dot"></div><div class="future"></div></div>
+  <div id="past-label">过去（已沉没）</div>
+  <div id="future-label">未来（你能选）</div>
+</div>
+
+<!-- ═══ Scene 06: Buffet ═══ -->
+<div class="scene" id="s06">
+  <div id="buffet-price">¥200 <span style="font-size:28px;opacity:0.6">自助餐</span></div>
+  <div id="buffet-person">
+    <svg viewBox="0 0 150 180" fill="none" stroke="#ddd" stroke-width="2.5" stroke-linecap="round">
+      <circle cx="75" cy="30" r="22"/>
+      <circle cx="65" cy="27" r="3" fill="#ddd" stroke="none"/><circle cx="85" cy="27" r="3" fill="#ddd" stroke="none"/>
+      <path d="M63 38Q75 32 87 38" stroke-width="2"/>
+      <path d="M75 52L75 110"/>
+      <ellipse cx="75" cy="90" rx="30" ry="22" stroke="#eab308" stroke-width="2" fill="rgba(234,179,8,0.08)"/>
+      <path d="M75 65L50 85M75 65L100 85"/>
+      <path d="M75 110L55 165M75 110L95 165"/>
+    </svg>
+  </div>
+  <div id="plates"><span class="plate">🍛</span><span class="plate">🍣</span><span class="plate">🍰</span><span class="plate">🥩</span></div>
+  <div id="stomach-icon">🫁</div>
+  <div id="buffet-msg">别让已花的钱，绑架你的胃</div>
+</div>
+
+<!-- ═══ Scene 07: Stocks ═══ -->
+<div class="scene" id="s07">
+  <div id="stock-chart">
+    <svg viewBox="0 0 1600 500" fill="none" stroke-linecap="round">
+      <line x1="50" y1="450" x2="1550" y2="450" stroke="#333" stroke-width="1"/>
+      <polyline points="50,100 200,90 400,120 600,180 800,250 1000,300 1200,370 1400,420 1550,440" stroke="#ef4444" stroke-width="3" fill="none" id="stock-line"/>
+      <text x="50" y="80" fill="rgba(255,255,255,0.2)" font-size="24">▲</text>
+      <text x="1500" y="470" fill="rgba(255,255,255,0.2)" font-size="24">▼</text>
+    </svg>
+  </div>
+  <div id="stock-person">
+    <svg viewBox="0 0 100 120" fill="none" stroke="#ddd" stroke-width="2.5" stroke-linecap="round">
+      <circle cx="50" cy="25" r="18"/>
+      <line x1="38" y1="20" x2="46" y2="25" stroke-width="2"/><line x1="62" y1="20" x2="54" y2="25" stroke-width="2"/>
+      <path d="M40 35Q50 30 60 35" stroke-width="2"/>
+      <path d="M50 43L50 80"/><path d="M50 55L30 70M50 55L70 70"/><path d="M50 80L35 110M50 80L65 110"/>
+    </svg>
+  </div>
+  <div id="stock-bubble">已经亏了30%...</div>
+  <div id="stock-msg">市场不在乎你的成本</div>
+</div>
+
+<!-- ═══ Scene 08: Brain Bug ═══ -->
+<div class="scene" id="s08">
+  <div id="scale">
+    <svg viewBox="0 0 600 300" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round">
+      <line x1="300" y1="30" x2="300" y2="100"/>
+      <circle cx="300" cy="25" r="8" fill="#555"/>
+      <line x1="100" y1="100" x2="500" y2="100" id="scale-beam"/>
+      <path d="M100 100 L70 200 L130 200Z" stroke="#ef4444" fill="rgba(239,68,68,0.08)" id="scale-left-pan"/>
+      <path d="M500 100 L470 200 L530 200Z" stroke="#22c55e" fill="rgba(34,197,94,0.08)" id="scale-right-pan"/>
+    </svg>
+  </div>
+  <div id="scale-lose"><div class="scale-emoji">😢</div><div class="scale-amount" style="color:#ef4444">-¥100</div></div>
+  <div id="scale-gain"><div class="scale-emoji">😊</div><div class="scale-amount" style="color:#22c55e">+¥100</div></div>
+  <div id="kahneman-label">丹尼尔·卡尼曼 Daniel Kahneman</div>
+  <div id="loss-aversion-tag">损失厌恶 Loss Aversion</div>
+  <div id="brain-icon">🧠</div>
+  <div id="lock-icon">🔒</div>
+  <div id="brain-msg">放手 = 承认亏损 → 大脑拒绝接受</div>
+</div>
+
+<!-- ═══ Scene 09: Solution ═══ -->
+<div class="scene" id="s09">
+  <div id="reset-btn">↻</div>
+  <div id="question-mark">❓</div>
+  <div id="zero-q1">如果从零开始...</div>
+  <div id="zero-q2">没有任何投入...</div>
+  <div id="zero-q3">我还会做同样的选择吗？</div>
+  <div id="zero-choices"><div class="zero-choice" id="zc-yes">会 → 继续</div><div class="zero-choice" id="zc-no">不会 → 走</div></div>
+</div>
+
+<!-- ═══ Scene 10: Ending ═══ -->
+<div class="scene" id="s10">
+  <div id="ending-text">过去的，就让它过去吧</div>
+  <div id="ending-person">
+    <svg viewBox="0 0 100 120" fill="none" stroke="#ddd" stroke-width="2.5" stroke-linecap="round">
+      <circle cx="50" cy="25" r="18"/>
+      <circle cx="42" cy="22" r="2.5" fill="#ddd" stroke="none"/><circle cx="58" cy="22" r="2.5" fill="#ddd" stroke="none"/>
+      <path d="M40 30Q50 38 60 30" stroke-width="2"/>
+      <path d="M50 43L50 80"/><path d="M50 55L35 70M50 55L65 65"/><path d="M50 80L35 110M50 80L65 105"/>
+    </svg>
+  </div>
+  <div id="road-past"></div>
+  <div id="road-future"></div>
+  <div id="ending-credit">「沉没成本」— Fogsight 雾象</div>
+</div>
+
+<!-- Subtitle & Progress -->
+<div id="subtitle-bar"><div id="sub-text"></div></div>
+<div id="progress"></div>
+<div id="play-hint"><div class="icon">▶</div><div class="text">按空格键开始播放</div></div>
+
+<!-- Audio: external files -->
+<audio id="a1" preload="auto" src="audio/scene01.mp3"></audio>
+<audio id="a2" preload="auto" src="audio/scene02.mp3"></audio>
+<audio id="a3" preload="auto" src="audio/scene03.mp3"></audio>
+<audio id="a4" preload="auto" src="audio/scene04.mp3"></audio>
+<audio id="a5" preload="auto" src="audio/scene05.mp3"></audio>
+<audio id="a6" preload="auto" src="audio/scene06.mp3"></audio>
+<audio id="a7" preload="auto" src="audio/scene07.mp3"></audio>
+<audio id="a8" preload="auto" src="audio/scene08.mp3"></audio>
+<audio id="a9" preload="auto" src="audio/scene09.mp3"></audio>
+<audio id="a10" preload="auto" src="audio/scene10.mp3"></audio>
 
 <script>
-(function(){
-  const isRender = location.search.includes('render');
-  const hint = document.getElementById('play-hint');
-  if(isRender) hint.style.display='none';
+/* ═══ TIMING — Azure TTS durations ═══ */
+const DUR = [8.35, 13.18, 19.03, 11.69, 14.98, 8.74, 11.06, 19.63, 16.27, 13.66];
+const GAP = 0.8;
+const STARTS = [0, 9.15, 23.13, 42.96, 55.45, 71.23, 80.77, 92.63, 113.06, 130.13];
+const TOTAL = 143.79;
 
-  const sub = document.getElementById('subtitle');
-  const totalDuration = 8.35 + 0.8 + 13.18; // 22.33s
-  window.totalDuration = totalDuration;
+const isRender = location.search.includes('render');
 
-  const M = gsap.timeline({paused:true});
+const master = gsap.timeline({ paused: true });
+const subEl = document.getElementById('sub-text');
 
-  // Helper: draw-on all children of a container
-  function drawOn(el, dur, stagger){
-    const shapes = el.querySelectorAll('path,circle,ellipse,rect,line,polyline');
-    shapes.forEach(s=>{
-      const len = s.getTotalLength ? s.getTotalLength() : 1000;
-      s.style.strokeDasharray = len;
-      s.style.strokeDashoffset = len;
-    });
-    return gsap.to(shapes, {strokeDashoffset:0, duration:dur, stagger:stagger||0.05, ease:'power2.out'});
+function showSub(tl, text, pos) {
+  tl.call(() => { subEl.textContent = text; }, null, pos);
+  tl.to(subEl, {opacity:0, duration:0.1}, pos);
+  tl.to(subEl, {opacity:1, duration:0.2}, pos + 0.1);
+}
+function hideSub(tl, pos) { tl.to(subEl, {opacity:0, duration:0.2}, pos); }
+function drawOn(tl, sel, dur, pos) { tl.to(sel, {strokeDashoffset:0, duration:dur, stagger:0.05, ease:'power2.inOut'}, pos); }
+function fadeIn(tl, sel, dur, pos, props) { tl.fromTo(sel, {opacity:0, ...props}, {opacity:1, ...Object.fromEntries(Object.keys(props||{}).map(k=>[k,0])), duration:dur, ease:'power2.out'}, pos); }
+
+/* ════ S01: Cinema ════ */
+const T1 = STARTS[0];
+master.to('#s01', {opacity:1, duration:0.4}, T1);
+master.to('#screen-glow', {opacity:1, duration:0.6}, T1+0.1);
+master.fromTo('#price-tag', {scale:0,opacity:0}, {scale:1,opacity:1,duration:0.4,ease:'back.out(1.7)'}, T1+0.3);
+drawOn(master, '#seats-row .seat svg path', 0.5, T1+0.5);
+master.to('.seat', {opacity:1,duration:0.3,stagger:0.05}, T1+0.5);
+master.to('#main-char', {opacity:1,duration:0.4}, T1+1.0);
+drawOn(master, '#main-char svg path, #main-char svg circle', 0.4, T1+1.0);
+master.to('#screen-glow', {boxShadow:'0 0 20px rgba(40,40,80,0.05)',duration:0.6}, T1+3.0);
+master.to('#screen-boring', {opacity:0.4,duration:0.5}, T1+3.2);
+master.to('#face-happy', {opacity:0,duration:0.3}, T1+3.5);
+master.to('#face-bored', {opacity:1,duration:0.3}, T1+3.7);
+master.to('#main-char', {y:8,duration:0.4}, T1+3.7);
+master.to('#screen-glow', {borderColor:'#e53e3e',boxShadow:'0 0 50px rgba(229,62,62,0.15)',duration:0.25,yoyo:true,repeat:1}, T1+4.8);
+master.fromTo('#choice-l', {x:-40,opacity:0}, {x:0,opacity:1,duration:0.4,ease:'back.out(1.7)'}, T1+5.8);
+master.fromTo('#choice-r', {x:40,opacity:0}, {x:0,opacity:1,duration:0.4,ease:'back.out(1.7)'}, T1+6.1);
+master.to('#choice-l', {scale:1.08,duration:0.3,yoyo:true,repeat:2,ease:'sine.inOut'}, T1+6.6);
+master.to('#choice-r', {scale:1.08,duration:0.3,yoyo:true,repeat:2,ease:'sine.inOut'}, T1+6.8);
+master.to('#s01', {opacity:0,duration:0.4}, T1+DUR[0]-0.3);
+
+/* ════ S02: Reveal ════ */
+const T2 = STARTS[1];
+master.to('#s02', {opacity:1,duration:0.4}, T2);
+master.fromTo('#s02-label', {opacity:0,y:-20}, {opacity:1,y:0,duration:0.4}, T2+0.2);
+master.fromTo('#money-card', {opacity:0,x:-60}, {opacity:1,x:0,duration:0.5}, T2+1.2);
+master.fromTo('#red-x', {opacity:0,scale:3,rotation:-30}, {opacity:0.8,scale:1,rotation:0,duration:0.4,ease:'back.out(2)'}, T2+5.0);
+master.fromTo('#vs-text', {opacity:0,scale:0.5}, {opacity:1,scale:1,duration:0.3,ease:'back.out(1.5)'}, T2+6.5);
+master.fromTo('#time-card', {opacity:0,x:60}, {opacity:1,x:0,duration:0.5}, T2+7.0);
+master.to('#time-card', {boxShadow:'0 0 40px rgba(74,222,128,0.3)',borderColor:'rgba(74,222,128,0.4)',duration:0.5}, T2+8.5);
+master.to('#money-card', {filter:'grayscale(0.8) brightness(0.5)',duration:0.5}, T2+8.5);
+master.fromTo('#reveal-text', {opacity:0,y:30}, {opacity:1,y:0,duration:0.5}, T2+10.0);
+master.to('#reveal-text .hl', {textShadow:'0 0 30px rgba(234,179,8,0.6)',scale:1.05,yoyo:true,repeat:2,duration:0.4}, T2+11.0);
+master.to('#s02', {opacity:0,duration:0.4}, T2+DUR[1]-0.3);
+
+/* ════ S03: Concorde ════ */
+const T3 = STARTS[2];
+master.to('#s03', {opacity:1,duration:0.4}, T3);
+master.to('#concorde', {opacity:1,left:'150px',duration:1.5,ease:'power2.out'}, T3+0.5);
+drawOn(master, '#concorde svg path', 1.2, T3+0.5);
+master.to('#flags', {opacity:1,duration:0.4}, T3+3.0);
+master.to('#cost-counter', {opacity:1,duration:0.3}, T3+5.0);
+const costs = ['£100M','£300M','£500M','£800M','£1.3B'];
+costs.forEach((c,i) => {
+  master.call(() => { document.getElementById('cost-counter').textContent = c; }, null, T3+5.5+i*2.0);
+});
+master.fromTo('#flag-bubble', {opacity:0,y:10}, {opacity:1,y:0,duration:0.4}, T3+15.0);
+master.to('#cost-counter', {scale:1.1,color:'#ff3333',duration:0.5}, T3+16.5);
+master.to('#s03', {opacity:0,duration:0.4}, T3+DUR[2]-0.3);
+
+/* ════ S04: Concept ════ */
+const T4 = STARTS[3];
+master.to('#s04', {opacity:1,duration:0.4}, T4);
+master.fromTo('#concept-title', {opacity:0,scale:0.8}, {opacity:1,scale:1,duration:0.8,ease:'back.out(1.4)'}, T4+1.0);
+master.to('#concept-en', {opacity:1,duration:0.5}, T4+3.0);
+master.to('#concept-def', {opacity:1,duration:0.5}, T4+5.0);
+master.to('#concept-title', {color:'#ef4444',duration:0.3,yoyo:true,repeat:2}, T4+8.5);
+master.to('#s04', {opacity:0,duration:0.4}, T4+DUR[3]-0.3);
+
+/* ════ S05: Love ════ */
+const T5 = STARTS[4];
+master.to('#s05', {opacity:1,duration:0.4}, T5);
+master.to('#couple', {opacity:1,duration:0.5}, T5+0.5);
+master.to('#heart-crack', {opacity:1,duration:0.5}, T5+1.0);
+master.fromTo('#love-bubble', {opacity:0,y:10}, {opacity:1,y:0,duration:0.4}, T5+6.0);
+master.to('#heart-crack', {scale:1.2,duration:0.3,yoyo:true,repeat:1}, T5+8.0);
+master.to('#timeline-arrow', {opacity:1,duration:0.5}, T5+10.0);
+master.to('#past-label', {opacity:1,duration:0.4}, T5+10.5);
+master.to('#future-label', {opacity:1,duration:0.4}, T5+11.0);
+master.to('#s05', {opacity:0,duration:0.4}, T5+DUR[4]-0.3);
+
+/* ════ S06: Buffet ════ */
+const T6 = STARTS[5];
+master.to('#s06', {opacity:1,duration:0.4}, T6);
+master.to('#buffet-price', {opacity:1,duration:0.4}, T6+0.3);
+master.to('#buffet-person', {opacity:1,duration:0.5}, T6+0.5);
+master.to('#plates', {opacity:1,duration:0.4}, T6+1.0);
+master.fromTo('#stomach-icon', {opacity:0,scale:0.5}, {opacity:1,scale:1,duration:0.4,ease:'back.out(1.5)'}, T6+5.5);
+master.to('#buffet-msg', {opacity:1,duration:0.5}, T6+6.5);
+master.to('#s06', {opacity:0,duration:0.4}, T6+DUR[5]-0.3);
+
+/* ════ S07: Stocks ════ */
+const T7 = STARTS[6];
+master.to('#s07', {opacity:1,duration:0.4}, T7);
+master.to('#stock-chart', {opacity:1,duration:0.5}, T7+0.3);
+master.fromTo('#stock-line', {strokeDasharray:'3000',strokeDashoffset:'3000'}, {strokeDashoffset:0,duration:2,ease:'power2.inOut'}, T7+0.5);
+master.to('#stock-person', {opacity:1,duration:0.4}, T7+2.0);
+master.fromTo('#stock-bubble', {opacity:0,y:10}, {opacity:1,y:0,duration:0.4}, T7+4.0);
+master.to('#stock-msg', {opacity:1,duration:0.5}, T7+8.0);
+master.to('#s07', {opacity:0,duration:0.4}, T7+DUR[6]-0.3);
+
+/* ════ S08: Brain Bug ════ */
+const T8 = STARTS[7];
+master.to('#s08', {opacity:1,duration:0.4}, T8);
+master.to('#scale', {opacity:1,duration:0.6}, T8+0.5);
+master.to('#scale-lose', {opacity:1,duration:0.4}, T8+3.0);
+master.to('#scale-gain', {opacity:1,duration:0.4}, T8+3.5);
+master.to('#scale-beam', {attr:{x1:80,y1:130,x2:520,y2:80},duration:0.8}, T8+5.0);
+master.to('#scale-left-pan', {y:30,duration:0.8}, T8+5.0);
+master.to('#scale-lose', {y:30,duration:0.8}, T8+5.0);
+master.to('#kahneman-label', {opacity:1,duration:0.5}, T8+8.0);
+master.fromTo('#loss-aversion-tag', {opacity:0,scale:0.8}, {opacity:1,scale:1,duration:0.5,ease:'back.out(1.5)'}, T8+12.0);
+master.to('#brain-icon', {opacity:1,duration:0.4}, T8+14.0);
+master.to('#lock-icon', {opacity:1,duration:0.3}, T8+15.0);
+master.to('#brain-msg', {opacity:1,duration:0.5}, T8+16.5);
+master.to('#s08', {opacity:0,duration:0.4}, T8+DUR[7]-0.3);
+
+/* ════ S09: Solution ════ */
+const T9 = STARTS[8];
+master.to('#s09', {opacity:1,duration:0.4}, T9);
+master.fromTo('#reset-btn', {opacity:0,scale:0.5}, {opacity:1,scale:1,duration:0.5,ease:'back.out(1.7)'}, T9+0.5);
+master.to('#reset-btn', {scale:0.9,duration:0.15}, T9+2.0);
+master.to('#reset-btn', {scale:1,boxShadow:'0 0 40px rgba(59,130,246,0.4)',duration:0.3}, T9+2.15);
+master.to('#reset-btn', {opacity:0,duration:0.3}, T9+3.0);
+master.fromTo('#question-mark', {opacity:0,scale:0.5}, {opacity:1,scale:1,duration:0.4,ease:'back.out(1.5)'}, T9+3.5);
+master.to('#zero-q1', {opacity:1,duration:0.4}, T9+5.0);
+master.to('#zero-q2', {opacity:1,duration:0.4}, T9+7.0);
+master.fromTo('#zero-q3', {opacity:0,scale:0.95}, {opacity:1,scale:1,duration:0.5}, T9+8.0);
+master.to('#zero-q3', {textShadow:'0 0 20px rgba(234,179,8,0.4)',duration:0.4,yoyo:true,repeat:2}, T9+9.5);
+master.to('#zero-choices', {opacity:1,duration:0.4}, T9+12.0);
+master.to('#zc-no', {scale:1.1,boxShadow:'0 0 20px rgba(239,68,68,0.3)',duration:0.3,yoyo:true,repeat:2}, T9+13.5);
+master.to('#s09', {opacity:0,duration:0.4}, T9+DUR[8]-0.3);
+
+/* ════ S10: Ending ════ */
+const T10 = STARTS[9];
+master.to('#s10', {opacity:1,duration:0.5}, T10);
+master.to('#road-past', {opacity:1,duration:0.5}, T10+0.5);
+master.to('#road-future', {opacity:1,duration:0.5}, T10+0.8);
+master.to('#ending-person', {opacity:1,duration:0.5}, T10+1.0);
+master.to('#ending-person', {x:100,duration:3,ease:'power1.inOut'}, T10+3.0);
+master.to('#road-past', {opacity:0,duration:2}, T10+4.0);
+master.fromTo('#ending-text', {opacity:0,y:20}, {opacity:1,y:0,duration:0.8}, T10+6.0);
+master.to('#ending-text', {textShadow:'0 0 30px rgba(234,179,8,0.4)',duration:0.5}, T10+8.0);
+master.to('#ending-credit', {opacity:1,duration:0.8}, T10+10.0);
+
+/* ═══ ALL SUBTITLES (matched to new Azure TTS timings) ═══ */
+showSub(master, '你花80块买了张电影票。', 0.1);
+showSub(master, '开场十分钟，你就知道——', 2.5);
+showSub(master, '这是部烂片。', 4.5);
+showSub(master, '你是走，还是坐到散场？', 5.8);
+hideSub(master, 8.35);
+
+showSub(master, '大多数人会说：都花钱了，看完吧。', T2+0.1);
+showSub(master, '但你想过没有？', T2+3.0);
+showSub(master, '票钱已经花了，不管你走还是留，', T2+4.5);
+showSub(master, '这80块都回不来了。', T2+6.5);
+showSub(master, '唯一的区别是——', T2+8.5);
+showSub(master, '你要不要再搭上两小时的生命。', T2+10.0);
+hideSub(master, T2+DUR[1]-0.3);
+
+showSub(master, '这种心理陷阱，不只是你我会中招。', T3+0.1);
+showSub(master, '上世纪60年代，英国和法国联手', T3+3.0);
+showSub(master, '造了一架超音速客机，叫协和号。', T3+5.5);
+showSub(master, '研发花了几十亿，', T3+8.0);
+showSub(master, '但很快他们发现，这飞机根本不赚钱。', T3+9.5);
+showSub(master, '你猜怎么着？', T3+12.0);
+showSub(master, '两国政府的反应是——继续砸钱，', T3+13.0);
+showSub(master, '因为已经投了太多了。', T3+15.5);
+hideSub(master, T3+DUR[2]-0.3);
+
+showSub(master, '这架飞机飞了27年，从来没盈利过，', T4+0.1);
+showSub(master, '2003年才终于退役。', T4+3.5);
+showSub(master, '后来人们给这种现象起了个名字，', T4+5.5);
+showSub(master, '叫协和谬误。', T4+8.0);
+showSub(master, '它的本质就是——沉没成本。', T4+9.0);
+hideSub(master, T4+DUR[3]-0.3);
+
+showSub(master, '沉没成本的陷阱，藏在生活的每个角落。', T5+0.1);
+showSub(master, '谈了三年的恋爱，明明不开心了，', T5+3.5);
+showSub(master, '但你想的是：', T5+6.0);
+showSub(master, '都在一起这么久了，分手太亏了。', T5+7.0);
+showSub(master, '可是，那三年已经过去了，', T5+10.0);
+showSub(master, '它不应该成为你继续不开心的理由。', T5+12.0);
+hideSub(master, T5+DUR[4]-0.3);
+
+showSub(master, '花了200块吃自助餐，已经吃饱了，', T6+0.1);
+showSub(master, '但你硬撑着再吃几盘。', T6+3.0);
+showSub(master, '钱已经花了，', T6+5.0);
+showSub(master, '你唯一能控制的，是你的胃。', T6+6.0);
+hideSub(master, T6+DUR[5]-0.3);
+
+showSub(master, '还有一种更痛的。', T7+0.1);
+showSub(master, '股票跌了30%，你不舍得割肉，', T7+2.0);
+showSub(master, '心想再等等，说不定会涨回来。', T7+4.5);
+showSub(master, '但市场不会因为你亏了多少，', T7+7.0);
+showSub(master, '就决定往哪个方向走。', T7+9.0);
+hideSub(master, T7+DUR[6]-0.3);
+
+showSub(master, '为什么我们总是掉进这个坑？', T8+0.1);
+showSub(master, '心理学家丹尼尔·卡尼曼发现，', T8+2.5);
+showSub(master, '人对损失的感受，', T8+5.0);
+showSub(master, '是对同等收益感受的两倍。', T8+6.5);
+showSub(master, '你丢了100块的痛苦，', T8+8.5);
+showSub(master, '远大于捡到100块的快乐。', T8+10.0);
+showSub(master, '这就是损失厌恶。', T8+12.0);
+showSub(master, '沉没成本之所以难放手，', T8+14.0);
+showSub(master, '就是因为放手意味着承认——我亏了。', T8+16.0);
+hideSub(master, T8+DUR[7]-0.3);
+
+showSub(master, '怎么破？', T9+0.1);
+showSub(master, '有一个很简单的思维工具，叫归零思考法。', T9+1.5);
+showSub(master, '下次你纠结要不要继续的时候，', T9+5.0);
+showSub(master, '问自己一个问题：', T9+7.0);
+showSub(master, '如果我现在是从零开始，没有任何投入，', T9+8.0);
+showSub(master, '我还会做同样的选择吗？', T9+11.0);
+showSub(master, '如果答案是不会，那你就该走了。', T9+13.0);
+hideSub(master, T9+DUR[8]-0.3);
+
+showSub(master, '沉没成本告诉我们一个反直觉的道理：', T10+0.1);
+showSub(master, '有时候，放弃才是最聪明的选择。', T10+3.5);
+showSub(master, '真正的勇敢，不是死撑到底，', T10+6.0);
+showSub(master, '而是敢于对自己说——', T10+8.5);
+showSub(master, '过去的就让它过去吧，', T10+10.0);
+showSub(master, '我要为未来做最好的决定。', T10+11.5);
+hideSub(master, T10+DUR[9]-0.3);
+
+/* ═══ PROGRESS ═══ */
+master.to('#progress', {width:'100%', duration:TOTAL, ease:'none'}, 0);
+
+/* ═══ PLAYBACK ═══ */
+let started = false;
+const audioEls = [
+  document.getElementById('a1'),document.getElementById('a2'),
+  document.getElementById('a3'),document.getElementById('a4'),
+  document.getElementById('a5'),document.getElementById('a6'),
+  document.getElementById('a7'),document.getElementById('a8'),
+  document.getElementById('a9'),document.getElementById('a10')
+];
+
+function startPlayback() {
+  if (started) return;
+  started = true;
+  document.getElementById('play-hint').style.display = 'none';
+  master.play();
+  // Play audio for each scene at its start time
+  audioEls[0].currentTime = 0;
+  audioEls[0].play().catch(()=>{});
+  for (let i = 1; i < audioEls.length; i++) {
+    const delay = STARTS[i] * 1000;
+    ((idx) => {
+      setTimeout(() => { audioEls[idx].currentTime = 0; audioEls[idx].play().catch(()=>{}); }, delay);
+    })(i);
   }
+}
 
-  // Subtitle helper
-  function showSub(text, startTime){
-    M.to(sub, {opacity:0, duration:0.15}, startTime);
-    M.call(()=>{sub.textContent=text}, null, startTime+0.15);
-    M.to(sub, {opacity:1, duration:0.2}, startTime+0.15);
-  }
-  function hideSub(t){
-    M.to(sub, {opacity:0, duration:0.3}, t);
-  }
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); startPlayback(); }
+});
+document.addEventListener('click', startPlayback);
 
-  // ══════════ SCENE 01 ══════════
-  const s01 = document.getElementById('s01');
-  const s01Screen = document.getElementById('s01-screen');
-  const s01Glow = document.getElementById('s01-glow');
-  const s01Price = document.getElementById('s01-price');
-  const s01Seats = document.getElementById('s01-seats');
-  const s01Person = document.getElementById('s01-person');
-  const s01FaceHappy = document.getElementById('s01-face-happy');
-  const s01FaceSad = document.getElementById('s01-face-sad');
-  const s01Boring = document.getElementById('s01-boring');
-  const s01RedFlash = document.getElementById('s01-red-flash');
-  const s01OptLeave = document.getElementById('s01-opt-leave');
-  const s01OptStay = document.getElementById('s01-opt-stay');
-
-  // 0.0-0.5s: scene fade in + screen light up
-  M.to(s01, {opacity:1, duration:0.5}, 0);
-  M.to(s01Screen, {opacity:1, duration:0.5}, 0);
-  M.add(drawOn(s01Screen, 0.6, 0.03), 0);
-  M.to(s01Glow, {opacity:1, duration:0.5}, 0.2);
-
-  // 0.3-1.0s: ¥80 price tag bounce in
-  showSub('你花80块买了张电影票。', 0.3);
-  M.to(s01Price, {opacity:1, scale:1, duration:0.5, ease:'back.out(2)'}, 0.3);
-
-  // 0.6-1.5s: seats draw-on
-  M.add(drawOn(s01Seats, 0.8, 0.02), 0.6);
-
-  // 1.0-1.8s: person draw-on (happy)
-  M.to(s01Person, {opacity:1, duration:0.1}, 1.0);
-  M.add(drawOn(s01Person, 0.7, 0.03), 1.0);
-
-  // 1.8-2.3s: idle breathing on price tag
-  M.to(s01Price, {scale:1.05, duration:0.5, yoyo:true, repeat:1, ease:'sine.inOut'}, 1.8);
-
-  // 2.3-3.5s: subtitle change, screen dims, boring emoji
-  showSub('开场十分钟，你就知道——', 2.3);
-  M.to(s01Glow, {opacity:0.3, duration:0.6}, 2.5);
-  M.to('#s01-screen-inner', {fill:'rgba(20,20,40,0.4)', duration:0.6}, 2.5);
-  M.to(s01Boring, {opacity:1, duration:0.4, ease:'back.out(2)'}, 2.8);
-
-  // 3.2-4.0s: face swap happy→sad, person sinks
-  M.to(s01FaceHappy, {opacity:0, duration:0.3}, 3.2);
-  M.to(s01FaceSad, {opacity:1, duration:0.3}, 3.2);
-  M.to(s01Person, {y:8, duration:0.5, ease:'power2.in'}, 3.3);
-
-  // 3.8-5.0s: subtitle "这是部烂片。", screen flashes red
-  showSub('这是部烂片。', 3.8);
-  M.to(s01RedFlash, {opacity:1, duration:0.2}, 3.9);
-  M.to(s01RedFlash, {opacity:0, duration:0.3}, 4.2);
-  M.to(s01RedFlash, {opacity:0.6, duration:0.2}, 4.5);
-  M.to(s01RedFlash, {opacity:0, duration:0.4}, 4.7);
-
-  // 5.0-5.5s: breathing on person
-  M.to(s01Person, {scale:0.98, duration:0.4, yoyo:true, repeat:1}, 5.0);
-
-  // 5.5-6.5s: subtitle + option bubbles
-  showSub('你是走，还是坐到散场？', 5.5);
-  M.to(s01OptLeave, {opacity:1, scale:1, duration:0.4, ease:'back.out(2)'}, 5.8);
-  M.to(s01OptStay, {opacity:1, scale:1, duration:0.4, ease:'back.out(2)'}, 6.0);
-
-  // 6.8-8.0s: options alternate highlight, price pulsates
-  M.to(s01OptLeave, {scale:1.1, duration:0.3, yoyo:true, repeat:3, ease:'sine.inOut'}, 6.8);
-  M.to(s01OptStay, {scale:1.1, duration:0.3, yoyo:true, repeat:3, ease:'sine.inOut', delay:0.15}, 6.8);
-  M.to(s01Price, {scale:1.08, duration:0.4, yoyo:true, repeat:2, ease:'sine.inOut'}, 6.8);
-
-  // 8.1s: subtitle fade out
-  hideSub(8.1);
-
-  // ══════════ TRANSITION 8.35-9.15s ══════════
-  M.to(s01, {opacity:0, duration:0.6}, 8.35);
-  const s02 = document.getElementById('s02');
-  M.to(s02, {opacity:1, duration:0.6}, 8.55);
-
-  // ══════════ SCENE 02 (starts at 9.15s) ══════════
-  const t2 = 9.15; // scene02 audio start
-  const s02Money = document.getElementById('s02-money');
-  const s02Cross = document.getElementById('s02-cross');
-  const s02SpentLabel = document.getElementById('s02-spent-label');
-  const s02Vs = document.getElementById('s02-vs');
-  const s02Clock = document.getElementById('s02-clock');
-  const s02ClockBorder = document.getElementById('s02-clock-border');
-  const s02TimeLabel = document.getElementById('s02-time-label');
-  const s02ControlLabel = document.getElementById('s02-control-label');
-  const s02Hour = document.getElementById('s02-hour');
-  const s02Minute = document.getElementById('s02-minute');
-
-  // 0.5-1.5s: subtitle
-  showSub('大多数人会说：都花钱了，看完吧。', t2+0.5);
-
-  // 1.5-3.0s: money draw-on
-  M.add(drawOn(s02Money, 1.2, 0.04), t2+1.5);
-
-  // 3.0-4.0s: subtitle
-  showSub('但你想过没有？票钱已经花了，', t2+3.0);
-
-  // 3.5-4.5s: red cross animation
-  M.to(s02Cross, {opacity:1, duration:0.1}, t2+3.5);
-  M.fromTo(s02Cross.querySelectorAll('line'), {strokeDasharray:200, strokeDashoffset:200}, {strokeDashoffset:0, duration:0.5, stagger:0.2, ease:'power2.out'}, t2+3.5);
-  M.to(s02SpentLabel, {opacity:1, duration:0.3}, t2+4.0);
-
-  // 4.5-6.0s: subtitle
-  showSub('不管你走还是留，这80块都回不来了。', t2+4.5);
-
-  // 5.0-5.5s: VS line
-  M.to(s02Vs, {opacity:1, duration:0.4, ease:'power2.out'}, t2+5.0);
-
-  // 5.5-7.0s: clock draw-on + minute hand rotation
-  M.add(drawOn(s02Clock, 1.2, 0.03), t2+5.5);
-  M.to(s02Minute, {attr:{x2:40, y2:40}, duration:3, ease:'linear'}, t2+6.0);
-  M.to(s02Hour, {attr:{x2:48, y2:38}, duration:3, ease:'linear'}, t2+6.0);
-
-  // 7.0-8.5s: subtitle
-  showSub('唯一的区别是——', t2+7.0);
-
-  // 8.0-9.5s: "2小时" bounce in, clock border green highlight
-  M.to(s02TimeLabel, {opacity:1, scale:1, duration:0.5, ease:'back.out(2)'}, t2+8.0);
-  M.to(s02ClockBorder, {opacity:1, duration:0.5}, t2+8.2);
-  M.to(s02ControlLabel, {opacity:1, duration:0.4}, t2+8.5);
-
-  // 9.5-12.0s: subtitle with emphasis
-  M.to(sub, {opacity:0, duration:0.15}, t2+9.5);
-  M.call(()=>{
-    sub.innerHTML='你要不要再搭上<span style="color:#eab308;font-weight:700">两小时</span>的<span style="color:#e53e3e;font-weight:700">生命</span>。';
-  }, null, t2+9.65);
-  M.to(sub, {opacity:1, duration:0.2}, t2+9.65);
-
-  // 10.0-12.0s: breathing effects on both sides
-  M.to(s02SpentLabel, {scale:1.03, duration:0.6, yoyo:true, repeat:2, ease:'sine.inOut'}, t2+10.0);
-  M.to(s02TimeLabel, {scale:1.08, duration:0.6, yoyo:true, repeat:2, ease:'sine.inOut'}, t2+10.0);
-  M.to(s02ClockBorder, {boxShadow:'0 0 50px rgba(34,197,94,0.5)', duration:0.6, yoyo:true, repeat:2, ease:'sine.inOut'}, t2+10.0);
-
-  // 12.0-13.0s: full comparison, breathing
-  M.to(s02Cross, {scale:1.02, duration:0.5, yoyo:true, repeat:1, transformOrigin:'center', ease:'sine.inOut'}, t2+12.0);
-
-  // 13.0s: subtitle fade out
-  hideSub(t2+13.0);
-
-  // ══════════ PLAYBACK CONTROL ══════════
-  const audioS01 = document.getElementById('audio-s01');
-  const audioS02 = document.getElementById('audio-s02');
-
-  function startPlayback(){
-    hint.style.display='none';
-    M.play();
-    audioS01.currentTime=0;
-    audioS01.play().catch(()=>{});
-    setTimeout(()=>{
-      audioS02.currentTime=0;
-      audioS02.play().catch(()=>{});
-    }, t2*1000);
-  }
-
-  if(!isRender){
-    hint.addEventListener('click', startPlayback);
-    document.addEventListener('keydown', function(e){
-      if(e.code==='Space'){e.preventDefault(); startPlayback();}
-    });
-  } else {
-    // render mode: auto-play
-    startPlayback();
-  }
-
-  // seekTo for render mode
-  window.seekTo = function(t){
-    M.seek(t);
+/* ═══ ?render MODE ═══ */
+if (isRender) {
+  document.getElementById('play-hint').style.display = 'none';
+  window.totalDuration = TOTAL;
+  window.seekTo = function(t) {
+    master.seek(t);
   };
-})();
+  // Auto-play in render mode
+  startPlayback();
+}
 </script>
 </body>
 </html>
