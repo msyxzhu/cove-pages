@@ -362,10 +362,14 @@ body {
   </div>
 </div>
 
+<!-- Audio elements -->
+<audio id="audio1" preload="auto" src="audio/scene01.mp3"></audio>
+<audio id="audio2" preload="auto" src="audio/scene02.mp3"></audio>
+
 <!-- Subtitle & Progress -->
 <div id="subtitle-bar"><div class="sub-text"></div></div>
 <div id="progress-bar"></div>
-<div id="play-hint">点击播放 ▶</div>
+<div id="play-hint">按空格键播放 ▶</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
@@ -503,6 +507,10 @@ const narrations = [
   { start: S2_START, end: S2_START + S2_DUR, text: "大多数人会说：都花钱了，看完吧。但你想过没有？票钱已经花了，不管你走还是留，这80块都回不来了。唯一的区别是——你要不要再搭上两小时的生命。" },
 ];
 
+/* ======== AUDIO ELEMENTS ======== */
+const audio1 = document.getElementById('audio1');
+const audio2 = document.getElementById('audio2');
+
 /* ======== PLAYBACK ENGINE ======== */
 const SciMotion = {
   narrations: narrations,
@@ -514,20 +522,33 @@ const SciMotion = {
   _playing: false,
   _startTime: 0,
   _startOffset: 0,
+  _audio1Playing: false,
+  _audio2Playing: false,
 
   init() {
     window.TOTAL_DURATION = this.totalDuration;
     window.seekTo = (s) => this.seekTo(s);
     window.play = () => this.play();
     window.pause = () => this.pause();
-    document.addEventListener('click', () => {
-      if (!this._playing) this.play(); else this.pause();
+
+    // Spacebar to play/pause
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (!this._playing) this.play(); else this.pause();
+      }
     });
-    this.seekTo(0.01);
+
+    // Show first frame (paused)
+    this.master.seek(0);
+    this.master.pause();
+    // Make scene1 visible at frame 0
+    gsap.set('#scene1', { opacity: 1 });
   },
 
   seekTo(seconds) {
     if (this.master) this.master.seek(seconds);
+    this._syncAudio(seconds);
     this._updateSubtitles(seconds);
     this._updateProgress(seconds);
   },
@@ -536,16 +557,42 @@ const SciMotion = {
     this._playing = true;
     this._startTime = performance.now();
     this._startOffset = 0;
+    this._audio1Playing = false;
+    this._audio2Playing = false;
     document.getElementById('play-hint').style.opacity = '0';
+
+    // Start audio 1 immediately
+    audio1.currentTime = 0;
+    audio1.play();
+    this._audio1Playing = true;
+
     this._tick();
   },
 
-  pause() { this._playing = false; },
+  pause() {
+    this._playing = false;
+    audio1.pause();
+    audio2.pause();
+  },
+
+  _syncAudio(time) {
+    // Start audio2 when scene2 begins
+    if (time >= S2_START && !this._audio2Playing) {
+      audio2.currentTime = 0;
+      audio2.play();
+      this._audio2Playing = true;
+    }
+  },
 
   _tick() {
     if (!this._playing) return;
     const elapsed = (performance.now() - this._startTime) / 1000 + this._startOffset;
-    if (elapsed >= this.totalDuration) { this._playing = false; return; }
+    if (elapsed >= this.totalDuration) {
+      this._playing = false;
+      audio1.pause();
+      audio2.pause();
+      return;
+    }
     this.seekTo(elapsed);
     requestAnimationFrame(() => this._tick());
   },

@@ -283,7 +283,6 @@ class Particles {
 function injectSVG(id, svgStr) { document.getElementById(id).innerHTML = svgStr; }
 
 // ════════════ MAIN ════════════
-document.getElementById('playBtn').addEventListener('click', function(){ this.style.display='none'; start(); });
 
 function start() {
   const PS = new Particles(document.getElementById('particles'));
@@ -528,7 +527,20 @@ function start() {
 
   M.eventCallback('onUpdate',()=>{$('#prog').style.width=(M.progress()*100)+'%';});
   M.eventCallback('onComplete',()=>PS.clear());
+
+  // Expose seekTo for frame-by-frame rendering (SciMotion renderer)
+  M.pause();
+  window.seekTo = function(t) { M.seek(t, false); gsap.updateRoot(t); };
+  window.totalDuration = M.duration();
+  window._timeline = M;
 }
-</script>
+
+document.getElementById('playBtn').addEventListener('click', function(){ this.style.display='none'; start(); window._timeline.play(); });
+
+// Auto-init for renderer (headless mode)
+if (new URLSearchParams(window.location.search).has('render')) {
+  document.getElementById('playBtn').style.display='none';
+  start();
+}</script>
 </body>
 </html>
