@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="zh-CN">
+<meta name="viewport" content="width=1920">
+<title>沉没成本 — Scene 01 Hook</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0a1a;font-family:"PingFang SC","Noto Sans SC",system-ui,sans-serif;cursor:none!important}
+
+/* draw-on */
+.draw-svg path,.draw-svg circle,.draw-svg ellipse,.draw-svg rect,.draw-svg line,.draw-svg polyline{
+  stroke-dasharray:2000;stroke-dashoffset:2000
+}
+
+/* Scene container */
+.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none}
+
+/* Scene 01 — 电影院 */
+#s01{background:#0a0a1a;flex-direction:column}
+
+/* 电影银幕 */
+#screen-glow{
+  position:absolute;top:80px;left:50%;transform:translateX(-50%);
+  width:900px;height:420px;
+  background:linear-gradient(180deg,#1a1a3a 0%,#12122a 100%);
+  border:3px solid #333;border-radius:8px;
+  box-shadow:0 0 80px rgba(80,80,180,0.15),0 0 200px rgba(80,80,180,0.05);
+  opacity:0;overflow:hidden
+}
+/* 银幕上的"无聊画面"效果 */
+#screen-content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#screen-content .bar{width:60%;height:8px;background:rgba(255,255,255,0.08);border-radius:4px}
+#screen-content .bar.short{width:35%}
+#screen-boring{font-size:80px;opacity:0.15;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+
+/* 座位排 */
+#seats-row{
+  position:absolute;bottom:140px;left:50%;transform:translateX(-50%);
+  display:flex;gap:40px;align-items:flex-end
+}
+.seat{width:100px;opacity:0}
+.seat svg{width:100%}
+
+/* 主角（中间座位上的小人）*/
+#main-char{
+  position:absolute;bottom:260px;left:50%;transform:translateX(-50%);
+  width:120px;opacity:0
+}
+#main-char svg{width:100%}
+
+/* 表情 */
+#face-happy,#face-bored{position:absolute;opacity:0}
+
+/* 选项气泡 */
+#choice-left,#choice-right{
+  position:absolute;top:240px;
+  padding:16px 32px;border-radius:20px;
+  font-size:36px;font-weight:800;opacity:0;
+  white-space:nowrap;
+}
+#choice-left{
+  left:300px;
+  background:rgba(34,197,94,0.15);border:2px solid #22c55e;color:#22c55e;
+}
+#choice-right{
+  right:300px;
+  background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444;
+}
+
+/* 80元价格标签 */
+#price-tag{
+  position:absolute;top:160px;right:380px;
+  font-size:48px;font-weight:900;color:#eab308;
+  opacity:0;
+}
+#price-tag span{font-size:28px;font-weight:500;opacity:0.7}
+
+/* 字幕条 */
+#subtitle{
+  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+  font-size:36px;font-weight:500;color:#fff;
+  text-align:center;opacity:0;
+  text-shadow:0 2px 8px rgba(0,0,0,0.8);
+  max-width:1400px;line-height:1.6;
+  z-index:200;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ Scene 01: Hook — 电影院困境 ═══ -->
+<div class="scene" id="s01">
+
+  <!-- 电影银幕 -->
+  <div id="screen-glow">
+    <div id="screen-content">
+      <div class="bar"></div>
+      <div class="bar short"></div>
+      <div class="bar"></div>
+      <div class="bar short"></div>
+    </div>
+    <div id="screen-boring">😴</div>
+  </div>
+
+  <!-- 80元价格标签 -->
+  <div id="price-tag">¥80 <span>电影票</span></div>
+
+  <!-- 座位排（5个座位） -->
+  <div id="seats-row">
+    <div class="seat draw-svg" id="seat-1">
+      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
+        <path d="M20 65 L20 75 M80 65 L80 75"/>
+        <path d="M25 30 L75 30"/>
+      </svg>
+    </div>
+    <div class="seat draw-svg" id="seat-2">
+      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
+        <path d="M20 65 L20 75 M80 65 L80 75"/>
+        <path d="M25 30 L75 30"/>
+      </svg>
+    </div>
+    <!-- 中间座位 — 主角坐这 -->
+    <div class="seat draw-svg" id="seat-3">
+      <svg viewBox="0 0 100 80" fill="none" stroke="#777" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
+        <path d="M20 65 L20 75 M80 65 L80 75"/>
+        <path d="M25 30 L75 30"/>
+      </svg>
+    </div>
+    <div class="seat draw-svg" id="seat-4">
+      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
+        <path d="M20 65 L20 75 M80 65 L80 75"/>
+        <path d="M25 30 L75 30"/>
+      </svg>
+    </div>
+    <div class="seat draw-svg" id="seat-5">
+      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
+        <path d="M20 65 L20 75 M80 65 L80 75"/>
+        <path d="M25 30 L75 30"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 主角小人 -->
+  <div id="main-char" class="draw-svg">
+    <svg viewBox="0 0 100 120" fill="none" stroke="#ddd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 身体 -->
+      <circle cx="50" cy="25" r="18" id="head"/>
+      <path d="M50 43 L50 80"/>
+      <path d="M50 55 L30 70 M50 55 L70 70"/>
+      <path d="M50 80 L35 110 M50 80 L65 110"/>
+      <!-- 开心脸 -->
+      <g id="face-happy">
+        <circle cx="42" cy="22" r="2.5" fill="#ddd" stroke="none"/>
+        <circle cx="58" cy="22" r="2.5" fill="#ddd" stroke="none"/>
+        <path d="M40 30 Q50 38 60 30" stroke-width="2"/>
+      </g>
+      <!-- 无聊/痛苦脸 -->
+      <g id="face-bored">
+        <line x1="38" y1="20" x2="46" y2="23" stroke-width="2"/>
+        <line x1="62" y1="20" x2="54" y2="23" stroke-width="2"/>
+        <path d="M42 33 Q50 28 58 33" stroke-width="2"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 选项气泡 -->
+  <div id="choice-left">🚪 走</div>
+  <div id="choice-right">😤 忍着看完</div>
+
+</div>
+
+<!-- 字幕 -->
+<div id="subtitle"></div>
+
+<script>
+const TL = gsap.timeline({paused: true});
+
+// ── Subtitle helper ──
+function showSub(tl, text, pos) {
+  tl.to('#subtitle', {opacity:0, duration:0.15}, pos)
+    .set('#subtitle', {textContent: text}, pos + 0.15)
+    .to('#subtitle', {opacity:1, duration:0.3}, pos + 0.15);
+}
+function hideSub(tl, pos) {
+  tl.to('#subtitle', {opacity:0, duration:0.3}, pos);
+}
+
+// ── Draw-on helper ──
+function drawOn(tl, selector, duration, pos) {
+  tl.to(selector, {strokeDashoffset: 0, duration: duration, stagger: 0.05, ease:'power2.inOut'}, pos);
+}
+
+// ════════════ SCENE 01 — ~9.84s ════════════
+const S1 = 0;
+
+// 0.0s — 场景淡入
+TL.to('#s01', {opacity:1, duration:0.5}, S1);
+
+// 0.2s — 银幕亮起
+TL.to('#screen-glow', {opacity:1, duration:0.8, ease:'power2.out'}, S1+0.2);
+
+// 0.5s — 价格标签弹入 "你花80块买了张电影票"
+TL.fromTo('#price-tag', {scale:0, opacity:0}, {scale:1, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+0.5);
+showSub(TL, '你花80块买了张电影票。', S1+0.3);
+
+// 0.8s — 座位 draw-on
+drawOn(TL, '#seats-row .seat svg path, #seats-row .seat svg rect', 0.6, S1+0.8);
+TL.to('.seat', {opacity:1, duration:0.3, stagger:0.08}, S1+0.8);
+
+// 1.2s — 主角出现（开心脸）
+TL.to('#main-char', {opacity:1, duration:0.4}, S1+1.2);
+drawOn(TL, '#main-char svg path, #main-char svg circle', 0.5, S1+1.2);
+TL.to('#face-happy', {opacity:1, duration:0.3}, S1+1.4);
+
+// 2.8s — "开场十分钟，你就知道——"
+showSub(TL, '开场十分钟，你就知道——', S1+2.8);
+
+// 3.2s — 银幕变暗/无聊，表情从开心变痛苦
+TL.to('#screen-glow', {boxShadow:'0 0 40px rgba(40,40,80,0.1)', duration:1}, S1+3.2);
+TL.to('#screen-boring', {opacity:0.4, duration:0.8, ease:'power2.in'}, S1+3.5);
+// 脸切换
+TL.to('#face-happy', {opacity:0, duration:0.3}, S1+3.8);
+TL.to('#face-bored', {opacity:1, duration:0.3}, S1+4.0);
+// 小人微微下沉（沮丧）
+TL.to('#main-char', {y:8, duration:0.6, ease:'power2.inOut'}, S1+4.0);
+
+// 4.5s — "这是部烂片。"
+showSub(TL, '这是部烂片。', S1+4.5);
+
+// 5.5s — 银幕闪一下红光
+TL.to('#screen-glow', {borderColor:'#e53e3e', boxShadow:'0 0 60px rgba(229,62,62,0.2)', duration:0.3, yoyo:true, repeat:1}, S1+5.5);
+
+// 6.5s — "你是走，还是坐到散场？"
+showSub(TL, '你是走，还是坐到散场？', S1+6.5);
+
+// 7.0s — 选项气泡弹入
+TL.fromTo('#choice-left', {x:-40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+7.0);
+TL.fromTo('#choice-right', {x:40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+7.3);
+
+// 8.0s — 选项气泡交替高亮
+TL.to('#choice-left', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+8.0);
+TL.to('#choice-right', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+8.6);
+
+// 9.5s — 价格标签脉动
+TL.to('#price-tag', {scale:1.15, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+9.0);
+
+// 9.84s — 场景结束，不淡出（等 Scene 02）
+hideSub(TL, S1+9.5);
+
+// ── Playback ──
+const params = new URLSearchParams(window.location.search);
+if (params.has('render')) {
+  // Render mode: expose seekTo for Puppeteer
+  window.seekTo = t => { TL.seek(t); };
+  window.totalDuration = TL.duration();
+} else {
+  // Auto-play
+  TL.play();
+}
+</script>
+</body>
+</html>
