@@ -231,7 +231,7 @@ function drawOn(tl, selector, duration, pos) {
   tl.to(selector, {strokeDashoffset: 0, duration: duration, stagger: 0.05, ease:'power2.inOut'}, pos);
 }
 
-// ════════════ SCENE 01 — ~9.84s ════════════
+// ════════════ SCENE 01 — ~8.35s ════════════
 const S1 = 0;
 
 // 0.0s — 场景淡入
@@ -240,53 +240,53 @@ TL.to('#s01', {opacity:1, duration:0.5}, S1);
 // 0.2s — 银幕亮起
 TL.to('#screen-glow', {opacity:1, duration:0.8, ease:'power2.out'}, S1+0.2);
 
-// 0.5s — 价格标签弹入 "你花80块买了张电影票"
-TL.fromTo('#price-tag', {scale:0, opacity:0}, {scale:1, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+0.5);
-showSub(TL, '你花80块买了张电影票。', S1+0.3);
+// 0.3s — 价格标签弹入 "你花80块买了张电影票"
+TL.fromTo('#price-tag', {scale:0, opacity:0}, {scale:1, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+0.3);
+showSub(TL, '你花80块买了张电影票。', S1+0.2);
 
-// 0.8s — 座位 draw-on
-drawOn(TL, '#seats-row .seat svg path, #seats-row .seat svg rect', 0.6, S1+0.8);
-TL.to('.seat', {opacity:1, duration:0.3, stagger:0.08}, S1+0.8);
+// 0.6s — 座位 draw-on
+drawOn(TL, '#seats-row .seat svg path, #seats-row .seat svg rect', 0.5, S1+0.6);
+TL.to('.seat', {opacity:1, duration:0.3, stagger:0.06}, S1+0.6);
 
-// 1.2s — 主角出现（开心脸）
-TL.to('#main-char', {opacity:1, duration:0.4}, S1+1.2);
-drawOn(TL, '#main-char svg path, #main-char svg circle', 0.5, S1+1.2);
-TL.to('#face-happy', {opacity:1, duration:0.3}, S1+1.4);
+// 1.0s — 主角出现（开心脸）
+TL.to('#main-char', {opacity:1, duration:0.4}, S1+1.0);
+drawOn(TL, '#main-char svg path, #main-char svg circle', 0.5, S1+1.0);
+TL.to('#face-happy', {opacity:1, duration:0.3}, S1+1.2);
 
-// 2.8s — "开场十分钟，你就知道——"
-showSub(TL, '开场十分钟，你就知道——', S1+2.8);
+// 2.3s — "开场十分钟，你就知道——"
+showSub(TL, '开场十分钟，你就知道——', S1+2.3);
 
-// 3.2s — 银幕变暗/无聊，表情从开心变痛苦
-TL.to('#screen-glow', {boxShadow:'0 0 40px rgba(40,40,80,0.1)', duration:1}, S1+3.2);
-TL.to('#screen-boring', {opacity:0.4, duration:0.8, ease:'power2.in'}, S1+3.5);
+// 2.8s — 银幕变暗/无聊，表情从开心变痛苦
+TL.to('#screen-glow', {boxShadow:'0 0 40px rgba(40,40,80,0.1)', duration:0.8}, S1+2.8);
+TL.to('#screen-boring', {opacity:0.4, duration:0.6, ease:'power2.in'}, S1+3.0);
 // 脸切换
-TL.to('#face-happy', {opacity:0, duration:0.3}, S1+3.8);
-TL.to('#face-bored', {opacity:1, duration:0.3}, S1+4.0);
+TL.to('#face-happy', {opacity:0, duration:0.3}, S1+3.2);
+TL.to('#face-bored', {opacity:1, duration:0.3}, S1+3.4);
 // 小人微微下沉（沮丧）
-TL.to('#main-char', {y:8, duration:0.6, ease:'power2.inOut'}, S1+4.0);
+TL.to('#main-char', {y:8, duration:0.5, ease:'power2.inOut'}, S1+3.4);
 
-// 4.5s — "这是部烂片。"
-showSub(TL, '这是部烂片。', S1+4.5);
+// 3.8s — "这是部烂片。"
+showSub(TL, '这是部烂片。', S1+3.8);
 
-// 5.5s — 银幕闪一下红光
-TL.to('#screen-glow', {borderColor:'#e53e3e', boxShadow:'0 0 60px rgba(229,62,62,0.2)', duration:0.3, yoyo:true, repeat:1}, S1+5.5);
+// 4.5s — 银幕闪一下红光
+TL.to('#screen-glow', {borderColor:'#e53e3e', boxShadow:'0 0 60px rgba(229,62,62,0.2)', duration:0.3, yoyo:true, repeat:1}, S1+4.5);
 
-// 6.5s — "你是走，还是坐到散场？"
-showSub(TL, '你是走，还是坐到散场？', S1+6.5);
+// 5.5s — "你是走，还是坐到散场？"
+showSub(TL, '你是走，还是坐到散场？', S1+5.5);
 
-// 7.0s — 选项气泡弹入
-TL.fromTo('#choice-left', {x:-40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+7.0);
-TL.fromTo('#choice-right', {x:40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+7.3);
+// 5.8s — 选项气泡弹入
+TL.fromTo('#choice-left', {x:-40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+5.8);
+TL.fromTo('#choice-right', {x:40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+6.1);
 
-// 8.0s — 选项气泡交替高亮
-TL.to('#choice-left', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+8.0);
-TL.to('#choice-right', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+8.6);
+// 6.8s — 选项气泡交替高亮
+TL.to('#choice-left', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+6.8);
+TL.to('#choice-right', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+7.2);
 
-// 9.5s — 价格标签脉动
-TL.to('#price-tag', {scale:1.15, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+9.0);
+// 7.8s — 价格标签脉动
+TL.to('#price-tag', {scale:1.15, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+7.8);
 
-// 9.84s — 场景结束，不淡出（等 Scene 02）
-hideSub(TL, S1+9.5);
+// 8.35s — 场景结束
+hideSub(TL, S1+8.1);
 
 // ── Playback: 空格/点击 触发 ──
 const audio = document.getElementById('audio-s01');
