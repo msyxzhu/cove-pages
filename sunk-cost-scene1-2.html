@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<meta name="google" content="notranslate">
+<title>沉没成本 — Scene 1 & 2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --w: 1080px; --h: 1920px; }
+body {
+  width: var(--w); height: var(--h); overflow: hidden;
+  background: #0a0a1a;
+  font-family: "PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  color: white; position: relative; -webkit-font-smoothing: antialiased;
+}
+
+.scene {
+  position: absolute; top: 0; left: 0;
+  width: var(--w); height: var(--h);
+  opacity: 0; overflow: hidden; z-index: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+/* ========== SCENE 1: Cinema ========== */
+#scene1 {
+  background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%);
+}
+
+/* Cinema screen */
+.cinema-screen {
+  width: 700px; height: 400px;
+  background: #222;
+  border: 4px solid #444;
+  border-radius: 12px;
+  position: absolute; top: 340px; left: 190px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.cinema-screen .static-lines {
+  font-size: 120px; color: #555; opacity: 0.4;
+}
+
+/* Seat row */
+.seat-row {
+  position: absolute; top: 800px; left: 0; width: 100%;
+  display: flex; justify-content: center; gap: 20px;
+}
+.seat {
+  width: 100px; height: 80px;
+  background: #8B0000;
+  border-radius: 12px 12px 4px 4px;
+  position: relative;
+}
+.seat::after {
+  content: '';
+  position: absolute; bottom: -20px; left: 10px; right: 10px;
+  height: 20px; background: #5a0000; border-radius: 0 0 8px 8px;
+}
+
+/* Stick figure - the viewer */
+.stick-figure {
+  position: absolute; top: 700px; left: 490px;
+  width: 100px; height: 160px;
+  z-index: 10;
+}
+
+/* Face expressions */
+.face {
+  position: absolute; top: 0; left: 25px;
+  width: 50px; height: 50px;
+  border: 3px solid white; border-radius: 50%;
+  background: transparent;
+}
+.face-happy .mouth {
+  position: absolute; bottom: 12px; left: 12px;
+  width: 24px; height: 12px;
+  border: 3px solid white; border-top: none;
+  border-radius: 0 0 24px 24px;
+}
+.face-happy .eye {
+  position: absolute; top: 14px; width: 5px; height: 5px;
+  background: white; border-radius: 50%;
+}
+.face-happy .eye.left { left: 13px; }
+.face-happy .eye.right { right: 13px; }
+
+.face-pain .mouth {
+  position: absolute; bottom: 10px; left: 12px;
+  width: 24px; height: 12px;
+  border: 3px solid white; border-bottom: none;
+  border-radius: 24px 24px 0 0;
+}
+.face-pain .eye {
+  position: absolute; top: 12px; font-size: 14px; color: white;
+}
+.face-pain .eye.left { left: 10px; }
+.face-pain .eye.right { right: 10px; }
+
+/* Body */
+.stick-body {
+  position: absolute; top: 50px; left: 48px;
+  width: 3px; height: 60px; background: white;
+}
+.stick-arm {
+  position: absolute; top: 65px; width: 40px; height: 3px; background: white;
+}
+.stick-arm.left { left: 10px; transform: rotate(20deg); }
+.stick-arm.right { right: 10px; transform: rotate(-20deg); }
+
+/* Choice bubbles */
+.choice-bubble {
+  position: absolute;
+  padding: 20px 32px;
+  border-radius: 24px;
+  font-size: 36px; font-weight: 700;
+  opacity: 0;
+  white-space: nowrap;
+}
+.choice-leave {
+  top: 560px; left: 120px;
+  background: rgba(34,197,94,0.2);
+  border: 2px solid rgba(34,197,94,0.5);
+  color: #4ade80;
+}
+.choice-stay {
+  top: 560px; right: 120px;
+  background: rgba(239,68,68,0.2);
+  border: 2px solid rgba(239,68,68,0.5);
+  color: #f87171;
+}
+
+/* Ticket */
+.ticket {
+  position: absolute; top: 280px; left: 340px;
+  width: 400px; height: 180px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 900; color: #7c2d12;
+  opacity: 0;
+  box-shadow: 0 8px 30px rgba(251,191,36,0.3);
+}
+.ticket::before {
+  content: '🎬';
+  font-size: 60px;
+  margin-right: 16px;
+}
+.ticket-dashed {
+  position: absolute; left: 130px; top: 0; bottom: 0;
+  border-left: 3px dashed #92400e;
+}
+
+/* ========== SCENE 2: Sunk Cost Reveal ========== */
+#scene2 {
+  background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%);
+}
+
+.money-card {
+  position: absolute; top: 380px; left: 80px;
+  width: 400px; height: 500px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 28px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px;
+  opacity: 0;
+}
+.money-icon {
+  font-size: 120px; margin-bottom: 20px;
+}
+.money-label {
+  font-size: 36px; font-weight: 700; color: #fbbf24;
+  margin-bottom: 12px;
+}
+.money-amount {
+  font-size: 72px; font-weight: 900; color: white;
+}
+.money-status {
+  font-size: 28px; color: #ef4444; margin-top: 16px;
+  font-weight: 700;
+}
+.red-x {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 200px; color: #ef4444;
+  opacity: 0; z-index: 5;
+}
+
+.time-card {
+  position: absolute; top: 380px; right: 80px;
+  width: 400px; height: 500px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 28px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px;
+  opacity: 0;
+}
+.time-icon {
+  font-size: 120px; margin-bottom: 20px;
+}
+.time-label {
+  font-size: 36px; font-weight: 700; color: #3b82f6;
+  margin-bottom: 12px;
+}
+.time-amount {
+  font-size: 72px; font-weight: 900; color: white;
+}
+.time-status {
+  font-size: 28px; color: #4ade80; margin-top: 16px;
+  font-weight: 700;
+}
+
+/* Clock hand animation */
+.clock-hand {
+  position: absolute; top: 415px; right: 222px;
+  width: 4px; height: 50px;
+  background: white;
+  transform-origin: bottom center;
+  opacity: 0;
+}
+
+/* VS divider */
+.vs-text {
+  position: absolute; top: 580px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 48px; font-weight: 900;
+  color: rgba(255,255,255,0.3);
+  opacity: 0;
+}
+
+/* Highlight text at bottom */
+.reveal-text {
+  position: absolute; bottom: 300px; left: 60px; right: 60px;
+  text-align: center; font-size: 40px; font-weight: 700;
+  line-height: 1.6; opacity: 0;
+}
+.reveal-text .highlight {
+  color: #fbbf24;
+}
+
+/* Top label */
+.scene-label {
+  position: absolute; top: 200px; left: 0; right: 0;
+  text-align: center; font-size: 32px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 4px;
+  opacity: 0;
+}
+
+/* ========== SUBTITLE BAR ========== */
+#subtitle-bar {
+  position: absolute; bottom: 160px; left: 60px; right: 60px;
+  text-align: center; z-index: 100; pointer-events: none;
+}
+#subtitle-bar .sub-text {
+  display: inline-block;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 18px 36px;
+  font-size: 38px; line-height: 1.6;
+  color: white; opacity: 0;
+  max-width: 100%; letter-spacing: 1px;
+}
+
+/* ========== PROGRESS BAR ========== */
+#progress-bar {
+  position: absolute; bottom: 0; left: 0;
+  height: 4px; width: 0%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #f472b6);
+  z-index: 200;
+}
+
+#play-hint {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 36px; color: rgba(255,255,255,0.3);
+  z-index: 500; pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SCENE 1: Cinema Hook ===== -->
+<div class="scene" id="scene1">
+  <!-- Ticket (appears first) -->
+  <div class="ticket" id="ticket">
+    <div class="ticket-dashed"></div>
+    ¥80 电影票
+  </div>
+
+  <!-- Cinema screen -->
+  <div class="cinema-screen" id="cinema-screen">
+    <div class="static-lines">📺</div>
+  </div>
+
+  <!-- Seat row -->
+  <div class="seat-row">
+    <div class="seat"></div>
+    <div class="seat"></div>
+    <div class="seat"></div>
+    <div class="seat"></div>
+    <div class="seat"></div>
+  </div>
+
+  <!-- Stick figure (viewer) -->
+  <div class="stick-figure" id="viewer">
+    <!-- Happy face (initial) -->
+    <div class="face face-happy" id="face-happy">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="mouth"></div>
+    </div>
+    <!-- Pain face (hidden) -->
+    <div class="face face-pain" id="face-pain" style="opacity:0">
+      <div class="eye left">✕</div>
+      <div class="eye right">✕</div>
+      <div class="mouth"></div>
+    </div>
+    <div class="stick-body"></div>
+    <div class="stick-arm left"></div>
+    <div class="stick-arm right"></div>
+  </div>
+
+  <!-- Choice bubbles -->
+  <div class="choice-bubble choice-leave" id="choice-leave">🚪 走</div>
+  <div class="choice-bubble choice-stay" id="choice-stay">😤 忍着看完</div>
+</div>
+
+<!-- ===== SCENE 2: Sunk Cost Reveal ===== -->
+<div class="scene" id="scene2">
+  <div class="scene-label" id="s2-label">你真正在选择的是什么？</div>
+
+  <!-- Money card (LEFT) -->
+  <div class="money-card" id="money-card">
+    <div class="money-icon">💸</div>
+    <div class="money-label">票价</div>
+    <div class="money-amount">¥80</div>
+    <div class="money-status">已花出 · 不可回收</div>
+    <div class="red-x" id="red-x">✕</div>
+  </div>
+
+  <!-- VS -->
+  <div class="vs-text" id="vs-text">VS</div>
+
+  <!-- Time card (RIGHT) -->
+  <div class="time-card" id="time-card">
+    <div class="time-icon">⏰</div>
+    <div class="time-label">时间</div>
+    <div class="time-amount">2小时</div>
+    <div class="time-status">你还能选择 ✓</div>
+  </div>
+
+  <!-- Bottom reveal -->
+  <div class="reveal-text" id="reveal-text">
+    你要不要再搭上<br><span class="highlight">两小时的生命</span>？
+  </div>
+</div>
+
+<!-- Subtitle & Progress -->
+<div id="subtitle-bar"><div class="sub-text"></div></div>
+<div id="progress-bar"></div>
+<div id="play-hint">点击播放 ▶</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* ======== TIMING (from TTS) ======== */
+const S1_DUR = 8.40;   // Scene 1 duration
+const S2_DUR = 13.22;  // Scene 2 duration
+const GAP = 0.5;       // gap between scenes
+const TOTAL = S1_DUR + GAP + S2_DUR; // 22.12s
+
+const S2_START = S1_DUR + GAP;
+
+/* ======== MASTER TIMELINE ======== */
+const master = gsap.timeline({ paused: true });
+
+/* -------- SCENE 1 -------- */
+const s1 = gsap.timeline();
+
+// Fade in scene
+s1.to('#scene1', { opacity: 1, duration: 0.3 }, 0);
+
+// Ticket flies in and out
+s1.fromTo('#ticket',
+  { opacity: 0, y: -100, scale: 0.8 },
+  { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'back.out(1.7)' }, 0.2);
+s1.to('#ticket',
+  { opacity: 0, y: -50, duration: 0.4, ease: 'power2.in' }, 2.0);
+
+// Cinema screen appears
+s1.fromTo('#cinema-screen',
+  { opacity: 0, scale: 0.9 },
+  { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' }, 2.5);
+
+// Seat row slides up
+s1.fromTo('.seat-row',
+  { opacity: 0, y: 40 },
+  { opacity: 1, y: 0, duration: 0.4 }, 3.0);
+
+// Viewer appears (happy)
+s1.fromTo('#viewer',
+  { opacity: 0, y: 20 },
+  { opacity: 1, y: 0, duration: 0.4 }, 3.2);
+
+// Expression change: happy → pain (at ~4.5s - "烂片")
+s1.to('#face-happy', { opacity: 0, duration: 0.3 }, 4.5);
+s1.to('#face-pain', { opacity: 1, duration: 0.3 }, 4.5);
+
+// Head drops slightly (disappointment)
+s1.to('#viewer', { y: -5, rotation: -5, duration: 0.4, ease: 'power2.out' }, 4.8);
+
+// Choice bubbles pop in (at ~6s - "走，还是坐到散场")
+s1.fromTo('#choice-leave',
+  { opacity: 0, scale: 0.5, y: 20 },
+  { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(1.7)' }, 6.0);
+s1.fromTo('#choice-stay',
+  { opacity: 0, scale: 0.5, y: 20 },
+  { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(1.7)' }, 6.3);
+
+// Gentle pulse on bubbles
+s1.to('#choice-leave', {
+  scale: 1.05, yoyo: true, repeat: 2, duration: 0.4, ease: 'sine.inOut'
+}, 7.0);
+s1.to('#choice-stay', {
+  scale: 1.05, yoyo: true, repeat: 2, duration: 0.4, ease: 'sine.inOut'
+}, 7.2);
+
+// Fade out scene 1
+s1.to('#scene1', { opacity: 0, duration: 0.4 }, S1_DUR - 0.4);
+
+master.add(s1, 0);
+
+/* -------- SCENE 2 -------- */
+const s2 = gsap.timeline();
+
+// Fade in
+s2.to('#scene2', { opacity: 1, duration: 0.4 }, 0);
+
+// Label fades in
+s2.fromTo('#s2-label',
+  { opacity: 0, y: -20 },
+  { opacity: 1, y: 0, duration: 0.5 }, 0.3);
+
+// Money card slides in from left
+s2.fromTo('#money-card',
+  { opacity: 0, x: -80 },
+  { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' }, 1.0);
+
+// Red X stamps on money (at ~3s - "回不来了")
+s2.fromTo('#red-x',
+  { opacity: 0, scale: 3, rotation: -30 },
+  { opacity: 0.8, scale: 1, rotation: 0, duration: 0.4, ease: 'back.out(2)' }, 4.5);
+
+// VS appears
+s2.fromTo('#vs-text',
+  { opacity: 0, scale: 0.5 },
+  { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.5)' }, 5.5);
+
+// Time card slides in from right
+s2.fromTo('#time-card',
+  { opacity: 0, x: 80 },
+  { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' }, 6.0);
+
+// Time card gets a green glow to emphasize "you can still choose"
+s2.to('#time-card', {
+  boxShadow: '0 0 40px rgba(74,222,128,0.3)',
+  borderColor: 'rgba(74,222,128,0.4)',
+  duration: 0.6
+}, 7.5);
+
+// Money card dims
+s2.to('#money-card', {
+  filter: 'grayscale(0.8) brightness(0.5)',
+  duration: 0.6
+}, 7.5);
+
+// Reveal text at bottom (at ~10s - "搭上两小时的生命")
+s2.fromTo('#reveal-text',
+  { opacity: 0, y: 30 },
+  { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 10.0);
+
+// Highlight pulses
+s2.to('#reveal-text .highlight', {
+  textShadow: '0 0 20px rgba(251,191,36,0.5)',
+  scale: 1.05,
+  yoyo: true, repeat: 2, duration: 0.5
+}, 11.0);
+
+// Fade out
+s2.to('#scene2', { opacity: 0, duration: 0.4 }, S2_DUR - 0.4);
+
+master.add(s2, S2_START);
+
+/* ======== NARRATIONS (for subtitles) ======== */
+const narrations = [
+  { start: 0, end: S1_DUR, text: "你花80块买了张电影票。开场十分钟，你就知道——这是部烂片。你是走，还是坐到散场？" },
+  { start: S2_START, end: S2_START + S2_DUR, text: "大多数人会说：都花钱了，看完吧。但你想过没有？票钱已经花了，不管你走还是留，这80块都回不来了。唯一的区别是——你要不要再搭上两小时的生命。" },
+];
+
+/* ======== PLAYBACK ENGINE ======== */
+const SciMotion = {
+  narrations: narrations,
+  master: master,
+  totalDuration: TOTAL,
+  _lastSubIdx: -1,
+  _subEl: document.querySelector('#subtitle-bar .sub-text'),
+  _progressEl: document.getElementById('progress-bar'),
+  _playing: false,
+  _startTime: 0,
+  _startOffset: 0,
+
+  init() {
+    window.TOTAL_DURATION = this.totalDuration;
+    window.seekTo = (s) => this.seekTo(s);
+    window.play = () => this.play();
+    window.pause = () => this.pause();
+    document.addEventListener('click', () => {
+      if (!this._playing) this.play(); else this.pause();
+    });
+    this.seekTo(0.01);
+  },
+
+  seekTo(seconds) {
+    if (this.master) this.master.seek(seconds);
+    this._updateSubtitles(seconds);
+    this._updateProgress(seconds);
+  },
+
+  play() {
+    this._playing = true;
+    this._startTime = performance.now();
+    this._startOffset = 0;
+    document.getElementById('play-hint').style.opacity = '0';
+    this._tick();
+  },
+
+  pause() { this._playing = false; },
+
+  _tick() {
+    if (!this._playing) return;
+    const elapsed = (performance.now() - this._startTime) / 1000 + this._startOffset;
+    if (elapsed >= this.totalDuration) { this._playing = false; return; }
+    this.seekTo(elapsed);
+    requestAnimationFrame(() => this._tick());
+  },
+
+  _updateSubtitles(time) {
+    let found = -1;
+    for (let i = 0; i < this.narrations.length; i++) {
+      const n = this.narrations[i];
+      if (time >= n.start && time <= n.end) { found = i; break; }
+    }
+    if (found !== this._lastSubIdx) {
+      this._lastSubIdx = found;
+      if (found >= 0) {
+        this._subEl.textContent = this.narrations[found].text;
+        gsap.fromTo(this._subEl, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25 });
+      } else {
+        gsap.to(this._subEl, { opacity: 0, duration: 0.15 });
+      }
+    }
+  },
+
+  _updateProgress(time) {
+    const pct = Math.min(100, (time / this.totalDuration) * 100);
+    this._progressEl.style.width = pct + '%';
+  }
+};
+
+SciMotion.init();
+</script>
+</body>
+</html>
