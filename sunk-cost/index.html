@@ -5,318 +5,347 @@
 <meta name="google" content="notranslate">
 <meta http-equiv="Content-Language" content="zh-CN">
 <meta name="viewport" content="width=1920">
-<title>沉没成本 — Scene 01 Hook</title>
+<title>沉没成本 — 场景01-02</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0a1a;font-family:"PingFang SC","Noto Sans SC",system-ui,sans-serif}
-
-/* 开始提示 */
-#start-hint{
-  position:absolute;inset:0;z-index:999;
-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;
-  background:rgba(10,10,26,0.85);cursor:pointer
-}
-#start-hint .hint-text{font-size:32px;color:rgba(255,255,255,0.6);font-weight:500;letter-spacing:2px}
-#start-hint .hint-key{font-size:20px;color:rgba(255,255,255,0.3);margin-top:8px}
-#start-hint .play-icon{
-  width:80px;height:80px;border:3px solid rgba(255,255,255,0.4);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;margin-bottom:8px;
-  animation:pulse-ring 2s ease-in-out infinite
-}
-#start-hint .play-icon::after{
-  content:'';width:0;height:0;
-  border-left:28px solid rgba(255,255,255,0.6);border-top:18px solid transparent;border-bottom:18px solid transparent;
-  margin-left:6px
-}
-@keyframes pulse-ring{0%,100%{transform:scale(1);opacity:0.8}50%{transform:scale(1.08);opacity:1}}
-
-/* draw-on */
-.draw-svg path,.draw-svg circle,.draw-svg ellipse,.draw-svg rect,.draw-svg line,.draw-svg polyline{
-  stroke-dasharray:2000;stroke-dashoffset:2000
-}
-
-/* Scene container */
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0a0a1a;font-family:"PingFang SC","Noto Sans SC",system-ui,sans-serif;cursor:none!important}
 .scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none}
-
-/* Scene 01 — 电影院 */
-#s01{background:#0a0a1a;flex-direction:column}
-
-/* 电影银幕 */
-#screen-glow{
-  position:absolute;top:80px;left:50%;transform:translateX(-50%);
-  width:900px;height:420px;
-  background:linear-gradient(180deg,#1a1a3a 0%,#12122a 100%);
-  border:3px solid #333;border-radius:8px;
-  box-shadow:0 0 80px rgba(80,80,180,0.15),0 0 200px rgba(80,80,180,0.05);
-  opacity:0;overflow:hidden
-}
-/* 银幕上的"无聊画面"效果 */
-#screen-content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
-#screen-content .bar{width:60%;height:8px;background:rgba(255,255,255,0.08);border-radius:4px}
-#screen-content .bar.short{width:35%}
-#screen-boring{font-size:80px;opacity:0.15;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
-
-/* 座位排 */
-#seats-row{
-  position:absolute;bottom:140px;left:50%;transform:translateX(-50%);
-  display:flex;gap:40px;align-items:flex-end
-}
-.seat{width:100px;opacity:0}
-.seat svg{width:100%}
-
-/* 主角（中间座位上的小人）*/
-#main-char{
-  position:absolute;bottom:260px;left:50%;transform:translateX(-50%);
-  width:120px;opacity:0
-}
-#main-char svg{width:100%}
-
-/* 表情 */
-#face-happy,#face-bored{position:absolute;opacity:0}
-
-/* 选项气泡 */
-#choice-left,#choice-right{
-  position:absolute;top:240px;
-  padding:16px 32px;border-radius:20px;
-  font-size:36px;font-weight:800;opacity:0;
-  white-space:nowrap;
-}
-#choice-left{
-  left:300px;
-  background:rgba(34,197,94,0.15);border:2px solid #22c55e;color:#22c55e;
-}
-#choice-right{
-  right:300px;
-  background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444;
-}
-
-/* 80元价格标签 */
-#price-tag{
-  position:absolute;top:160px;right:380px;
-  font-size:48px;font-weight:900;color:#eab308;
-  opacity:0;
-}
-#price-tag span{font-size:28px;font-weight:500;opacity:0.7}
-
-/* 字幕条 */
-#subtitle{
-  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
-  font-size:36px;font-weight:500;color:#fff;
-  text-align:center;opacity:0;
-  text-shadow:0 2px 8px rgba(0,0,0,0.8);
-  max-width:1400px;line-height:1.6;
-  z-index:200;
-}
+#subtitle{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-size:36px;font-weight:500;color:#fff;z-index:200;text-align:center;white-space:nowrap;opacity:0}
+#play-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:999;background:rgba(0,0,0,0.6);cursor:pointer}
+#play-hint span{font-size:48px;color:#fff;border:3px solid #fff;border-radius:50%;width:120px;height:120px;display:flex;align-items:center;justify-content:center}
+.draw-svg path,.draw-svg circle,.draw-svg ellipse,.draw-svg rect,.draw-svg line,.draw-svg polyline{stroke-dasharray:1000;stroke-dashoffset:1000}
 </style>
 </head>
 <body>
 
-<!-- ═══ Scene 01: Hook — 电影院困境 ═══ -->
-<div class="scene" id="s01">
+<div id="play-hint"><span>▶</span></div>
 
-  <!-- 电影银幕 -->
-  <div id="screen-glow">
-    <div id="screen-content">
-      <div class="bar"></div>
-      <div class="bar short"></div>
-      <div class="bar"></div>
-      <div class="bar short"></div>
-    </div>
-    <div id="screen-boring">😴</div>
-  </div>
-
-  <!-- 80元价格标签 -->
-  <div id="price-tag">¥80 <span>电影票</span></div>
-
-  <!-- 座位排（5个座位） -->
-  <div id="seats-row">
-    <div class="seat draw-svg" id="seat-1">
-      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
-        <path d="M20 65 L20 75 M80 65 L80 75"/>
-        <path d="M25 30 L75 30"/>
-      </svg>
-    </div>
-    <div class="seat draw-svg" id="seat-2">
-      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
-        <path d="M20 65 L20 75 M80 65 L80 75"/>
-        <path d="M25 30 L75 30"/>
-      </svg>
-    </div>
-    <!-- 中间座位 — 主角坐这 -->
-    <div class="seat draw-svg" id="seat-3">
-      <svg viewBox="0 0 100 80" fill="none" stroke="#777" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
-        <path d="M20 65 L20 75 M80 65 L80 75"/>
-        <path d="M25 30 L75 30"/>
-      </svg>
-    </div>
-    <div class="seat draw-svg" id="seat-4">
-      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
-        <path d="M20 65 L20 75 M80 65 L80 75"/>
-        <path d="M25 30 L75 30"/>
-      </svg>
-    </div>
-    <div class="seat draw-svg" id="seat-5">
-      <svg viewBox="0 0 100 80" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 20 Q15 10 25 10 L75 10 Q85 10 85 20 L85 55 Q85 65 75 65 L25 65 Q15 65 15 55Z"/>
-        <path d="M20 65 L20 75 M80 65 L80 75"/>
-        <path d="M25 30 L75 30"/>
-      </svg>
-    </div>
-  </div>
-
-  <!-- 主角小人 -->
-  <div id="main-char" class="draw-svg">
-    <svg viewBox="0 0 100 120" fill="none" stroke="#ddd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <!-- 身体 -->
-      <circle cx="50" cy="25" r="18" id="head"/>
-      <path d="M50 43 L50 80"/>
-      <path d="M50 55 L30 70 M50 55 L70 70"/>
-      <path d="M50 80 L35 110 M50 80 L65 110"/>
-      <!-- 开心脸 -->
-      <g id="face-happy">
-        <circle cx="42" cy="22" r="2.5" fill="#ddd" stroke="none"/>
-        <circle cx="58" cy="22" r="2.5" fill="#ddd" stroke="none"/>
-        <path d="M40 30 Q50 38 60 30" stroke-width="2"/>
-      </g>
-      <!-- 无聊/痛苦脸 -->
-      <g id="face-bored">
-        <line x1="38" y1="20" x2="46" y2="23" stroke-width="2"/>
-        <line x1="62" y1="20" x2="54" y2="23" stroke-width="2"/>
-        <path d="M42 33 Q50 28 58 33" stroke-width="2"/>
-      </g>
-    </svg>
-  </div>
-
-  <!-- 选项气泡 -->
-  <div id="choice-left">🚪 走</div>
-  <div id="choice-right">😤 忍着看完</div>
-
-</div>
-
-<!-- 字幕 -->
+<!-- ═══ SUBTITLE ═══ -->
 <div id="subtitle"></div>
 
-<!-- 开始提示遮罩 -->
-<div id="start-hint">
-  <div class="play-icon"></div>
-  <div class="hint-text">按空格键开始播放</div>
-  <div class="hint-key">SPACE / 点击</div>
+<!-- ═══ S01: 电影院困境 ═══ -->
+<div class="scene" id="s01">
+  <div style="position:relative;width:100%;height:100%">
+    <!-- 银幕 -->
+    <svg id="s01-screen" class="draw-svg" style="position:absolute;top:60px;left:460px;width:1000px;height:500px;opacity:0" viewBox="0 0 500 250" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="10" y="10" width="480" height="230" rx="4"/>
+      <rect id="s01-screen-inner" x="20" y="20" width="460" height="210" rx="2" fill="rgba(60,80,120,0.15)" stroke="none"/>
+      <!-- film reel lines -->
+      <path d="M80 120 L160 90 M200 140 L300 110 M340 130 L420 100" stroke="#4a5568" stroke-width="1.5" opacity="0.3"/>
+    </svg>
+    <!-- 银幕光晕 -->
+    <div id="s01-glow" style="position:absolute;top:80px;left:510px;width:900px;height:460px;background:radial-gradient(ellipse at center,rgba(100,140,200,0.08) 0%,transparent 70%);opacity:0"></div>
+    <!-- 银幕闪红overlay -->
+    <div id="s01-red-flash" style="position:absolute;top:70px;left:470px;width:980px;height:490px;background:rgba(229,62,62,0.12);border-radius:4px;opacity:0"></div>
+    <!-- 😴 on screen -->
+    <div id="s01-boring" style="position:absolute;top:200px;left:880px;font-size:80px;opacity:0">😴</div>
+
+    <!-- ¥80 价格标签 -->
+    <div id="s01-price" style="position:absolute;top:100px;right:200px;background:#eab308;color:#0a0a1a;font-size:36px;font-weight:900;padding:12px 28px;border-radius:12px;opacity:0;transform:scale(0)">¥80</div>
+
+    <!-- 5个座位 -->
+    <svg id="s01-seats" class="draw-svg" style="position:absolute;bottom:180px;left:360px;width:1200px;height:200px;opacity:1" viewBox="0 0 600 100" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- seat 1 -->
+      <rect x="30" y="20" width="60" height="45" rx="8"/><rect x="35" y="55" width="50" height="15" rx="4"/><line x1="40" y1="70" x2="40" y2="90"/><line x1="80" y1="70" x2="80" y2="90"/>
+      <!-- seat 2 -->
+      <rect x="130" y="20" width="60" height="45" rx="8"/><rect x="135" y="55" width="50" height="15" rx="4"/><line x1="140" y1="70" x2="140" y2="90"/><line x1="180" y1="70" x2="180" y2="90"/>
+      <!-- seat 3 (center) -->
+      <rect x="230" y="20" width="60" height="45" rx="8"/><rect x="235" y="55" width="50" height="15" rx="4"/><line x1="240" y1="70" x2="240" y2="90"/><line x1="280" y1="70" x2="280" y2="90"/>
+      <!-- seat 4 -->
+      <rect x="330" y="20" width="60" height="45" rx="8"/><rect x="335" y="55" width="50" height="15" rx="4"/><line x1="340" y1="70" x2="340" y2="90"/><line x1="380" y1="70" x2="380" y2="90"/>
+      <!-- seat 5 -->
+      <rect x="430" y="20" width="60" height="45" rx="8"/><rect x="435" y="55" width="50" height="15" rx="4"/><line x1="440" y1="70" x2="440" y2="90"/><line x1="480" y1="70" x2="480" y2="90"/>
+    </svg>
+
+    <!-- 小人 (坐在中间座位上) -->
+    <svg id="s01-person" class="draw-svg" style="position:absolute;bottom:310px;left:880px;width:120px;height:160px;opacity:0" viewBox="0 0 100 130" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="50" cy="20" r="14"/>
+      <!-- happy face (default) -->
+      <g id="s01-face-happy">
+        <circle cx="42" cy="18" r="2" fill="#e2e8f0" stroke="none"/>
+        <circle cx="58" cy="18" r="2" fill="#e2e8f0" stroke="none"/>
+        <path d="M42 26 Q50 34 58 26" stroke-width="2"/>
+      </g>
+      <!-- sad face (hidden) -->
+      <g id="s01-face-sad" opacity="0">
+        <circle cx="42" cy="16" r="2" fill="#e2e8f0" stroke="none"/>
+        <circle cx="58" cy="16" r="2" fill="#e2e8f0" stroke="none"/>
+        <path d="M42 28 Q50 22 58 28" stroke-width="2"/>
+        <!-- sweat drop -->
+        <path d="M66 12 Q68 8 70 12 Q68 16 66 12" stroke-width="1.5"/>
+      </g>
+      <path d="M50 34 L50 75"/>
+      <path d="M50 45 L28 60"/><path d="M50 45 L72 60"/>
+      <path d="M50 75 L34 110"/><path d="M50 75 L66 110"/>
+    </svg>
+
+    <!-- 选项气泡 -->
+    <div id="s01-opt-leave" style="position:absolute;top:340px;left:560px;opacity:0;transform:scale(0)">
+      <div style="background:rgba(34,197,94,0.15);border:2px solid #22c55e;border-radius:16px;padding:16px 28px;font-size:32px;font-weight:700;color:#22c55e">🚪 走</div>
+    </div>
+    <div id="s01-opt-stay" style="position:absolute;top:340px;right:460px;opacity:0;transform:scale(0)">
+      <div style="background:rgba(229,62,62,0.15);border:2px solid #e53e3e;border-radius:16px;padding:16px 28px;font-size:32px;font-weight:700;color:#e53e3e">😤 忍着看完</div>
+    </div>
+  </div>
 </div>
 
-<!-- 音频 -->
-<audio id="audio-s01" preload="auto">
-  <source src="audio/scene01.mp3" type="audio/mpeg">
-</audio>
+<!-- ═══ S02: 揭示矛盾 ═══ -->
+<div class="scene" id="s02">
+  <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+    <!-- 左半屏：钞票 -->
+    <div style="position:absolute;left:200px;top:200px;width:500px;text-align:center">
+      <svg id="s02-money" class="draw-svg" style="width:320px;height:200px;margin:0 auto;display:block" viewBox="0 0 200 120" fill="none" stroke="#eab308" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="10" y="10" width="180" height="100" rx="6"/>
+        <rect x="20" y="20" width="160" height="80" rx="3" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="100" y="68" text-anchor="middle" font-size="36" font-weight="900" fill="none" stroke="#eab308" stroke-width="2">¥80</text>
+        <!-- decorative lines -->
+        <path d="M30 35 Q45 30 60 35" stroke-width="1.5" opacity="0.5"/>
+        <path d="M140 85 Q155 80 170 85" stroke-width="1.5" opacity="0.5"/>
+        <circle cx="35" cy="60" r="8" stroke-width="1.5" opacity="0.4"/>
+        <circle cx="165" cy="60" r="8" stroke-width="1.5" opacity="0.4"/>
+      </svg>
+      <!-- ❌ -->
+      <svg id="s02-cross" style="position:absolute;top:20px;left:90px;width:320px;height:200px;opacity:0" viewBox="0 0 200 120" fill="none" stroke="#e53e3e" stroke-width="6" stroke-linecap="round">
+        <line x1="40" y1="25" x2="160" y2="95"/>
+        <line x1="160" y1="25" x2="40" y2="95"/>
+      </svg>
+      <div id="s02-spent-label" style="margin-top:16px;font-size:28px;font-weight:700;color:#e53e3e;opacity:0">已花出 · 不可回收</div>
+    </div>
+
+    <!-- VS 分割线 -->
+    <div id="s02-vs" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0">
+      <div style="width:4px;height:200px;background:linear-gradient(to bottom,transparent,#4a5568,transparent);margin:0 auto"></div>
+      <div style="font-size:42px;font-weight:900;color:#4a5568;text-align:center;margin-top:-120px">VS</div>
+    </div>
+
+    <!-- 右半屏：时钟 -->
+    <div style="position:absolute;right:200px;top:200px;width:500px;text-align:center">
+      <svg id="s02-clock" class="draw-svg" style="width:240px;height:240px;margin:0 auto;display:block" viewBox="0 0 120 120" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="60" cy="60" r="50"/>
+        <!-- ticks -->
+        <line x1="60" y1="14" x2="60" y2="20"/><line x1="60" y1="100" x2="60" y2="106"/>
+        <line x1="14" y1="60" x2="20" y2="60"/><line x1="100" y1="60" x2="106" y2="60"/>
+        <line x1="26" y1="26" x2="30" y2="30"/><line x1="90" y1="26" x2="86" y2="30"/>
+        <line x1="26" y1="94" x2="30" y2="90"/><line x1="90" y1="94" x2="86" y2="90"/>
+        <!-- hour hand -->
+        <line id="s02-hour" x1="60" y1="60" x2="60" y2="32" stroke-width="3"/>
+        <!-- minute hand -->
+        <line id="s02-minute" x1="60" y1="60" x2="80" y2="60" stroke-width="2"/>
+        <circle cx="60" cy="60" r="3" fill="#22c55e" stroke="none"/>
+      </svg>
+      <!-- green border highlight (initially hidden) -->
+      <div id="s02-clock-border" style="position:absolute;top:195px;left:50%;transform:translateX(-50%);width:260px;height:260px;border:4px solid #22c55e;border-radius:50%;opacity:0;box-shadow:0 0 30px rgba(34,197,94,0.3)"></div>
+      <div id="s02-time-label" style="margin-top:20px;font-size:42px;font-weight:900;color:#22c55e;opacity:0;transform:scale(0)">2小时</div>
+      <div id="s02-control-label" style="margin-top:8px;font-size:22px;font-weight:600;color:rgba(34,197,94,0.7);opacity:0">← 你能控制的</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AUDIO ═══ -->
+<audio id="audio-s01" src="audio/scene01.mp3" preload="auto"></audio>
+<audio id="audio-s02" src="audio/scene02.mp3" preload="auto"></audio>
 
 <script>
-const TL = gsap.timeline({paused: true});
+(function(){
+  const isRender = location.search.includes('render');
+  const hint = document.getElementById('play-hint');
+  if(isRender) hint.style.display='none';
 
-// ── Subtitle helper ──
-function showSub(tl, text, pos) {
-  tl.to('#subtitle', {opacity:0, duration:0.15}, pos)
-    .set('#subtitle', {textContent: text}, pos + 0.15)
-    .to('#subtitle', {opacity:1, duration:0.3}, pos + 0.15);
-}
-function hideSub(tl, pos) {
-  tl.to('#subtitle', {opacity:0, duration:0.3}, pos);
-}
+  const sub = document.getElementById('subtitle');
+  const totalDuration = 8.35 + 0.8 + 13.18; // 22.33s
+  window.totalDuration = totalDuration;
 
-// ── Draw-on helper ──
-function drawOn(tl, selector, duration, pos) {
-  tl.to(selector, {strokeDashoffset: 0, duration: duration, stagger: 0.05, ease:'power2.inOut'}, pos);
-}
+  const M = gsap.timeline({paused:true});
 
-// ════════════ SCENE 01 — ~8.35s ════════════
-const S1 = 0;
+  // Helper: draw-on all children of a container
+  function drawOn(el, dur, stagger){
+    const shapes = el.querySelectorAll('path,circle,ellipse,rect,line,polyline');
+    shapes.forEach(s=>{
+      const len = s.getTotalLength ? s.getTotalLength() : 1000;
+      s.style.strokeDasharray = len;
+      s.style.strokeDashoffset = len;
+    });
+    return gsap.to(shapes, {strokeDashoffset:0, duration:dur, stagger:stagger||0.05, ease:'power2.out'});
+  }
 
-// 0.0s — 场景淡入
-TL.to('#s01', {opacity:1, duration:0.5}, S1);
+  // Subtitle helper
+  function showSub(text, startTime){
+    M.to(sub, {opacity:0, duration:0.15}, startTime);
+    M.call(()=>{sub.textContent=text}, null, startTime+0.15);
+    M.to(sub, {opacity:1, duration:0.2}, startTime+0.15);
+  }
+  function hideSub(t){
+    M.to(sub, {opacity:0, duration:0.3}, t);
+  }
 
-// 0.2s — 银幕亮起
-TL.to('#screen-glow', {opacity:1, duration:0.8, ease:'power2.out'}, S1+0.2);
+  // ══════════ SCENE 01 ══════════
+  const s01 = document.getElementById('s01');
+  const s01Screen = document.getElementById('s01-screen');
+  const s01Glow = document.getElementById('s01-glow');
+  const s01Price = document.getElementById('s01-price');
+  const s01Seats = document.getElementById('s01-seats');
+  const s01Person = document.getElementById('s01-person');
+  const s01FaceHappy = document.getElementById('s01-face-happy');
+  const s01FaceSad = document.getElementById('s01-face-sad');
+  const s01Boring = document.getElementById('s01-boring');
+  const s01RedFlash = document.getElementById('s01-red-flash');
+  const s01OptLeave = document.getElementById('s01-opt-leave');
+  const s01OptStay = document.getElementById('s01-opt-stay');
 
-// 0.3s — 价格标签弹入 "你花80块买了张电影票"
-TL.fromTo('#price-tag', {scale:0, opacity:0}, {scale:1, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+0.3);
-showSub(TL, '你花80块买了张电影票。', S1+0.2);
+  // 0.0-0.5s: scene fade in + screen light up
+  M.to(s01, {opacity:1, duration:0.5}, 0);
+  M.to(s01Screen, {opacity:1, duration:0.5}, 0);
+  M.add(drawOn(s01Screen, 0.6, 0.03), 0);
+  M.to(s01Glow, {opacity:1, duration:0.5}, 0.2);
 
-// 0.6s — 座位 draw-on
-drawOn(TL, '#seats-row .seat svg path, #seats-row .seat svg rect', 0.5, S1+0.6);
-TL.to('.seat', {opacity:1, duration:0.3, stagger:0.06}, S1+0.6);
+  // 0.3-1.0s: ¥80 price tag bounce in
+  showSub('你花80块买了张电影票。', 0.3);
+  M.to(s01Price, {opacity:1, scale:1, duration:0.5, ease:'back.out(2)'}, 0.3);
 
-// 1.0s — 主角出现（开心脸）
-TL.to('#main-char', {opacity:1, duration:0.4}, S1+1.0);
-drawOn(TL, '#main-char svg path, #main-char svg circle', 0.5, S1+1.0);
-TL.to('#face-happy', {opacity:1, duration:0.3}, S1+1.2);
+  // 0.6-1.5s: seats draw-on
+  M.add(drawOn(s01Seats, 0.8, 0.02), 0.6);
 
-// 2.3s — "开场十分钟，你就知道——"
-showSub(TL, '开场十分钟，你就知道——', S1+2.3);
+  // 1.0-1.8s: person draw-on (happy)
+  M.to(s01Person, {opacity:1, duration:0.1}, 1.0);
+  M.add(drawOn(s01Person, 0.7, 0.03), 1.0);
 
-// 2.8s — 银幕变暗/无聊，表情从开心变痛苦
-TL.to('#screen-glow', {boxShadow:'0 0 40px rgba(40,40,80,0.1)', duration:0.8}, S1+2.8);
-TL.to('#screen-boring', {opacity:0.4, duration:0.6, ease:'power2.in'}, S1+3.0);
-// 脸切换
-TL.to('#face-happy', {opacity:0, duration:0.3}, S1+3.2);
-TL.to('#face-bored', {opacity:1, duration:0.3}, S1+3.4);
-// 小人微微下沉（沮丧）
-TL.to('#main-char', {y:8, duration:0.5, ease:'power2.inOut'}, S1+3.4);
+  // 1.8-2.3s: idle breathing on price tag
+  M.to(s01Price, {scale:1.05, duration:0.5, yoyo:true, repeat:1, ease:'sine.inOut'}, 1.8);
 
-// 3.8s — "这是部烂片。"
-showSub(TL, '这是部烂片。', S1+3.8);
+  // 2.3-3.5s: subtitle change, screen dims, boring emoji
+  showSub('开场十分钟，你就知道——', 2.3);
+  M.to(s01Glow, {opacity:0.3, duration:0.6}, 2.5);
+  M.to('#s01-screen-inner', {fill:'rgba(20,20,40,0.4)', duration:0.6}, 2.5);
+  M.to(s01Boring, {opacity:1, duration:0.4, ease:'back.out(2)'}, 2.8);
 
-// 4.5s — 银幕闪一下红光
-TL.to('#screen-glow', {borderColor:'#e53e3e', boxShadow:'0 0 60px rgba(229,62,62,0.2)', duration:0.3, yoyo:true, repeat:1}, S1+4.5);
+  // 3.2-4.0s: face swap happy→sad, person sinks
+  M.to(s01FaceHappy, {opacity:0, duration:0.3}, 3.2);
+  M.to(s01FaceSad, {opacity:1, duration:0.3}, 3.2);
+  M.to(s01Person, {y:8, duration:0.5, ease:'power2.in'}, 3.3);
 
-// 5.5s — "你是走，还是坐到散场？"
-showSub(TL, '你是走，还是坐到散场？', S1+5.5);
+  // 3.8-5.0s: subtitle "这是部烂片。", screen flashes red
+  showSub('这是部烂片。', 3.8);
+  M.to(s01RedFlash, {opacity:1, duration:0.2}, 3.9);
+  M.to(s01RedFlash, {opacity:0, duration:0.3}, 4.2);
+  M.to(s01RedFlash, {opacity:0.6, duration:0.2}, 4.5);
+  M.to(s01RedFlash, {opacity:0, duration:0.4}, 4.7);
 
-// 5.8s — 选项气泡弹入
-TL.fromTo('#choice-left', {x:-40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+5.8);
-TL.fromTo('#choice-right', {x:40, opacity:0}, {x:0, opacity:1, duration:0.5, ease:'back.out(1.7)'}, S1+6.1);
+  // 5.0-5.5s: breathing on person
+  M.to(s01Person, {scale:0.98, duration:0.4, yoyo:true, repeat:1}, 5.0);
 
-// 6.8s — 选项气泡交替高亮
-TL.to('#choice-left', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+6.8);
-TL.to('#choice-right', {scale:1.1, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+7.2);
+  // 5.5-6.5s: subtitle + option bubbles
+  showSub('你是走，还是坐到散场？', 5.5);
+  M.to(s01OptLeave, {opacity:1, scale:1, duration:0.4, ease:'back.out(2)'}, 5.8);
+  M.to(s01OptStay, {opacity:1, scale:1, duration:0.4, ease:'back.out(2)'}, 6.0);
 
-// 7.8s — 价格标签脉动
-TL.to('#price-tag', {scale:1.15, duration:0.3, yoyo:true, repeat:1, ease:'power2.inOut'}, S1+7.8);
+  // 6.8-8.0s: options alternate highlight, price pulsates
+  M.to(s01OptLeave, {scale:1.1, duration:0.3, yoyo:true, repeat:3, ease:'sine.inOut'}, 6.8);
+  M.to(s01OptStay, {scale:1.1, duration:0.3, yoyo:true, repeat:3, ease:'sine.inOut', delay:0.15}, 6.8);
+  M.to(s01Price, {scale:1.08, duration:0.4, yoyo:true, repeat:2, ease:'sine.inOut'}, 6.8);
 
-// 8.35s — 场景结束
-hideSub(TL, S1+8.1);
+  // 8.1s: subtitle fade out
+  hideSub(8.1);
 
-// ── Playback: 空格/点击 触发 ──
-const audio = document.getElementById('audio-s01');
-const hint = document.getElementById('start-hint');
-let started = false;
+  // ══════════ TRANSITION 8.35-9.15s ══════════
+  M.to(s01, {opacity:0, duration:0.6}, 8.35);
+  const s02 = document.getElementById('s02');
+  M.to(s02, {opacity:1, duration:0.6}, 8.55);
 
-function startPlayback() {
-  if (started) return;
-  started = true;
-  hint.style.transition = 'opacity 0.4s';
-  hint.style.opacity = '0';
-  setTimeout(() => hint.style.display = 'none', 400);
-  audio.play().catch(() => {});
-  TL.play();
-}
+  // ══════════ SCENE 02 (starts at 9.15s) ══════════
+  const t2 = 9.15; // scene02 audio start
+  const s02Money = document.getElementById('s02-money');
+  const s02Cross = document.getElementById('s02-cross');
+  const s02SpentLabel = document.getElementById('s02-spent-label');
+  const s02Vs = document.getElementById('s02-vs');
+  const s02Clock = document.getElementById('s02-clock');
+  const s02ClockBorder = document.getElementById('s02-clock-border');
+  const s02TimeLabel = document.getElementById('s02-time-label');
+  const s02ControlLabel = document.getElementById('s02-control-label');
+  const s02Hour = document.getElementById('s02-hour');
+  const s02Minute = document.getElementById('s02-minute');
 
-// 空格键
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space') { e.preventDefault(); startPlayback(); }
-});
-// 点击
-hint.addEventListener('click', startPlayback);
+  // 0.5-1.5s: subtitle
+  showSub('大多数人会说：都花钱了，看完吧。', t2+0.5);
 
-// Render mode
-const params = new URLSearchParams(window.location.search);
-if (params.has('render')) {
-  window.seekTo = t => { TL.seek(t); };
-  window.totalDuration = TL.duration();
-  hint.style.display = 'none';
-}
+  // 1.5-3.0s: money draw-on
+  M.add(drawOn(s02Money, 1.2, 0.04), t2+1.5);
+
+  // 3.0-4.0s: subtitle
+  showSub('但你想过没有？票钱已经花了，', t2+3.0);
+
+  // 3.5-4.5s: red cross animation
+  M.to(s02Cross, {opacity:1, duration:0.1}, t2+3.5);
+  M.fromTo(s02Cross.querySelectorAll('line'), {strokeDasharray:200, strokeDashoffset:200}, {strokeDashoffset:0, duration:0.5, stagger:0.2, ease:'power2.out'}, t2+3.5);
+  M.to(s02SpentLabel, {opacity:1, duration:0.3}, t2+4.0);
+
+  // 4.5-6.0s: subtitle
+  showSub('不管你走还是留，这80块都回不来了。', t2+4.5);
+
+  // 5.0-5.5s: VS line
+  M.to(s02Vs, {opacity:1, duration:0.4, ease:'power2.out'}, t2+5.0);
+
+  // 5.5-7.0s: clock draw-on + minute hand rotation
+  M.add(drawOn(s02Clock, 1.2, 0.03), t2+5.5);
+  M.to(s02Minute, {attr:{x2:40, y2:40}, duration:3, ease:'linear'}, t2+6.0);
+  M.to(s02Hour, {attr:{x2:48, y2:38}, duration:3, ease:'linear'}, t2+6.0);
+
+  // 7.0-8.5s: subtitle
+  showSub('唯一的区别是——', t2+7.0);
+
+  // 8.0-9.5s: "2小时" bounce in, clock border green highlight
+  M.to(s02TimeLabel, {opacity:1, scale:1, duration:0.5, ease:'back.out(2)'}, t2+8.0);
+  M.to(s02ClockBorder, {opacity:1, duration:0.5}, t2+8.2);
+  M.to(s02ControlLabel, {opacity:1, duration:0.4}, t2+8.5);
+
+  // 9.5-12.0s: subtitle with emphasis
+  M.to(sub, {opacity:0, duration:0.15}, t2+9.5);
+  M.call(()=>{
+    sub.innerHTML='你要不要再搭上<span style="color:#eab308;font-weight:700">两小时</span>的<span style="color:#e53e3e;font-weight:700">生命</span>。';
+  }, null, t2+9.65);
+  M.to(sub, {opacity:1, duration:0.2}, t2+9.65);
+
+  // 10.0-12.0s: breathing effects on both sides
+  M.to(s02SpentLabel, {scale:1.03, duration:0.6, yoyo:true, repeat:2, ease:'sine.inOut'}, t2+10.0);
+  M.to(s02TimeLabel, {scale:1.08, duration:0.6, yoyo:true, repeat:2, ease:'sine.inOut'}, t2+10.0);
+  M.to(s02ClockBorder, {boxShadow:'0 0 50px rgba(34,197,94,0.5)', duration:0.6, yoyo:true, repeat:2, ease:'sine.inOut'}, t2+10.0);
+
+  // 12.0-13.0s: full comparison, breathing
+  M.to(s02Cross, {scale:1.02, duration:0.5, yoyo:true, repeat:1, transformOrigin:'center', ease:'sine.inOut'}, t2+12.0);
+
+  // 13.0s: subtitle fade out
+  hideSub(t2+13.0);
+
+  // ══════════ PLAYBACK CONTROL ══════════
+  const audioS01 = document.getElementById('audio-s01');
+  const audioS02 = document.getElementById('audio-s02');
+
+  function startPlayback(){
+    hint.style.display='none';
+    M.play();
+    audioS01.currentTime=0;
+    audioS01.play().catch(()=>{});
+    setTimeout(()=>{
+      audioS02.currentTime=0;
+      audioS02.play().catch(()=>{});
+    }, t2*1000);
+  }
+
+  if(!isRender){
+    hint.addEventListener('click', startPlayback);
+    document.addEventListener('keydown', function(e){
+      if(e.code==='Space'){e.preventDefault(); startPlayback();}
+    });
+  } else {
+    // render mode: auto-play
+    startPlayback();
+  }
+
+  // seekTo for render mode
+  window.seekTo = function(t){
+    M.seek(t);
+  };
+})();
 </script>
 </body>
 </html>
