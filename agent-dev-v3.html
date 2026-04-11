@@ -83,7 +83,8 @@
         <li class="nav-item"><a href="#chapter-7" class="nav-link"><span class="nav-number">07</span>多 Agent 协作</a></li>
         <li class="nav-item"><a href="#chapter-8" class="nav-link"><span class="nav-number">08</span>Harness + 幻觉</a></li>
         <li class="nav-item"><a href="#chapter-9" class="nav-link"><span class="nav-number">09</span>手写 Agent + RAG</a></li>
-        <li class="nav-item"><a href="#chapter-10" class="nav-link"><span class="nav-number">10</span>生产 + SSE + 训练</a></li>
+        <li class="nav-item"><a href="#chapter-10" class="nav-link"><span class="nav-number">10</span>生产 + SSE + 缓存</a></li>
+<li class="nav-item"><a href="#chapter-10b" class="nav-link"><span class="nav-number">10b</span>训练与对齐</a></li>
         <li class="nav-part">Part 2: 工程基础</li>
         <li class="nav-item"><a href="#chapter-11" class="nav-link"><span class="nav-number">11</span>LLM API 实战</a></li>
         <li class="nav-item"><a href="#chapter-12" class="nav-link"><span class="nav-number">12</span>Attention + Context</a></li>
@@ -473,6 +474,52 @@
 <div class="insight-box-title">💡 为什么不按字/词拆？</div>
 <div class="insight-box-content">
 按字拆：序列太长，计算成本高。按词拆：词汇表太大（英语有几十万个词），而且遇到新词就不认识了。<strong>子词（subword）是最佳平衡</strong>——词汇表大小适中，几乎能覆盖所有可能的文本组合。比如 "unhappiness" 从来没出现在训练数据中也没关系，因为 "un"、"happi"、"ness" 都见过。
+</div>
+</div>
+
+<h3>BPE 是怎么决定"切在哪"的？</h3>
+
+<p>上面展示了切分结果，但你可能好奇：<strong>机器怎么知道 "unhappiness" 应该切成 "un" + "happi" + "ness" 而不是 "unh" + "app" + "iness"？</strong></p>
+
+<p>答案是 <strong>BPE（Byte Pair Encoding，字节对编码）</strong>算法。它的思路出奇地简单：</p>
+
+<pre>
+<span class="comment">// BPE 训练过程（简化版，3 步看懂）</span>
+
+<span class="keyword">初始状态：</span>从单个字符开始
+  词汇表 = [a, b, c, d, e, ..., z, 空格, ...]
+  "low"   → [l, o, w]
+  "lower" → [l, o, w, e, r]
+  "newest" → [n, e, w, e, s, t]
+
+<span class="keyword">第 1 轮：</span>找到出现最频繁的相邻字符对
+  统计：(l,o) 出现 2 次，(o,w) 出现 2 次，(e,w) 出现 1 次...
+  合并最频繁的 → (l,o) 合并为 "lo"
+  词汇表 += [lo]
+  "low"   → [lo, w]
+  "lower" → [lo, w, e, r]
+
+<span class="keyword">第 2 轮：</span>继续找最频繁的对
+  统计：(lo,w) 出现 2 次 → 合并为 "low"
+  词汇表 += [low]
+  "low"   → [low]
+  "lower" → [low, e, r]
+
+<span class="keyword">第 3 轮：</span>继续...
+  统计：(e,r) → 合并为 "er"
+  词汇表 += [er]
+  "lower" → [low, er]
+
+<span class="comment">// 重复几万轮，直到词汇表达到目标大小（如 100,000）</span>
+<span class="comment">// 常见的完整词会被合并成一个 token</span>
+<span class="comment">// 不常见的词会保留为子词片段</span>
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 BPE 的直觉</div>
+<div class="tip-box-content">
+BPE 本质上是一个<strong>"频率驱动的合并"</strong>过程：经常一起出现的字符组合会被合并成一个 token。所以常见词（"the"、"是"）通常是一个 token，而罕见词（"pneumonoultramicroscopicsilicovolcanoconiosis"）会被拆成很多小片段。<br><br>
+<strong>面试加分点：</strong>BPE 的变体包括 WordPiece（BERT 用）和 Unigram（T5/LLaMA 用）。核心思想类似，只是合并/拆分的策略略有不同。
 </div>
 </div>
 
@@ -2443,10 +2490,10 @@ print(answer.choices[<span class="number">0</span>].message.content)
 <!--                    CHAPTER 10                                     -->
 <!-- ================================================================ -->
 <section id="chapter-10" class="chapter">
-<h2 class="chapter-title">10 · 生产环境：SSE / 缓存 / 训练基础</h2>
+<h2 class="chapter-title">10 · 生产环境：Streaming / SSE / 缓存</h2>
 <div class="chapter-content">
 
-<p><strong>TL;DR：</strong>生产级 Agent 需要解决 Streaming（实时输出）、缓存（降本）、降级（容错）和训练（优化模型）。</p>
+<p><strong>TL;DR：</strong>生产级 Agent 需要解决 Streaming（实时输出）和缓存（降本提速）。这一章专注工程侧的优化手段。</p>
 
 <h3>🔥 Streaming / SSE 实现</h3>
 <pre>
@@ -2500,6 +2547,24 @@ app.get(<span class="string">"/api/chat"</span>, (req, res) => {
    <span class="comment">相同的 system prompt 前缀 → 自动缓存，后续请求更便宜</span>
 </pre>
 
+<p>工程层面的问题解决了。下一章我们看看模型本身是怎么训练和优化的——这决定了 Agent 的"智商上限"。</p>
+
+</div>
+</section>
+
+<section id="chapter-10b" class="chapter">
+<h2 class="chapter-title">10b · 模型训练与对齐：SFT / DPO / GRPO</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR：</strong>回顾 0D 的三阶段训练框架（Pre-training → SFT → RLHF），这里我们深入看具体训练算法的差异。理解这些对选择和评估模型很有帮助。</p>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 回顾与衔接</div>
+<div class="insight-box-content">
+我们在 0D 章从概念层面理解了三阶段训练，0D 的 RL 基础模块讲了 PPO 的直觉。这一章从算法对比角度深入——SFT、RLHF(PPO)、DPO、GRPO 各自怎么工作，什么场景用什么。
+</div>
+</div>
+
 <h3>训练基础：SFT / RLHF / DPO / GRPO</h3>
 <pre>
 <span class="comment">// 面试中经常问训练流程，不需要太深但要清楚区别</span>
@@ -2545,6 +2610,16 @@ app.get(<span class="string">"/api/chat"</span>, (req, res) => {
 <strong>常见踩坑：</strong>❌ 说不出 DPO 的具体优势在哪——核心是"去掉了 Reward Model 这个中间环节"。
 </div>
 </div>
+
+<h3>算法对比一览</h3>
+
+<table class="compare-table">
+<tr><th>算法</th><th>需要 Reward Model？</th><th>需要人类标注？</th><th>复杂度</th><th>典型场景</th></tr>
+<tr><td>SFT</td><td>❌</td><td>✅ (问答对)</td><td>低</td><td>基础能力对齐</td></tr>
+<tr><td>RLHF (PPO)</td><td>✅</td><td>✅ (偏好对比)</td><td>高</td><td>ChatGPT、早期 Claude</td></tr>
+<tr><td>DPO</td><td>❌</td><td>✅ (偏好对比)</td><td>中</td><td>Llama 2-Chat、Zephyr</td></tr>
+<tr><td>GRPO</td><td>❌</td><td>❌ (可编程奖励)</td><td>中</td><td>DeepSeek-R1、数学/代码</td></tr>
+</table>
 
 </div>
 </section>
