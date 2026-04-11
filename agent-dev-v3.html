@@ -405,6 +405,7 @@
 
 <h3>第二步：Embedding（嵌入）——给每个 Token 一个 GPS 坐标</h3>
 <p>Tokenization 把文字变成了编号（Token ID），但编号本身没有含义——"猫"是 15234，"狗"是 8821，这两个数字的大小关系毫无意义。</p>
+<p><strong>但首先，什么是"向量"（Vector）？</strong>向量就是一组有序的数字。你每天都在用向量——GPS 坐标 [纬度, 经度] 就是一个 2 维向量，RGB 颜色 [255, 128, 0] 就是一个 3 维向量。Embedding 就是给每个词一个"几百维的 GPS 坐标"，只不过维度多到人类无法直观想象。</p>
 <p>Embedding 的作用是：<strong>把每个 Token 映射到一个高维空间中的坐标点</strong>。在这个空间里，意思相近的词距离近，意思不同的词距离远。</p>
 
 <div class="visualization">
@@ -1900,6 +1901,70 @@ Rerank（Cross-Encoder）：  问题+文档拼在一起，同时编码
    <span class="comment">→ 这就是 ReAct！</span>
 </pre>
 
+<h3>动态规划实战：Agent 做竞品分析</h3>
+<p>理论看完了，来看一个完整的动态规划过程。假设用户说：<strong>"帮我做一个 AI 编程助手的竞品分析报告"</strong>。看看 Agent 是怎么一步步完成的——注意观察计划在中途是怎么变化的：</p>
+
+<pre>
+<span class="comment">// 用户指令: "帮我做一个 AI 编程助手的竞品分析报告"</span>
+
+<span class="keyword">Turn 1</span>
+🧠 思考: 需要分析主流 AI 编程助手。初步计划分析 5 个：
+        Cursor, GitHub Copilot, Windsurf, Tabnine, Kite
+        先搜集每个产品的核心信息。从 Cursor 开始。
+🔧 行动: web_search("Cursor AI IDE features pricing 2024")
+👁 观察: Cursor - AI-native IDE, 基于 VS Code fork
+        免费版 2000 次补全/月, Pro $20/月, Business $40/月
+        核心功能: Tab 补全, Chat, Composer, @引用代码库
+
+<span class="keyword">Turn 2</span>
+🧠 思考: Cursor 信息拿到了。接下来搜 GitHub Copilot。
+🔧 行动: web_search("GitHub Copilot features pricing 2024")
+👁 观察: GitHub Copilot - 微软/GitHub 出品
+        Individual $10/月, Business $19/月, Enterprise $39/月
+        核心功能: 代码补全, Chat, PR 摘要, Copilot Workspace
+
+<span class="keyword">Turn 3</span>
+🧠 思考: 两个搞定了。继续搜 Windsurf。
+🔧 行动: web_search("Windsurf AI IDE features pricing 2024")
+👁 观察: Windsurf (原 Codeium) - AI Flow 模式, 免费版不限补全
+        Pro $15/月, 核心功能: Cascade(多步编辑), Supercomplete
+
+<span class="keyword">Turn 4</span>
+🧠 思考: 接下来搜 Kite。
+🔧 行动: web_search("Kite AI coding assistant 2024")
+👁 观察: ⚠️ Kite 已于 2022 年 12 月停止运营，代码库已开源但不再维护。
+
+<span class="keyword">Turn 5 ← 计划变更！</span>
+🧠 思考: Kite 已经停运了，放在竞品报告里没有意义。
+        <span class="comment">→ 调整计划：用 Amazon CodeWhisperer (现 Amazon Q Developer) 替换 Kite</span>
+        这是一个活跃的竞品，而且有 AWS 生态优势，更有分析价值。
+🔧 行动: web_search("Amazon Q Developer coding assistant features pricing 2024")
+👁 观察: Amazon Q Developer (原 CodeWhisperer) - AWS 出品
+        免费版不限补全, Pro $19/月 (含 AWS 集成)
+        核心功能: 代码补全, Chat, 安全扫描, AWS 资源操作
+
+<span class="keyword">Turn 6</span>
+🧠 思考: 最后搜 Tabnine，然后就可以开始写报告了。
+🔧 行动: web_search("Tabnine AI code assistant features pricing 2024")
+👁 观察: Tabnine - 强调隐私和本地部署
+        Starter 免费, Pro $12/月, Enterprise 定制价
+        核心功能: 代码补全, 本地模型, 代码库学习, 零数据保留
+
+<span class="keyword">Turn 7</span>
+🧠 思考: 5 个竞品资料齐了（Cursor, Copilot, Windsurf, Amazon Q, Tabnine）。
+        现在整理成对比报告，按 功能/价格/优缺点 分类。
+🔧 行动: 生成竞品分析报告（表格 + 总结）
+✅ 输出: 完整的竞品分析报告
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 这就是 Dynamic Planning 的威力</div>
+<div class="tip-box-content">
+计划不是一次性制定的，而是随着执行过程中获得的新信息不断调整。Turn 5 中 Agent 发现 Kite 已停运，立刻调整计划找了替代品——这个决策不是预编程的，而是 Agent 根据观察结果自主做出的。<br><br>
+<strong>这也是 Agent 和 Workflow 的核心区别：</strong>Workflow 的路径在设计时就固定了（if Kite 停运 → ???），Agent 的路径是运行时动态决定的。你不需要提前预见所有情况，Agent 会自己应对。
+</div>
+</div>
+
 <h3>Agent 评估体系</h3>
 <table class="compare-table">
 <tr><th>评估维度</th><th>指标</th><th>怎么测</th></tr>
@@ -2001,6 +2066,102 @@ cat file | grep "error" | sort | uniq -c
 <span class="comment">// 每一步的输出是下一步的输入</span>
 </pre>
 
+<h3>Agent 间怎么传递信息？</h3>
+<p>多个 Agent 协作时，最核心的问题是：<strong>它们之间怎么交换信息？</strong>就像一个团队，光有分工不够，还得有沟通机制。业界有四种主流模式：</p>
+
+<table class="compare-table">
+<tr><th>方式</th><th>类比</th><th>优点</th><th>缺点</th><th>典型实现</th></tr>
+<tr>
+<td><strong>共享内存</strong><br>(Shared Memory)</td>
+<td>团队白板——谁都能写、谁都能看</td>
+<td>简单直接，所有人看到同一份状态</td>
+<td>并发冲突，难以追踪"谁改了什么"</td>
+<td>LangGraph (共享 State)</td>
+</tr>
+<tr>
+<td><strong>消息传递</strong><br>(Message Passing)</td>
+<td>Slack/邮件——一条条消息发送</td>
+<td>结构清晰，支持异步，可追溯</td>
+<td>需要定义消息格式，有延迟</td>
+<td>CrewAI, OpenClaw (sessions_spawn)</td>
+</tr>
+<tr>
+<td><strong>函数调用</strong><br>(Direct Invocation)</td>
+<td>经理叫下属——直接调用，等结果</td>
+<td>简单可控，调用方掌握流程</td>
+<td>紧耦合，被调用方无自主性</td>
+<td>普通函数调用 / Tool Use</td>
+</tr>
+<tr>
+<td><strong>事件驱动</strong><br>(Event-Driven)</td>
+<td>广播电台——发布消息，谁感兴趣谁听</td>
+<td>松耦合，容易扩展新 Agent</td>
+<td>调试困难，执行顺序不确定</td>
+<td>Kafka + Agent / Pub-Sub 架构</td>
+</tr>
+</table>
+
+<p>实际项目中经常<strong>混合使用</strong>。比如 OpenClaw：Manager Agent 通过 <code>sessions_spawn</code>（消息传递）分派子任务，子 Agent 之间通过共享文件系统（共享内存）交换中间产物。</p>
+
+<h3>实战案例：三 Agent 协作写竞品研报</h3>
+<p>来看一个完整的多 Agent 协作流程。目标：<strong>让三个 Agent 协作完成一份 AI 编程助手竞品研报</strong>。</p>
+
+<pre>
+<span class="comment">// 三 Agent 协作流程：Research → Writer → Review</span>
+<span class="comment">// 通信方式：消息传递（Manager 居中协调）</span>
+
+<span class="keyword">[Manager]</span> → Research Agent:
+    "搜集 Cursor, GitHub Copilot, Windsurf 的产品信息，
+     包括：功能特性、价格方案、目标用户、技术架构"
+
+<span class="keyword">[Research Agent]</span> 🧠 思考: 需要搜索三个产品的官网和评测
+<span class="keyword">[Research Agent]</span> 🔧 行动: web_search("Cursor AI IDE features pricing 2024")
+<span class="keyword">[Research Agent]</span> 👁 观察: Cursor Pro $20/month, AI-native IDE, fork of VS Code...
+<span class="keyword">[Research Agent]</span> 🔧 行动: web_search("GitHub Copilot pricing features 2024")
+<span class="keyword">[Research Agent]</span> 👁 观察: Individual $10/month, Business $19/month...
+<span class="keyword">[Research Agent]</span> 🔧 行动: web_search("Windsurf AI IDE Codeium 2024")
+<span class="keyword">[Research Agent]</span> 👁 观察: 原 Codeium，Pro $15/month, AI Flow 模式...
+<span class="keyword">[Research Agent]</span> → Manager:
+    "搜集完成，3 个竞品信息如下：
+     ① Cursor: AI-native IDE, $20/月, Tab+Chat+Composer...
+     ② Copilot: GitHub 生态, $10/月, 补全+Chat+Workspace...
+     ③ Windsurf: 免费补全, $15/月, Cascade 多步编辑..."
+
+<span class="keyword">[Manager]</span> → Writer Agent:
+    "基于以下资料撰写竞品分析报告，要求包含：
+     功能对比表格、价格对比、各产品优缺点、选择建议"
+
+<span class="keyword">[Writer Agent]</span> 🧠 思考: 需要按产品分类，重点对比功能/价格/适用场景
+<span class="keyword">[Writer Agent]</span> 🔧 行动: 组织报告结构，生成 Markdown 格式报告
+<span class="keyword">[Writer Agent]</span> → Manager: "报告初稿完成（2000 字，含 3 个对比表格）"
+
+<span class="keyword">[Manager]</span> → Review Agent:
+    "请审校以下竞品分析报告，检查数据准确性和逻辑完整性"
+
+<span class="keyword">[Review Agent]</span> 🧠 思考: 逐项核查数据，检查有无遗漏
+<span class="keyword">[Review Agent]</span> → Manager:
+    "审校意见：
+     ① Windsurf 的 AI Flow 特性描述不够详细，建议补充 Cascade 工作原理
+     ② 价格对比建议做成统一表格而非分散描述
+     ③ 缺少'免费方案对比'维度，对个人开发者很重要"
+
+<span class="keyword">[Manager]</span> → Writer Agent:
+    "请根据以下审校意见修改报告：①② ③..."
+
+<span class="keyword">[Writer Agent]</span> 🔧 行动: 根据反馈修订报告
+<span class="keyword">[Writer Agent]</span> → Manager: "修订版完成"
+
+<span class="keyword">[Manager]</span> → 用户: "竞品分析报告已完成 ✅"
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 协作模式的核心原则</div>
+<div class="insight-box-content">
+注意整个过程中，Manager 是<strong>协调者而不是执行者</strong>——它只负责分派任务和传递结果。每个 Agent 专注自己的领域：Research 擅长搜索，Writer 擅长写作，Review 擅长挑错。这就是层级协作模式的优势：<strong>关注点分离（Separation of Concerns）</strong>。<br><br>
+和真实团队一样——好的管理者不是什么都自己干，而是找对的人做对的事。
+</div>
+</div>
+
 <div class="interview-box">
 <div class="interview-box-title">🎯 面试高频题</div>
 <div class="interview-box-content">
@@ -2094,6 +2255,24 @@ cat file | grep "error" | sort | uniq -c
 <div class="chapter-content">
 
 <p><strong>TL;DR：</strong>理论讲完，动手做。先写一个 60 行的 ReAct Agent，再写一个 30 行的 RAG Pipeline。</p>
+
+<h3>环境准备</h3>
+<pre>
+<span class="comment"># 1. 安装依赖</span>
+pip install openai numpy
+
+<span class="comment"># 2. 设置 API Key（在终端中运行）</span>
+export OPENAI_API_KEY="sk-your-key-here"
+
+<span class="comment"># 3. 或者在 Python 代码中设置</span>
+<span class="keyword">import</span> os
+os.environ[<span class="string">"OPENAI_API_KEY"</span>] = <span class="string">"sk-your-key-here"</span>
+
+<span class="comment"># 💡 没有 OpenAI Key？可以用兼容 API：</span>
+<span class="comment"># - DeepSeek: https://platform.deepseek.com (便宜，中文好)</span>
+<span class="comment"># - 硅基流动: https://siliconflow.cn (国内访问快)</span>
+<span class="comment"># 只需改 base_url 和 model 即可，代码完全相同</span>
+</pre>
 
 <h3>手写 ReAct Agent（Python）</h3>
 <pre>
@@ -2352,82 +2531,145 @@ app.get(<span class="string">"/api/chat"</span>, (req, res) => {
 <h2 class="chapter-title">12 · Attention 机制 + Context Window</h2>
 <div class="chapter-content">
 
-<p><strong>TL;DR：</strong>Attention 是 Transformer 的核心——让模型在处理每个词时能"关注"到所有相关的词。Context Window 是模型能"看到"的最大范围。</p>
+<p><strong>TL;DR：</strong>Attention 的基础原理在 0C 章讲过了。这一章聚焦工程实战：KV Cache 为什么吃显存、Context Window 满了怎么办、以及为什么重要信息不能放在中间。</p>
 
 <div class="insight-box">
 <div class="insight-box-title">📌 回顾</div>
 <div class="insight-box-content">
-我们在 <a href="#chapter-0c">Chapter 0C</a> 已经从直觉层面理解了 Attention 和 Transformer。这一章从<strong>工程和面试</strong>角度深入——Q/K/V 的计算细节、Context Window 的管理策略、以及 Lost in the Middle 现象。
+我们在 <a href="#chapter-0c">Chapter 0C</a> 已经从直觉层面理解了 Attention（Q/K/V 图书馆类比）和 Transformer 架构。如果你对 Q·K^T/√d → softmax → ×V 这个流程还不熟悉，建议先回顾 0C。<br><br>
+这一章从<strong>工程和面试</strong>角度深入——KV Cache 优化、Context Window 管理策略、以及 Lost in the Middle 现象。
 </div>
 </div>
 
-<h3>Attention 的本质（面试必问！）</h3>
-<p>用图书馆的类比来理解：</p>
+<h3>KV Cache（键值缓存）——为什么长对话吃显存？</h3>
+
+<p>先看一个问题：当模型生成第 100 个 token 时，它需要对前 99 个 token 都算一遍 Attention。生成第 101 个 token 时，又要对前 100 个 token 算一遍。这里有大量<strong>重复计算</strong>——前 99 个 token 的 K 和 V 向量，在生成第 100 和第 101 个 token 时完全一样，为什么要算两次？</p>
+
 <pre>
-<span class="comment">// 你走进图书馆（Context Window），要找和你问题相关的书</span>
+<span class="comment">// 没有 KV Cache：每生成一个新 token，重新计算所有 K/V</span>
 
-<span class="keyword">Q（Query）</span> = 你的问题："什么是 Agent？"
-<span class="keyword">K（Key）</span>   = 每本书的标签/关键词
-<span class="keyword">V（Value）</span> = 每本书的内容
+生成 token 1:  计算 K₁, V₁
+生成 token 2:  计算 K₁, V₁, K₂, V₂           <span class="comment">← K₁V₁ 重复算了！</span>
+生成 token 3:  计算 K₁, V₁, K₂, V₂, K₃, V₃   <span class="comment">← K₁V₁, K₂V₂ 重复算了！</span>
+...
+生成 token N:  计算 K₁..Kₙ, V₁..Vₙ            <span class="comment">← O(N²) 的重复计算</span>
 
-<span class="comment">// Attention 的计算：</span>
-<span class="keyword">Step 1:</span> 拿你的问题（Q）和每本书的标签（K）对比
-        → 算出每本书的"相关度分数"（注意力权重）
-        → score = Q · K^T / √d  <span class="comment">(点积 / 缩放)</span>
+<span class="comment">// 有 KV Cache：只算新 token 的 K/V，旧的从缓存读</span>
 
-<span class="keyword">Step 2:</span> 用 softmax 把分数归一化成概率
-        → [0.05, 0.60, 0.30, 0.05, ...]
-        <span class="comment">（第二本书最相关）</span>
-
-<span class="keyword">Step 3:</span> 按概率加权求和所有书的内容（V）
-        → output = softmax(QK^T/√d) × V
-        <span class="comment">（主要是第二本书的内容 + 少量其他书的补充）</span>
+生成 token 1:  计算 K₁, V₁ → <span class="keyword">存入缓存</span>
+生成 token 2:  <span class="keyword">读缓存</span> K₁, V₁ + 计算 K₂, V₂ → <span class="keyword">存入缓存</span>
+生成 token 3:  <span class="keyword">读缓存</span> K₁..₂, V₁..₂ + 计算 K₃, V₃ → <span class="keyword">存入缓存</span>
+...
+生成 token N:  <span class="keyword">读缓存</span> K₁..ₙ₋₁, V₁..ₙ₋₁ + 计算 Kₙ, Vₙ  <span class="comment">← O(N) 新计算</span>
 </pre>
 
-<div class="visualization">
-<div class="visualization-title">Self-Attention 计算流程</div>
-<svg width="500" height="200" viewBox="0 0 500 200">
-    <rect x="20" y="70" width="70" height="50" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
-    <text x="55" y="90" text-anchor="middle" font-size="12" font-weight="600" fill="#096dd9">Q</text>
-    <text x="55" y="108" text-anchor="middle" font-size="9" fill="#8c8c8c">查询</text>
+<p><strong>类比：</strong>想象一个法庭书记员。没有 KV Cache 就像每次有人发言，书记员都要从头把整个庭审记录重新读一遍再记新内容。有了 KV Cache，书记员保持着自己的笔记，每次只需要在笔记末尾追加新内容。</p>
 
-    <rect x="20" y="10" width="70" height="50" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
-    <text x="55" y="30" text-anchor="middle" font-size="12" font-weight="600" fill="#389e0d">K</text>
-    <text x="55" y="48" text-anchor="middle" font-size="9" fill="#8c8c8c">键</text>
-
-    <rect x="20" y="130" width="70" height="50" rx="6" fill="#fff7e6" stroke="#faad14" stroke-width="2"/>
-    <text x="55" y="150" text-anchor="middle" font-size="12" font-weight="600" fill="#d48806">V</text>
-    <text x="55" y="168" text-anchor="middle" font-size="9" fill="#8c8c8c">值</text>
-
-    <path d="M 90 95 L 130 75" stroke="#595959" stroke-width="1.5"/>
-    <path d="M 90 35 L 130 65" stroke="#595959" stroke-width="1.5"/>
-
-    <rect x="130" y="50" width="80" height="40" rx="6" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
-    <text x="170" y="68" text-anchor="middle" font-size="10" fill="#531dab">QK^T / √d</text>
-    <text x="170" y="82" text-anchor="middle" font-size="8" fill="#8c8c8c">相关度</text>
-
-    <path d="M 210 70 L 240 70" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
-
-    <rect x="240" y="50" width="70" height="40" rx="6" fill="#fff2f0" stroke="#ff4d4f" stroke-width="1.5"/>
-    <text x="275" y="75" text-anchor="middle" font-size="10" fill="#cf1322">Softmax</text>
-
-    <path d="M 310 70 L 335 70" stroke="#595959" stroke-width="1.5"/>
-    <path d="M 90 155 L 335 90" stroke="#595959" stroke-width="1" stroke-dasharray="4,2"/>
-
-    <rect x="335" y="55" width="60" height="40" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
-    <text x="365" y="75" text-anchor="middle" font-size="10" fill="#096dd9">× V</text>
-
-    <path d="M 395 75 L 425 75" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
-
-    <rect x="425" y="55" width="60" height="40" rx="6" fill="#1890ff" fill-opacity="0.15" stroke="#1890ff" stroke-width="2"/>
-    <text x="455" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#096dd9">输出</text>
-</svg>
+<div class="danger-box">
+<div class="danger-box-title">⚠️ KV Cache 的代价：显存</div>
+<div class="danger-box-content">
+KV Cache 用<strong>空间换时间</strong>。每个 token 需要缓存所有层、所有 head 的 K 和 V 向量。<br><br>
+粗算：一个 7B 模型，32 层 × 32 heads × 128 维 × 2（K+V）× 2 字节（FP16）= <strong>每个 token 约 0.5 MB</strong><br>
+一个 128K context window 的对话 → KV Cache 约 <strong>64 GB 显存</strong>！<br><br>
+这就是为什么你和 AI 聊天聊久了会看到"上下文已满"——很多时候不是模型"忘了"，而是 <strong>KV Cache 的显存用完了</strong>。
+</div>
 </div>
 
-<h3>长上下文中 Attention 的衰减问题</h3>
+<h3>Context Window 管理策略</h3>
+
+<p>Context Window（上下文窗口）是模型一次能处理的最大 token 数。GPT-4o 是 128K，Claude 是 200K。听起来很大，但实际上要精打细算：</p>
+
 <pre>
-<span class="comment">// 问题：context window 越长，早期信息的 attention 权重越小</span>
-<span class="comment">// 这就是"Lost in the Middle"现象</span>
+<span class="comment">// Context Window 的预算分配（Budget Allocation）</span>
+
+┌──────────────────────────────────────────────────┐
+│                 128K Context Window               │
+├────────────┬───────────┬──────────────┬───────────┤
+│ System     │ Tools /   │ Conversation │ Current   │
+│ Prompt     │ Skills    │ History      │ Query     │
+│ ~20%       │ ~15%      │ ~50%         │ ~15%      │
+│ (25K)      │ (19K)     │ (64K)        │ (19K)     │
+├────────────┴───────────┴──────────────┴───────────┤
+│ <span class="comment">System Prompt: 角色定义、规则、SOUL.md 等</span>          │
+│ <span class="comment">Tools/Skills: 工具定义、技能文件内容</span>              │
+│ <span class="comment">History: 之前的对话消息</span>                          │
+│ <span class="comment">Current: 用户当前的问题 + 本轮生成的回答</span>          │
+└──────────────────────────────────────────────────┘
+</pre>
+
+<p>当 Context Window 快满了，怎么办？四种策略：</p>
+
+<table class="compare-table">
+<tr><th>策略</th><th>做法</th><th>优点</th><th>缺点</th><th>适用场景</th></tr>
+<tr>
+<td><strong>截断</strong><br>(Truncation)</td>
+<td>丢弃最旧的消息</td>
+<td>实现简单，零延迟</td>
+<td>可能丢失关键上下文</td>
+<td>闲聊、低风险对话</td>
+</tr>
+<tr>
+<td><strong>摘要</strong><br>(Summarization)</td>
+<td>用 LLM 把旧对话压缩成摘要</td>
+<td>保留关键信息，压缩率高</td>
+<td>摘要可能遗漏细节，有额外 API 调用成本</td>
+<td>长期项目、多轮任务</td>
+</tr>
+<tr>
+<td><strong>滑动窗口</strong><br>(Sliding Window)</td>
+<td>只保留最近 N 条消息</td>
+<td>行为可预测，实现简单</td>
+<td>N 之前的信息全部丢失</td>
+<td>客服对话、短任务</td>
+</tr>
+<tr>
+<td><strong>选择性保留</strong><br>(Selective Retention)</td>
+<td>保留重要消息（工具结果、关键决策），丢弃闲聊</td>
+<td>在有限空间内最大化信息密度</td>
+<td>需要判断"什么是重要的"</td>
+<td>Agent 任务、编程辅助</td>
+</tr>
+</table>
+
+<pre>
+<span class="comment">// OpenClaw 的 Context Engine 工作原理（简化版）</span>
+
+<span class="keyword">function</span> <span class="func">assemble</span>(msgs, budget) {
+  <span class="keyword">const</span> system = msgs.filter(m =&gt; m.role === <span class="string">'system'</span>)  <span class="comment">// 永远保留</span>
+  <span class="keyword">const</span> recent = msgs.slice(-<span class="number">10</span>)                        <span class="comment">// 最近 10 条必须保留</span>
+  <span class="keyword">let</span> remaining = budget - tokenCount(system) - tokenCount(recent)
+
+  <span class="comment">// 中间的消息按重要性排序</span>
+  <span class="keyword">const</span> middle = msgs.slice(system.length, -<span class="number">10</span>)
+    .map(m =&gt; ({ ...m, score: <span class="func">importance</span>(m) }))
+    .sort((a, b) =&gt; b.score - a.score)
+
+  <span class="comment">// 贪心装入：优先保留重要的消息</span>
+  <span class="keyword">const</span> selected = []
+  <span class="keyword">for</span> (<span class="keyword">const</span> m <span class="keyword">of</span> middle) {
+    <span class="keyword">if</span> (tokenCount(m) &lt;= remaining) {
+      selected.push(m)
+      remaining -= tokenCount(m)
+    }
+  }
+
+  <span class="comment">// 按原始顺序重新排列，保持对话连贯性</span>
+  <span class="keyword">return</span> [...system, ...selected.sort(byIndex), ...recent]
+}
+
+<span class="comment">// importance() 的评分规则：</span>
+<span class="comment">//   tool_result（工具调用结果）→ 高分（包含事实数据）</span>
+<span class="comment">//   user 消息带代码/文件 → 高分（可能是关键上下文）</span>
+<span class="comment">//   assistant 的短回答 → 低分（"好的"、"明白了"）</span>
+<span class="comment">//   user 的闲聊 → 低分（"谢谢"、"嗯"）</span>
+</pre>
+
+<h3>Lost in the Middle（中间丢失效应）</h3>
+
+<p>2023 年，斯坦福的 Liu et al. 发表了一篇重要论文 <em>"Lost in the Middle: How Language Models Use Long Contexts"</em>，揭示了一个关键现象：模型对上下文中<strong>不同位置</strong>的信息，关注度差异巨大。</p>
+
+<pre>
+<span class="comment">// Lost in the Middle：注意力权重在不同位置的分布</span>
 
 位置:  [开头] ────────── [中间] ────────── [结尾]
 权重:  ████              ██                ████████
@@ -2437,16 +2679,24 @@ app.get(<span class="string">"/api/chat"</span>, (req, res) => {
 <span class="comment">结尾（最近的消息）  → 权重高（近因效应）</span>
 
 <span class="comment">// 这就是为什么多轮对话越长，Agent 越容易"忘记"中间说过的话</span>
-<span class="comment">// 解决方案：Compaction（把旧对话压缩成摘要放在前面）</span>
 </pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 工程实践建议</div>
+<div class="tip-box-content">
+<strong>1. 重要信息放两头：</strong>System Prompt（开头）放角色定义和核心规则，最近的消息（结尾）放当前任务上下文。<strong>不要</strong>把关键指令埋在长对话的中间。<br><br>
+<strong>2. RAG 检索结果要排序：</strong>如果你检索了 5 篇相关文档，把最相关的放在<strong>第一个</strong>，而不是随机排列。模型会更关注第一篇和最后一篇，中间的容易被忽略。这就是为什么 RAG 需要 Reranker（重排序器）。<br><br>
+<strong>3. Compaction（压缩）优于 Truncation（截断）：</strong>与其直接丢弃中间的消息，不如把它们压缩成摘要放在开头位置。OpenClaw 的做法是：当 context 使用超过 80%，自动触发 compaction，把旧对话压缩为一段总结。
+</div>
+</div>
 
 <div class="interview-box">
 <div class="interview-box-title">🎯 面试高频题</div>
 <div class="interview-box-content">
 <strong>Q: Attention 本质是什么？从向量空间变换角度解释。</strong><br><br>
 <strong>标准答案：</strong>Attention 本质是一个<strong>加权信息聚合</strong>机制。每个 token 通过 Q/K/V 三个线性变换映射到不同的向量空间：Q（查询）代表"我在找什么"，K（键）代表"我有什么"，V（值）代表"我的内容"。通过 Q·K^T 计算相关度，softmax 归一化后加权求和 V，得到融合了全局信息的表示。数学上：Attention(Q,K,V) = softmax(QK^T/√d_k)V。<br><br>
-<strong>加分回答：</strong>提到 Multi-Head Attention（多个 head 关注不同方面，如语法/语义/指代），以及 √d_k 缩放是为了防止 softmax 在高维时梯度消失。<br><br>
-<strong>常见踩坑：</strong>❌ 只说"Attention 让模型关注重要的部分"——太模糊，要说出 Q/K/V 的计算过程。
+<strong>加分回答：</strong>提到 Multi-Head Attention（多个 head 关注不同方面，如语法/语义/指代），√d_k 缩放防止梯度消失，以及 KV Cache 如何优化推理速度。<br><br>
+<strong>常见踩坑：</strong>❌ 只说"Attention 让模型关注重要的部分"——太模糊，要说出 Q/K/V 的计算过程和 KV Cache 的工程意义。
 </div>
 </div>
 
