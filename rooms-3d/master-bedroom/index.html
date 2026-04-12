@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主卧 + 主卫 3D Preview</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+canvas{display:block}
+#info-popup{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(30,30,30,0.92);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px 28px;color:#fff;max-width:340px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+#info-popup h3{font-size:16px;margin-bottom:8px;color:#D4A56A}
+#info-popup p{font-size:13px;line-height:1.6;color:#ccc}
+#info-popup .close{position:absolute;top:8px;right:12px;cursor:pointer;color:#888;font-size:18px}
+#controls{position:fixed;top:16px;right:16px;background:rgba(30,30,30,0.75);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px;z-index:50;min-width:180px}
+#controls h4{color:#D4A56A;font-size:13px;margin-bottom:10px;font-weight:500}
+.ctrl-btn{display:block;width:100%;padding:8px 12px;margin-bottom:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eee;font-size:12px;cursor:pointer;text-align:left;transition:background 0.2s}
+.ctrl-btn:hover{background:rgba(212,165,106,0.25)}
+.ctrl-btn:last-child{margin-bottom:0}
+.ctrl-btn.active{background:rgba(212,165,106,0.3);border-color:rgba(212,165,106,0.5)}
+#loading{position:fixed;inset:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;z-index:200;color:#D4A56A;font-size:18px}
+.label2d{color:#fff;font-size:11px;background:rgba(0,0,0,0.6);padding:3px 8px;border-radius:6px;pointer-events:none;white-space:nowrap;backdrop-filter:blur(4px)}
+</style>
+</head>
+<body>
+<div id="loading">🏠 加载中...</div>
+<div id="controls">
+<h4>🏠 主卧控制面板</h4>
+<button class="ctrl-btn active" onclick="viewBedroom()">🛏️ 卧室视角</button>
+<button class="ctrl-btn" onclick="viewBathroom()">🛁 卫生间视角</button>
+<button class="ctrl-btn" onclick="viewTop()">📐 俯视图</button>
+<button class="ctrl-btn" onclick="toggleLabels()">🏷️ 标签 开/关</button>
+<button class="ctrl-btn" onclick="resetView()">🔄 重置视角</button>
+</div>
+<div id="info-popup"><span class="close" onclick="closePopup()">✕</span><h3 id="popup-title"></h3><p id="popup-body"></p></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"}}</script>
+<script type="module">
+import*as THREE from'three';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+import{CSS2DRenderer,CSS2DObject}from'three/addons/renderers/CSS2DRenderer.js';
+
+// Scale: 1 unit = 1mm
+const S=0.001; // to meters for easier thinking, but we'll work in mm directly
+// Actually let's use meters: divide all mm by 1000
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x1a1a1a);
+
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.01,50);
+camera.position.set(5.4,2.5,-2.8); // from north wall entrance looking south toward window
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer=new CSS2DRenderer();
+labelRenderer.setSize(innerWidth,innerHeight);
+labelRenderer.domElement.style.position='absolute';
+labelRenderer.domElement.style.top='0';
+labelRenderer.domElement.style.pointerEvents='none';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.target.set(2.7,1.0,1.4);
+controls.update();
+
+// Colors
+const OAK=0xC4935A;
+const OAK_DARK=0xB07D42;
+const CREAM=0xF5F0E8;
+const WALL_CREAM=0xF0EBE0;
+const TERRACOTTA=0x8B3A2A;
+const WOOD_FLOOR=0xD4A56A;
+const RATTAN=0xC9A96E;
+const TILE=0xD5CFC5;
+const TRAVERTINE=0xCDC0AD;
+const BLACK=0x222222;
+
+const clickables=[];
+const labels2d=[];
+
+function mat(color,opts={}){
+  return new THREE.MeshStandardMaterial({color,roughness:opts.r??0.7,metalness:opts.m??0.0,...opts});
+}
+
+function box(w,h,d,color,opts){
+  const g=new THREE.BoxGeometry(w,h,d);
+  const m=new THREE.Mesh(g,mat(color,opts||{}));
+  m.castShadow=true;m.receiveShadow=true;
+  return m;
+}
+
+function addLabel(text,x,y,z){
+  const div=document.createElement('div');
+  div.className='label2d';
+  div.textContent=text;
+  const obj=new CSS2DObject(div);
+  obj.position.set(x,y,z);
+  scene.add(obj);
+  labels2d.push(obj);
+  return obj;
+}
+
+function makeClickable(mesh,title,body){
+  mesh.userData={title,body,clickable:true};
+  clickables.push(mesh);
+}
+
+// Room dimensions (meters)
+const RW=5.387, RD=2.869, RH=2.0; // after ceiling
+const BW=2.4, BD=1.6, BH=2.0;
+
+// === FLOOR ===
+const floorTex=(() => {
+  const c=document.createElement('canvas');c.width=512;c.height=512;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#D4A56A';ctx.fillRect(0,0,512,512);
+  for(let i=0;i<8;i++){
+    ctx.fillStyle=i%2?'#C9A05A':'#D9AD6E';
+    ctx.fillRect(0,i*64,512,64);
+    ctx.strokeStyle='#B8924A';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,i*64);ctx.lineTo(512,i*64);ctx.stroke();
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(4,2);
+  return t;
+})();
+
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(RW,RD),new THREE.MeshStandardMaterial({map:floorTex,roughness:0.5}));
+floor.rotation.x=-Math.PI/2;floor.position.set(RW/2,0,RD/2);floor.receiveShadow=true;
+scene.add(floor);
+
+// === WALLS ===
+// South wall (window wall, z=0) - with window opening
+const southWallGroup=new THREE.Group();
+// Wall below window
+const swBelow=box(RW,0.56,0.12,WALL_CREAM);swBelow.position.set(RW/2,0.28,0.06);southWallGroup.add(swBelow);
+// Wall above window
+const swAbove=box(RW,RH-0.56-1.65,0.12,WALL_CREAM);swAbove.position.set(RW/2,0.56+1.65+(RH-0.56-1.65)/2,0.06);southWallGroup.add(swAbove);
+// Window frame
+const frameW=0.04;
+for(let x of[0.5,RW-0.5,RW/2]){
+  const vf=box(frameW,1.65,0.05,BLACK);vf.position.set(x,0.56+0.825,0.06);southWallGroup.add(vf);
+}
+const hfTop=box(RW-1,frameW,0.05,BLACK);hfTop.position.set(RW/2,0.56+1.65,0.06);southWallGroup.add(hfTop);
+const hfBot=box(RW-1,frameW,0.05,BLACK);hfBot.position.set(RW/2,0.56,0.06);southWallGroup.add(hfBot);
+// Glass
+const glass=new THREE.Mesh(new THREE.PlaneGeometry(RW-1,1.65),new THREE.MeshPhysicalMaterial({color:0x87CEEB,transparent:true,opacity:0.2,roughness:0,transmission:0.6}));
+glass.position.set(RW/2,0.56+0.825,0.04);southWallGroup.add(glass);
+// Venetian blinds (simple lines)
+for(let i=0;i<12;i++){
+  const slat=box(RW-1.1,0.02,0.03,0xE8E0D0);
+  slat.position.set(RW/2,0.6+i*0.13,0.08);southWallGroup.add(slat);
+}
+scene.add(southWallGroup);
+
+// West wall (bed wall, x=0)
+const westWall=box(0.12,RH,RD,WALL_CREAM);westWall.position.set(-0.06,RH/2,RD/2);westWall.receiveShadow=true;
+scene.add(westWall);
+
+// East wall (wardrobe wall, x=RW)
+const eastWall=box(0.12,RH,RD,WALL_CREAM);eastWall.position.set(RW+0.06,RH/2,RD/2);eastWall.receiveShadow=true;
+scene.add(eastWall);
+
+// North wall (bathroom wall, z=RD) - with door opening
+const doorX=RW/2, doorW=0.9;
+// Left of door
+const nwL=box(doorX-doorW/2,RH,0.12,WALL_CREAM);nwL.position.set((doorX-doorW/2)/2,RH/2,RD+0.06);scene.add(nwL);
+// Right of door
+const nwRw=RW-(doorX+doorW/2);
+const nwR=box(nwRw,RH,0.12,WALL_CREAM);nwR.position.set(doorX+doorW/2+nwRw/2,RH/2,RD+0.06);scene.add(nwR);
+// Above door
+const nwA=box(doorW,RH-2.1,0.12,WALL_CREAM);nwA.position.set(doorX,2.1+(RH-2.1)/2,RD+0.06);scene.add(nwA);
+// Glass door frame
+const gdf1=box(0.04,2.1,0.06,BLACK);gdf1.position.set(doorX-doorW/2,1.05,RD);scene.add(gdf1);
+const gdf2=box(0.04,2.1,0.06,BLACK);gdf2.position.set(doorX+doorW/2,1.05,RD);scene.add(gdf2);
+const gdf3=box(doorW,0.04,0.06,BLACK);gdf3.position.set(doorX,2.1,RD);scene.add(gdf3);
+// Glass door
+const gdoor=new THREE.Mesh(new THREE.PlaneGeometry(doorW-0.08,2.06),new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:0.15,roughness:0,transmission:0.7}));
+gdoor.position.set(doorX,1.03,RD);scene.add(gdoor);
+
+// Ceiling
+const ceil=box(RW,0.05,RD,0xF8F5F0);ceil.position.set(RW/2,RH,RD/2);ceil.receiveShadow=true;scene.add(ceil);
+
+// === BAY WINDOW STORAGE BENCH ===
+const bench=box(RW-0.4,0.52,0.4,OAK);bench.position.set(RW/2,0.26,0.32);scene.add(bench);
+// Oak frame around window
+const wfL=box(0.2,1.65,0.05,OAK);wfL.position.set(0.4,0.56+0.825,0.06);scene.add(wfL);
+const wfR=box(0.2,1.65,0.05,OAK);wfR.position.set(RW-0.4,0.56+0.825,0.06);scene.add(wfR);
+const wfT=box(RW-0.6,0.12,0.05,OAK);wfT.position.set(RW/2,0.56+1.65+0.06,0.06);scene.add(wfT);
+// Drawers on bench
+for(let i=0;i<4;i++){
+  const dw=box(1.1,0.01,0.02,OAK_DARK);dw.position.set(0.7+i*1.2,0.26,0.53);scene.add(dw);
+}
+// Rattan basket
+const basket=box(0.4,0.3,0.35,RATTAN,{r:0.9});basket.position.set(RW-0.8,0.15+0.52,0.3);scene.add(basket);
+makeClickable(bench,'🪟 飘窗收纳','抽屉: 毯子/抱枕\n藤编篮: 睡前读物/遥控器');
+addLabel('🪟 飘窗收纳',RW/2,0.7,0.32);
+
+// === BED ===
+const bedGroup=new THREE.Group();
+const bedW=1.8,bedD=2.0,bedH=0.45;
+// Frame
+const bedFrame=box(bedD+0.05,bedH-0.1,bedW+0.05,OAK);bedFrame.position.set(0,bedH/2,0);bedGroup.add(bedFrame);
+// Mattress
+const mattress=box(bedD-0.1,0.2,bedW-0.1,0xFAF6F0,{r:0.9});mattress.position.set(0,bedH+0.1,0);bedGroup.add(mattress);
+// Headboard (rattan)
+const hb=box(0.08,0.8,bedW+0.05,RATTAN,{r:0.85});hb.position.set(-bedD/2-0.04,bedH+0.4,0);bedGroup.add(hb);
+// Pillows
+for(let z of[-0.35,0.35]){
+  const p=box(0.5,0.12,0.4,0xFFF8F0,{r:0.95});p.position.set(-bedD/2+0.35,bedH+0.26,z);bedGroup.add(p);
+}
+// Brown throw
+const throwB=box(bedD*0.6,0.03,bedW-0.2,0x8B6543,{r:0.9});throwB.position.set(0.2,bedH+0.22,0);bedGroup.add(throwB);
+bedGroup.position.set(bedD/2+0.05,0,RD/2);
+scene.add(bedGroup);
+
+// Terracotta art above bed
+const art=box(0.02,0.6,1.2,TERRACOTTA,{r:0.6});art.position.set(0.01,1.4,RD/2);scene.add(art);
+addLabel('🎨 红棕艺术板画',0.3,1.7,RD/2);
+
+// === BEDSIDE TABLES ===
+function makeNightstand(z,label,info){
+  const g=new THREE.Group();
+  const body=box(0.4,0.5,0.45,OAK);body.position.set(0,0.25,0);g.add(body);
+  // Drawer line
+  const dl=box(0.35,0.01,0.02,OAK_DARK);dl.position.set(0,0.25,0.24);g.add(dl);
+  g.position.set(0.25,0,z);
+  scene.add(g);
+  makeClickable(body,label,info);
+  return g;
+}
+makeNightstand(RD/2-bedW/2-0.5,'🛏️ 左床头柜','手机充电/眼镜/护肤品');
+makeNightstand(RD/2+bedW/2+0.5,'🛏️ 右床头柜','书籍/台灯/水杯');
+addLabel('📱 左床头柜',0.25,0.7,RD/2-bedW/2-0.5);
+addLabel('📚 右床头柜',0.25,0.7,RD/2+bedW/2+0.5);
+
+// === WARDROBE ===
+const wdW=2.8,wdD=0.6,wdH=RH;
+const wardrobeGroup=new THREE.Group();
+const wdBody=box(wdD,wdH,wdW,0xE8E2D6);wdBody.position.set(0,wdH/2,0);wardrobeGroup.add(wdBody);
+// 4 door panels
+for(let i=0;i<4;i++){
+  const dz=-wdW/2+0.35+i*(wdW/4);
+  const door=box(0.02,wdH-0.1,wdW/4-0.04,CREAM,{r:0.4});
+  door.position.set(-wdD/2-0.01,wdH/2,dz);wardrobeGroup.add(door);
+  // Panel lines
+  const pl=box(0.005,wdH-0.3,0.01,0xD8D2C6);pl.position.set(-wdD/2-0.02,wdH/2,dz);wardrobeGroup.add(pl);
+}
+// Door gaps
+for(let i=1;i<4;i++){
+  const gap=box(0.03,wdH,0.01,0xC0B8A8);gap.position.set(-wdD/2,wdH/2,-wdW/2+i*(wdW/4));wardrobeGroup.add(gap);
+}
+wardrobeGroup.position.set(RW-wdD/2,0,RD/2);
+scene.add(wardrobeGroup);
+
+// Clickable wardrobe zones (4 invisible boxes in front)
+const wdZones=['左1: 长衣区 — 大衣/连衣裙','左2: 短衣区+抽屉 — 上衣/裤子/内衣','右1: 短衣区+搁板 — 当季衣物','右2: 被褥/行李箱/换季储物'];
+for(let i=0;i<4;i++){
+  const zb=box(0.01,wdH,wdW/4-0.06,0xff0000,{transparent:true,opacity:0});
+  zb.position.set(RW-wdD-0.02,wdH/2,RD/2-wdW/2+0.35+i*(wdW/4));
+  zb.material.transparent=true;zb.material.opacity=0;
+  scene.add(zb);
+  makeClickable(zb,'👔 衣柜 '+wdZones[i].split(':')[0],wdZones[i].split('—')[1]||wdZones[i]);
+}
+addLabel('👔 通顶衣柜',RW-0.6,1.5,RD/2);
+
+// === CHANDELIER ===
+const chandGroup=new THREE.Group();
+// Rod
+const rod=box(0.02,0.3,0.02,0xB87333);rod.position.set(0,0,0);chandGroup.add(rod);
+// Arms + globes
+for(let i=0;i<6;i++){
+  const a=Math.PI*2*i/6;
+  const r=0.25;
+  const arm=box(r,0.01,0.01,0xB87333);
+  arm.position.set(Math.cos(a)*r/2,-0.15,Math.sin(a)*r/2);
+  arm.rotation.y=-a;chandGroup.add(arm);
+  const globe=new THREE.Mesh(new THREE.SphereGeometry(0.06,16,16),new THREE.MeshStandardMaterial({color:0xFFF5E0,emissive:0xFFE8B0,emissiveIntensity:0.5,roughness:0.3,transparent:true,opacity:0.85}));
+  globe.position.set(Math.cos(a)*r,-0.18,Math.sin(a)*r);chandGroup.add(globe);
+}
+chandGroup.position.set(RW/2-0.5,RH-0.05,RD/2);
+scene.add(chandGroup);
+
+// === RUG ===
+const rugTex=(()=>{
+  const c=document.createElement('canvas');c.width=256;c.height=256;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#E8DCC8';ctx.fillRect(0,0,256,256);
+  ctx.strokeStyle='#C4935A';ctx.lineWidth=8;ctx.strokeRect(20,20,216,216);
+  ctx.strokeStyle='#B07D42';ctx.lineWidth=3;ctx.strokeRect(35,35,186,186);
+  // Simple pattern
+  for(let i=0;i<8;i++)for(let j=0;j<8;j++){
+    if((i+j)%3===0){ctx.fillStyle='#D4A56A55';ctx.fillRect(40+i*22,40+j*22,18,18);}
+  }
+  return new THREE.CanvasTexture(c);
+})();
+const rug=new THREE.Mesh(new THREE.PlaneGeometry(2.0,1.5),new THREE.MeshStandardMaterial({map:rugTex,roughness:0.9}));
+rug.rotation.x=-Math.PI/2;rug.position.set(1.5,0.005,RD/2);scene.add(rug);
+
+// === BATHROOM ===
+const bathGroup=new THREE.Group();
+// Floor
+const bFloor=new THREE.Mesh(new THREE.PlaneGeometry(BW,BD),new THREE.MeshStandardMaterial({color:TILE,roughness:0.3}));
+bFloor.rotation.x=-Math.PI/2;bFloor.position.set(BW/2,0.001,BD/2);bathGroup.add(bFloor);
+
+// Walls
+const bWallBack=box(BW,BH,0.1,TILE,{r:0.3});bWallBack.position.set(BW/2,BH/2,BD+0.05);bathGroup.add(bWallBack);
+const bWallL=box(0.1,BH,BD,TILE,{r:0.3});bWallL.position.set(-0.05,BH/2,BD/2);bathGroup.add(bWallL);
+const bWallR=box(0.1,BH,BD,TILE,{r:0.3});bWallR.position.set(BW+0.05,BH/2,BD/2);bathGroup.add(bWallR);
+// Ceiling
+const bCeil=box(BW,0.05,BD,TRAVERTINE,{r:0.4});bCeil.position.set(BW/2,BH,BD/2);bathGroup.add(bCeil);
+
+// Semi-circular LED strip on ceiling
+const ledCurve=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.02,8,32,Math.PI),new THREE.MeshStandardMaterial({color:0xFFF5E0,emissive:0xFFE8B0,emissiveIntensity:1}));
+ledCurve.rotation.x=Math.PI/2;ledCurve.position.set(BW/2,BH-0.03,BD/2);bathGroup.add(ledCurve);
+
+// Bathtub (oval freestanding)
+const tubShape=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,0.5,32),new THREE.MeshStandardMaterial({color:0xFFFEFC,roughness:0.1,metalness:0.05}));
+tubShape.scale.set(2.1,1,1);tubShape.position.set(0.8,0.25,BD-0.5);bathGroup.add(tubShape);
+// Inner
+const tubInner=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.25,0.45,32),new THREE.MeshStandardMaterial({color:0xF0EDE5,roughness:0.05}));
+tubInner.scale.set(2,1,1);tubInner.position.set(0.8,0.28,BD-0.5);bathGroup.add(tubInner);
+makeClickable(tubShape,'🛁 独立浴缸','~1500mm 椭圆独立浴缸\n浴巾架在旁边');
+addLabel('🛁 浴缸',0.8+RW/2-BW/2,0.7,RD+0.12+BD-0.5);
+
+// Vanity
+const vanity=box(0.8,0.85,0.5,TRAVERTINE,{r:0.35});vanity.position.set(BW-0.45,0.425,0.4);bathGroup.add(vanity);
+// Sink basin
+const basin=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.12,0.08,24),new THREE.MeshStandardMaterial({color:0xFAFAFA,roughness:0.05}));
+basin.position.set(BW-0.45,0.87,0.4);bathGroup.add(basin);
+// Wall-mounted faucet
+const faucet=box(0.03,0.15,0.03,0x888888,{m:0.8,r:0.2});faucet.position.set(BW-0.45,1.1,0.15);bathGroup.add(faucet);
+// Mirror
+const mirror=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.8),new THREE.MeshPhysicalMaterial({color:0xE8E8E8,roughness:0,metalness:0.9}));
+mirror.position.set(BW-0.45,1.4,0.12);mirror.rotation.y=0;bathGroup.add(mirror);
+makeClickable(vanity,'🪞 洗手台','洞石石材定制\n台下: 毛巾/洗漱用品\n镜柜: 护肤品/药品');
+
+// Toilet
+const toiletBase=box(0.4,0.35,0.35,0xFAFAFA,{r:0.1});toiletBase.position.set(1.8,0.175,0.35);bathGroup.add(toiletBase);
+const toiletTank=box(0.2,0.35,0.35,0xFAFAFA,{r:0.1});toiletTank.position.set(1.8,0.35,0.12);bathGroup.add(toiletTank);
+
+// Towel rack
+const tr1=box(0.02,0.02,0.5,0x888888,{m:0.7});tr1.position.set(0.2,1.0,BD-0.1);bathGroup.add(tr1);
+
+// Position bathroom behind north wall
+bathGroup.position.set(RW/2-BW/2,0,RD+0.12);
+scene.add(bathGroup);
+
+addLabel('🚽 主卫',RW/2,1.2,RD+0.12+BD/2);
+
+// === LIGHTING ===
+const ambLight=new THREE.AmbientLight(0xFFF5E0,0.4);scene.add(ambLight);
+const mainLight=new THREE.DirectionalLight(0xFFF0D4,1.2);
+mainLight.position.set(3,4,-1);mainLight.castShadow=true;
+mainLight.shadow.mapSize.set(2048,2048);
+mainLight.shadow.camera.near=0.1;mainLight.shadow.camera.far=15;
+mainLight.shadow.camera.left=-5;mainLight.shadow.camera.right=5;
+mainLight.shadow.camera.top=5;mainLight.shadow.camera.bottom=-5;
+scene.add(mainLight);
+
+// Warm point light from chandelier
+const chandLight=new THREE.PointLight(0xFFE4B0,1.5,6);
+chandLight.position.set(RW/2-0.5,RH-0.2,RD/2);chandLight.castShadow=true;scene.add(chandLight);
+
+// Bathroom light
+const bathLight=new THREE.PointLight(0xFFF5E0,0.8,4);
+bathLight.position.set(RW/2,BH-0.1,RD+0.12+BD/2);scene.add(bathLight);
+
+// Window light
+const winLight=new THREE.RectAreaLight(0xCCE5FF,2,RW-1,1.65);
+winLight.position.set(RW/2,0.56+0.825,-0.1);winLight.lookAt(RW/2,0.56+0.825,2);scene.add(winLight);
+
+// === RAYCASTER ===
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+
+renderer.domElement.addEventListener('click',(e)=>{
+  mouse.x=(e.clientX/innerWidth)*2-1;
+  mouse.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(clickables,true);
+  if(hits.length>0){
+    let obj=hits[0].object;
+    while(obj&&!obj.userData.clickable)obj=obj.parent;
+    if(obj&&obj.userData.clickable){
+      document.getElementById('popup-title').textContent=obj.userData.title;
+      document.getElementById('popup-body').textContent=obj.userData.body;
+      document.getElementById('info-popup').style.display='block';
+    }
+  }
+});
+
+// === ANIMATION ===
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+  labelRenderer.render(scene,camera);
+}
+animate();
+
+// === CONTROLS ===
+let labelsVisible=true;
+
+window.viewBedroom=()=>{
+  gsap(camera.position,{x:4.5,y:2.2,z:-1.5},600);
+  gsap(controls.target,{x:1.5,y:0.8,z:1.4},600);
+  setActive(0);
+};
+window.viewBathroom=()=>{
+  gsap(camera.position,{x:RW/2,y:2.0,z:RD+0.5},600);
+  gsap(controls.target,{x:RW/2,y:0.8,z:RD+BD/2+0.12},600);
+  setActive(1);
+};
+window.viewTop=()=>{
+  gsap(camera.position,{x:RW/2,y:5.5,z:RD/2+1},600);
+  gsap(controls.target,{x:RW/2,y:0,z:RD/2+0.5},600);
+  setActive(2);
+};
+window.toggleLabels=()=>{
+  labelsVisible=!labelsVisible;
+  labels2d.forEach(l=>l.visible=labelsVisible);
+  document.querySelectorAll('.ctrl-btn')[3].classList.toggle('active',labelsVisible);
+};
+window.resetView=()=>viewBedroom();
+window.closePopup=()=>{document.getElementById('info-popup').style.display='none'};
+
+function setActive(idx){
+  document.querySelectorAll('.ctrl-btn').forEach((b,i)=>{
+    if(i<3)b.classList.toggle('active',i===idx);
+  });
+}
+
+function gsap(obj,target,dur){
+  const start={...obj};const keys=Object.keys(target);
+  const t0=performance.now();
+  function step(t){
+    const p=Math.min((t-t0)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    keys.forEach(k=>{obj[k]=start[k]+(target[k]-start[k])*ease});
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  labelRenderer.setSize(innerWidth,innerHeight);
+});
+
+document.getElementById('loading').style.display='none';
+document.querySelectorAll('.ctrl-btn')[3].classList.add('active');
+</script>
+</body>
+</html>
