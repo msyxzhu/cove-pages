@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>绿城沁兰园 · 全屋收纳规划</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #f8f7f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+canvas { display: block; }
+#title {
+  position: fixed; top: 24px; left: 28px; z-index: 10;
+  font-size: 22px; font-weight: 700; color: #2c2c2c; letter-spacing: 1px;
+}
+#title small { display: block; font-size: 12px; font-weight: 400; color: #888; margin-top: 4px; letter-spacing: 0; }
+#panel {
+  position: fixed; top: 20px; right: 20px; z-index: 10;
+  background: rgba(255,255,255,0.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.5); border-radius: 16px;
+  padding: 18px 16px; width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+#panel h3 { font-size: 13px; color: #555; margin-bottom: 10px; font-weight: 600; }
+.toggle-btn {
+  display: block; width: 100%; padding: 7px 10px; margin-bottom: 6px;
+  background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 8px; font-size: 12px; cursor: pointer; text-align: left;
+  color: #333; transition: all 0.2s;
+}
+.toggle-btn:hover { background: rgba(0,0,0,0.08); }
+.toggle-btn.active { background: #4a6741; color: #fff; border-color: #4a6741; }
+.divider { height: 1px; background: rgba(0,0,0,0.08); margin: 10px 0; }
+#panel .room-nav { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; }
+.nav-btn {
+  display: inline-block; padding: 4px 8px; margin: 2px;
+  background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 6px; font-size: 11px; cursor: pointer; color: #555;
+  text-decoration: none; transition: all 0.2s;
+}
+.nav-btn:hover { background: rgba(74,103,65,0.12); color: #4a6741; }
+#info-panel {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.82); backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.5); border-radius: 14px;
+  padding: 14px 22px; z-index: 10; display: none; text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+#info-panel .room-name { font-size: 18px; font-weight: 700; color: #2c2c2c; }
+#info-panel .room-size { font-size: 12px; color: #888; margin: 4px 0 8px; }
+#info-panel a {
+  display: inline-block; padding: 6px 16px; background: #4a6741; color: #fff;
+  border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 500;
+  transition: background 0.2s;
+}
+#info-panel a:hover { background: #3d5636; }
+#north {
+  position: fixed; bottom: 24px; right: 24px; z-index: 10;
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+  border-radius: 50%; border: 1px solid rgba(0,0,0,0.08);
+  font-size: 18px; font-weight: 700; color: #c44;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+#north::after { content: '▲'; font-size: 10px; position: absolute; top: 6px; color: #c44; }
+#north span { margin-top: 6px; }
+.label-2d {
+  pointer-events: auto; cursor: pointer; text-align: center;
+  transition: transform 0.2s;
+}
+.label-2d:hover { transform: scale(1.05); }
+.label-2d .lname { font-size: 13px; font-weight: 700; color: #2c2c2c; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
+.label-2d .ldim { font-size: 10px; color: #777; margin-top: 1px; }
+</style>
+</head>
+<body>
+<div id="title">绿城沁兰园 · 全屋收纳规划<small>点击房间查看3D模型</small></div>
+<div id="panel">
+  <h3>控制面板</h3>
+  <button class="toggle-btn active" onclick="toggle('labels',this)">🏷️ 房间标签</button>
+  <button class="toggle-btn active" onclick="toggle('dims',this)">📐 面积标注</button>
+  <button class="toggle-btn active" onclick="toggle('furniture',this)">🪑 家具轮廓</button>
+  <button class="toggle-btn" onclick="toggle('grid',this)">📏 网格线</button>
+  <button class="toggle-btn" onclick="resetView()">🔄 重置视角</button>
+  <div class="divider"></div>
+  <div class="room-nav">快速导航</div>
+  <div id="nav-btns"></div>
+</div>
+<div id="info-panel">
+  <div class="room-name" id="ip-name"></div>
+  <div class="room-size" id="ip-size"></div>
+  <a id="ip-link" href="#" target="_blank">查看3D模型 →</a>
+</div>
+<div id="north"><span>N</span></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// Scale: 1 unit = 1mm, we'll scale everything by 0.001 to work in meters
+const S = 0.001;
+
+const rooms = [
+  { id:'entrance', name:'🚪 入户/玄关', dim:'1500×2000', w:1500, h:2000, x:0, y:0, color:0xE0DDD8, tint:0xcccccc, link:null },
+  { id:'kitchen', name:'🍳 厨房/餐厅', dim:'4200×3500', w:4200, h:3500, x:0, y:2000, color:0xE8D8C4, tint:0xF5DEB3, link:'https://msyxzhu.github.io/cove-pages/kitchen-3d/' },
+  { id:'living', name:'🛋️ 客厅/健身区', dim:'3672×4500', w:3672, h:4500, x:4300, y:0, color:0xD5DCCA, tint:0xC5D5B5, link:'https://msyxzhu.github.io/cove-pages/rooms-3d/living-room/' },
+  { id:'balcony', name:'☀️ 阳台', dim:'3672×1500', w:3672, h:1500, x:4300, y:-1500, color:0xC8C8C0, tint:0xBBBBB0, link:null },
+  { id:'study', name:'📚 书房', dim:'3522×2559', w:3522, h:2559, x:4300, y:4600, color:0xC8D4E0, tint:0xB8C8D8, link:'https://msyxzhu.github.io/cove-pages/rooms-3d/study/' },
+  { id:'bathroom', name:'🚽 公卫', dim:'1800×2400', w:1800, h:2400, x:2500, y:5600, color:0xC8E0E0, tint:0xB0D8D8, link:'https://msyxzhu.github.io/cove-pages/rooms-3d/bathroom/' },
+  { id:'kids', name:'👶 儿童房', dim:'3102×2900', w:3102, h:2900, x:0, y:5600, color:0xD8CCE0, tint:0xCBBBD8, link:'https://msyxzhu.github.io/cove-pages/rooms-3d/kids-room/' },
+  { id:'master', name:'🛏️ 主卧', dim:'5387×2869', w:5387, h:2869, x:2500, y:8100, color:0xE0CCD0, tint:0xD8B8C0, link:'https://msyxzhu.github.io/cove-pages/rooms-3d/master-bedroom/' },
+  { id:'masterbath', name:'🚿 主卫', dim:'2400×1600', w:2400, h:1600, x:0, y:8500, color:0xC8E0E0, tint:0xB0D8D8, link:null },
+];
+
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf8f7f5);
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth/innerHeight, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+dl.position.set(5, 12, 5);
+dl.castShadow = false;
+scene.add(dl);
+
+// Center offset
+const CX = 5100*S, CY = 4700*S;
+
+// Groups
+const furnitureGroup = new THREE.Group();
+const gridGroup = new THREE.Group();
+scene.add(furnitureGroup);
+scene.add(gridGroup);
+gridGroup.visible = false;
+
+const floorMeshes = [];
+const wallMeshes = [];
+const labelObjects = [];
+const dimObjects = [];
+
+// Helper: create floor
+function makeFloor(r) {
+  const geo = new THREE.PlaneGeometry(r.w*S, r.h*S);
+  const mat = new THREE.MeshStandardMaterial({ color: r.tint, roughness: 0.8, metalness: 0 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI/2;
+  mesh.position.set((r.x + r.w/2)*S - CX, 0.001, (r.y + r.h/2)*S - CY);
+  mesh.userData = r;
+  scene.add(mesh);
+  floorMeshes.push(mesh);
+  return mesh;
+}
+
+// Helper: create wall segment
+function makeWall(x1,y1,x2,y2, thick, height, exterior) {
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy)*S;
+  const geo = new THREE.BoxGeometry(len, height*S, thick*S);
+  const mat = new THREE.MeshStandardMaterial({
+    color: exterior ? 0x8a8a80 : 0xc8c4bc,
+    roughness: 0.9
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(((x1+x2)/2)*S - CX, height*S/2, ((y1+y2)/2)*S - CY);
+  const angle = Math.atan2(dy, dx);
+  mesh.rotation.y = -angle;
+  scene.add(mesh);
+  wallMeshes.push(mesh);
+}
+
+// Helper: furniture box
+function makeFurniture(x,y,w,h,ht,color) {
+  const geo = new THREE.BoxGeometry(w*S, ht*S, h*S);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, transparent: true, opacity: 0.6 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x*S - CX, ht*S/2, y*S - CY);
+  furnitureGroup.add(mesh);
+}
+
+// Build floors
+rooms.forEach(r => makeFloor(r));
+
+// Build exterior walls (simplified outline)
+const WH = 1200;
+const ET = 200, IT = 100;
+// South wall
+makeWall(0,0, 1500,0, ET,WH,true); // entrance south
+makeWall(1500,0, 4300,0, ET,WH,true); // gap or wall
+makeWall(4300,-1500, 7972,-1500, ET,WH,true); // balcony south
+// West wall
+makeWall(0,0, 0,5600, ET,WH,true);
+makeWall(0,5600, 0,8500, ET,WH,true);
+makeWall(0,8500, 0,10100, ET,WH,true);
+// East wall
+makeWall(7972,-1500, 7972,0, ET,WH,true); // balcony east
+makeWall(7972,0, 7972,4500, ET,WH,true);
+makeWall(7822,4600, 7822,7159, ET,WH,true);
+makeWall(7887,8100, 7887,10969, ET,WH,true);
+// North wall
+makeWall(0,10100, 2400,10100, ET,WH,true);
+makeWall(2400,10969, 7887,10969, ET,WH,true);
+// Top connections
+makeWall(2400,10100, 2400,10969, ET,WH,true);
+
+// Interior walls
+// Between entrance and kitchen
+makeWall(0,2000, 1500,2000, IT,WH,false);
+// Between entrance/kitchen and living
+makeWall(4200,0, 4200,2000, IT,WH,false); // partial wall
+makeWall(4200,2000, 4200,4000, IT,WH,false); // kitchen-living boundary upper
+// Between living and study
+makeWall(4300,4500, 7972,4500, IT,WH,false);
+// Between kitchen and bathroom area
+makeWall(0,5500, 4300,5500, IT,WH,false);
+// Bathroom walls
+makeWall(2500,5600, 2500,8000, IT,WH,false);
+makeWall(4300,5600, 4300,8000, IT,WH,false);
+makeWall(2500,8000, 4300,8000, IT,WH,false);
+// Kids room top
+makeWall(0,8500, 2500,8500, IT,WH,false);
+// Master bedroom bottom
+makeWall(2500,8100, 7887,8100, IT,WH,false);
+// Master bath
+makeWall(0,8500, 0,10100, ET,WH,true);
+makeWall(2400,8500, 2400,10100, IT,WH,false);
+
+// Balcony wall (low, glass)
+makeWall(4300,0, 4300,-1500, IT,800,false);
+
+// Furniture
+// Kitchen
+makeFurniture(300,2200, 300,2800, 150, 0xa08060); // L counter left
+makeFurniture(600,4900, 3200,300, 150, 0xa08060); // L counter back
+makeFurniture(2000,3200, 1600,600, 150, 0x907050); // island
+makeFurniture(2000,3900, 1800,200, 120, 0x806040); // dining table
+makeFurniture(1400,3900, 100,100, 80, 0x666); // chair
+makeFurniture(2600,3900, 100,100, 80, 0x666); // chair
+
+// Living room
+makeFurniture(5500,800, 2200,800, 100, 0x8a9a7a); // sofa
+makeFurniture(5800,1800, 1000,500, 60, 0x9a8a70); // coffee table
+makeFurniture(5500,3800, 2400,300, 250, 0x8a8070); // cabinet wall
+
+// Study
+makeFurniture(5000,5000, 2200,1200, 80, 0x7a8a9a); // tatami
+makeFurniture(7200,5200, 400,1800, 120, 0x707a88); // desk
+
+// Master bedroom
+makeFurniture(5000,8800, 2000,1800, 100, 0xb8a0a8); // bed
+makeFurniture(3000,8300, 400,2400, 220, 0x9a8890); // wardrobe
+makeFurniture(6500,10500, 1200,300, 60, 0xa09098); // bay window bench
+
+// Kids room
+makeFurniture(1200,6200, 1200,1800, 100, 0xa098b0); // bed
+makeFurniture(200,6000, 400,2400, 200, 0x9088a0); // wardrobe
+
+// Guest bathroom
+makeFurniture(2700,5800, 600,400, 100, 0x88b0b0); // vanity
+makeFurniture(3800,5800, 400,400, 60, 0x88b0b0); // toilet
+
+// Master bathroom
+makeFurniture(400,8700, 600,400, 100, 0x88b0b0); // vanity
+makeFurniture(1600,8700, 400,400, 60, 0x88b0b0); // toilet
+makeFurniture(800,9400, 1200,600, 80, 0x90c0c0); // bathtub
+
+// Grid
+const gridHelper = new THREE.GridHelper(14, 28, 0xcccccc, 0xe0e0e0);
+gridGroup.add(gridHelper);
+
+// Labels
+rooms.forEach(r => {
+  const div = document.createElement('div');
+  div.className = 'label-2d';
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'lname';
+  nameDiv.textContent = r.name;
+  div.appendChild(nameDiv);
+
+  const dimDiv = document.createElement('div');
+  dimDiv.className = 'ldim';
+  dimDiv.textContent = r.dim + 'mm';
+  div.appendChild(dimDiv);
+
+  if(r.link) {
+    div.style.cursor = 'pointer';
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showInfo(r);
+    });
+  }
+
+  const label = new CSS2DObject(div);
+  label.position.set((r.x+r.w/2)*S - CX, WH*S + 0.15, (r.y+r.h/2)*S - CY);
+  scene.add(label);
+  labelObjects.push({ obj: label, nameEl: div, dimEl: dimDiv, room: r });
+});
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI/2.2;
+controls.minDistance = 2;
+controls.maxDistance = 25;
+
+// Default view
+function resetView() {
+  camera.position.set(0, 14, 4);
+  controls.target.set(0, 0, 0.5);
+  controls.update();
+}
+resetView();
+window.resetView = resetView;
+
+// Raycaster for hover/click
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredMesh = null;
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+  mouse.x = (e.clientX/innerWidth)*2-1;
+  mouse.y = -(e.clientY/innerHeight)*2+1;
+});
+
+renderer.domElement.addEventListener('click', () => {
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(floorMeshes);
+  if(hits.length > 0) {
+    const r = hits[0].object.userData;
+    if(r.link) showInfo(r);
+  } else {
+    document.getElementById('info-panel').style.display = 'none';
+  }
+});
+
+function showInfo(r) {
+  document.getElementById('ip-name').textContent = r.name;
+  document.getElementById('ip-size').textContent = r.dim + 'mm';
+  const link = document.getElementById('ip-link');
+  if(r.link) {
+    link.href = r.link;
+    link.style.display = 'inline-block';
+  } else {
+    link.style.display = 'none';
+  }
+  document.getElementById('info-panel').style.display = 'block';
+}
+
+// Toggles
+const toggleState = { labels: true, dims: true, furniture: true, grid: false };
+window.toggle = function(key, btn) {
+  toggleState[key] = !toggleState[key];
+  btn.classList.toggle('active');
+  if(key === 'labels') labelObjects.forEach(l => l.nameEl.querySelector('.lname').style.display = toggleState.labels ? '' : 'none');
+  if(key === 'dims') labelObjects.forEach(l => l.dimEl.style.display = toggleState.dims ? '' : 'none');
+  if(key === 'furniture') furnitureGroup.visible = toggleState.furniture;
+  if(key === 'grid') gridGroup.visible = toggleState.grid;
+};
+
+// Nav buttons
+const navEl = document.getElementById('nav-btns');
+rooms.filter(r=>r.link).forEach(r => {
+  const a = document.createElement('a');
+  a.className = 'nav-btn';
+  a.textContent = r.name.slice(0,4);
+  a.href = r.link;
+  a.target = '_blank';
+  navEl.appendChild(a);
+});
+
+// Hover effect
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(floorMeshes);
+  if(hoveredMesh && hoveredMesh !== (hits[0]?.object)) {
+    hoveredMesh.material.emissive.setHex(0x000000);
+    hoveredMesh = null;
+    renderer.domElement.style.cursor = 'default';
+  }
+  if(hits.length > 0 && hits[0].object.userData.link) {
+    hoveredMesh = hits[0].object;
+    hoveredMesh.material.emissive.setHex(0x222222);
+    renderer.domElement.style.cursor = 'pointer';
+  }
+
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
