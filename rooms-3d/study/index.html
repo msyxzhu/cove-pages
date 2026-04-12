@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>书房 3D 模型 — Study Room</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #1a1a1a; font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  canvas { display: block; }
+
+  /* Popup */
+  #popup {
+    display: none; position: fixed; z-index: 100;
+    background: rgba(30,30,30,0.92); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+    padding: 16px 20px; max-width: 280px; color: #f0ead6;
+    pointer-events: none; font-size: 14px; line-height: 1.6;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  #popup h3 { font-size: 15px; margin-bottom: 6px; color: #D4A56A; }
+
+  /* Control panel */
+  #controls {
+    position: fixed; top: 16px; right: 16px; z-index: 50;
+    background: rgba(30,30,30,0.72); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+    padding: 14px 18px; color: #f0ead6; min-width: 180px;
+  }
+  #controls h2 { font-size: 14px; margin-bottom: 10px; opacity: 0.7; letter-spacing: 1px; }
+  .ctrl-btn {
+    display: block; width: 100%; padding: 8px 0; margin: 4px 0;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; color: #f0ead6; font-size: 13px; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .ctrl-btn:hover { background: rgba(212,165,106,0.25); }
+  .ctrl-btn.active { background: rgba(212,165,106,0.35); border-color: #D4A56A; }
+
+  /* Title */
+  #title {
+    position: fixed; top: 16px; left: 16px; z-index: 50;
+    color: #f0ead6; font-size: 20px; font-weight: 600;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  #title small { display: block; font-size: 12px; opacity: 0.5; font-weight: 400; margin-top: 2px; }
+
+  /* CSS2D labels */
+  .label3d {
+    background: rgba(30,30,30,0.8); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,165,106,0.4); border-radius: 8px;
+    padding: 4px 10px; color: #f0ead6; font-size: 11px;
+    pointer-events: none; white-space: nowrap;
+    font-family: -apple-system, 'PingFang SC', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div id="title">🏠 书房 Study Room<small>点击家具查看储物规划</small></div>
+
+<div id="controls">
+  <h2>控制面板</h2>
+  <button class="ctrl-btn" onclick="toggleLabels()">🏷️ 标签 开/关</button>
+  <button class="ctrl-btn" onclick="toggleLED()">💡 灯带 开/关</button>
+  <button class="ctrl-btn" onclick="resetView()">🔄 重置视角</button>
+  <button class="ctrl-btn" onclick="toggleWireframe()">📐 线框模式</button>
+</div>
+
+<div id="popup"><h3 id="popup-title"></h3><div id="popup-body"></div></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ─── Scene Setup ───
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a1a);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.01, 50);
+camera.position.set(4.5, 3.2, 4.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(1.75, 1.2, 1.3);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1.5;
+controls.maxDistance = 10;
+controls.update();
+
+// ─── Scale: 1 unit = 1 meter ───
+const W = 3.522; // Wall A width (X)
+const D = 2.559; // Wall B depth (Z)
+const H = 2.4;   // Ceiling height after suspended ceiling
+
+// ─── Materials ───
+const mat = {
+  floor: new THREE.MeshStandardMaterial({ color: 0xB8956A, roughness: 0.7, metalness: 0.05 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xF5F0E8, roughness: 0.9 }),
+  ceiling: new THREE.MeshStandardMaterial({ color: 0xFAF7F0, roughness: 0.95 }),
+  oak: new THREE.MeshStandardMaterial({ color: 0xC4935A, roughness: 0.6, metalness: 0.02 }),
+  oakLight: new THREE.MeshStandardMaterial({ color: 0xD4A56A, roughness: 0.55 }),
+  cream: new THREE.MeshStandardMaterial({ color: 0xF0EBE0, roughness: 0.7 }),
+  creamDoor: new THREE.MeshStandardMaterial({ color: 0xEDE6D6, roughness: 0.65 }),
+  desk: new THREE.MeshStandardMaterial({ color: 0xCDA76A, roughness: 0.5 }),
+  ledStrip: new THREE.MeshStandardMaterial({ color: 0xFFE4B5, emissive: 0xFFD090, emissiveIntensity: 1.5, roughness: 0.3 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0xCCDDEE, transparent: true, opacity: 0.25, roughness: 0.1, metalness: 0.3 }),
+  cushion: new THREE.MeshStandardMaterial({ color: 0xD4C5A9, roughness: 0.85 }),
+  chairSeat: new THREE.MeshStandardMaterial({ color: 0x3A3A3A, roughness: 0.7 }),
+  chairMetal: new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.7 }),
+  bookRed: new THREE.MeshStandardMaterial({ color: 0xA04040, roughness: 0.7 }),
+  bookBlue: new THREE.MeshStandardMaterial({ color: 0x4060A0, roughness: 0.7 }),
+  bookGreen: new THREE.MeshStandardMaterial({ color: 0x508050, roughness: 0.7 }),
+  monitor: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.5 }),
+  screen: new THREE.MeshStandardMaterial({ color: 0x2244AA, emissive: 0x1133AA, emissiveIntensity: 0.4 }),
+};
+
+// ─── Helpers ───
+const clickables = [];
+const labels3d = [];
+const ledMeshes = [];
+let labelsVisible = true;
+let ledOn = true;
+let wireframeOn = false;
+
+function box(w,h,d,material,x,y,z, name, info) {
+  const g = new THREE.BoxGeometry(w,h,d);
+  const m = new THREE.Mesh(g, material);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  scene.add(m);
+  if (name && info) {
+    m.userData = { name, info };
+    clickables.push(m);
+  }
+  return m;
+}
+
+function addLabel(text, x, y, z) {
+  const div = document.createElement('div');
+  div.className = 'label3d';
+  div.textContent = text;
+  const obj = new CSS2DObject(div);
+  obj.position.set(x, y, z);
+  scene.add(obj);
+  labels3d.push(obj);
+  return obj;
+}
+
+// ─── Room Shell ───
+// Floor
+const floor = box(W, 0.02, D, mat.floor, W/2, 0.01, D/2);
+floor.receiveShadow = true;
+
+// Walls: A (back, Z=0), B (right window, X=W), C (left, X=0), D (front, Z=D)
+// Wall A - main tatami wall
+box(W, H, 0.08, mat.wall, W/2, H/2, 0.04);
+// Wall C - opposite wall with AC vent
+box(0.08, H, D, mat.wall, 0.04, H/2, D/2);
+// Wall D - door wall (front)
+box(W, H, 0.08, mat.wall, W/2, H/2, D-0.04);
+// Ceiling
+box(W, 0.06, D, mat.ceiling, W/2, H+0.03, D/2);
+
+// Wall B - window wall (partial, with bay window opening)
+const winBottom = 0.56;
+const winH = 1.65;
+const winTop = winBottom + winH;
+// Below window
+box(0.08, winBottom, D, mat.wall, W-0.04, winBottom/2, D/2);
+// Above window
+const aboveH = H - winTop;
+box(0.08, aboveH, D, mat.wall, W-0.04, winTop + aboveH/2, D/2);
+// Window frame sides
+box(0.08, winH, 0.1, mat.wall, W-0.04, winBottom+winH/2, 0.05);
+box(0.08, winH, 0.1, mat.wall, W-0.04, winBottom+winH/2, D-0.05);
+// Glass
+const glass = box(0.02, winH-0.05, D-0.2, mat.glass, W-0.01, winBottom+winH/2, D/2);
+
+// Bay window shelf
+const bayDepth = 0.12;
+box(bayDepth+0.15, 0.06, D-0.16, mat.oak, W-bayDepth/2+0.02, winBottom, D/2,
+  '🪟 飘窗储物', '📦 抱枕/毯子/休闲读物\n\n飘窗台面可作为阅读角，下方可放软垫和休闲书籍');
+
+// ─── Tatami Platform (along Wall A) ───
+const tatamiH = 0.4;
+const tatamiD = 1.872; // depth from wall A
+const segW = W / 5;
+
+for (let i = 0; i < 5; i++) {
+  const x = segW * i + segW/2;
+  const tMesh = box(segW - 0.01, tatamiH, tatamiD, mat.oak, x, tatamiH/2, tatamiD/2 + 0.08,
+    `📦 榻榻米储物格 ${i+1}`, `上翻式储物格 (${i+1}/5)\n\n🛏️ 被褥/换季衣物/行李箱\n5个独立储物格，上翻式开启\n尺寸: ${Math.round(segW*1000)}mm × ${Math.round(tatamiD*1000)}mm`);
+  // Tatami mat surface
+  box(segW - 0.02, 0.02, tatamiD - 0.02, mat.oakLight, x, tatamiH + 0.01, tatamiD/2 + 0.08);
+  // Subtle line between compartments
+  if (i < 4) {
+    box(0.008, tatamiH+0.02, tatamiD, mat.cream, segW*(i+1), tatamiH/2, tatamiD/2+0.08);
+  }
+}
+
+addLabel('📦 榻榻米储物 ×5', W/2, tatamiH + 0.15, tatamiD/2 + 0.08);
+
+// ─── Cushion on tatami ───
+box(0.6, 0.08, 0.6, mat.cushion, W*0.7, tatamiH+0.05, tatamiD*0.4+0.08);
+box(0.5, 0.08, 0.5, mat.cushion, W*0.3, tatamiH+0.05, tatamiD*0.35+0.08);
+
+// ─── Desk Area (on tatami, along wall A) ───
+const deskH = 0.35; // from tatami surface
+const deskTop = tatamiH + deskH;
+const deskW = 1.6;
+const deskD = 0.7;
+const deskX = W * 0.55;
+const deskZ = 0.08 + deskD/2;
+
+// Desk surface
+box(deskW, 0.03, deskD, mat.desk, deskX, deskTop, deskZ,
+  '🖥️ 桌面工作区', '💻 电脑/工作区\n✏️ 桌下抽屉: 文具/办公用品\n\n桌面高度: 750mm (榻榻米400 + 桌面350)');
+// Desk legs (integrated side panels)
+box(0.03, deskH-0.03, deskD-0.05, mat.oak, deskX-deskW/2+0.02, tatamiH+deskH/2, deskZ);
+box(0.03, deskH-0.03, deskD-0.05, mat.oak, deskX+deskW/2-0.02, tatamiH+deskH/2, deskZ);
+// Drawer under desk
+box(0.5, 0.12, deskD-0.1, mat.oakLight, deskX+0.3, tatamiH+0.12, deskZ);
+
+addLabel('🖥️ 工作区', deskX, deskTop + 0.6, deskZ);
+
+// ─── Monitor on desk ───
+box(0.6, 0.35, 0.02, mat.monitor, deskX, deskTop+0.22, deskZ-deskD/2+0.15);
+box(0.55, 0.3, 0.01, mat.screen, deskX, deskTop+0.23, deskZ-deskD/2+0.14);
+box(0.08, 0.02, 0.15, mat.chairMetal, deskX, deskTop+0.02, deskZ-deskD/2+0.2); // stand base
+box(0.02, 0.08, 0.02, mat.chairMetal, deskX, deskTop+0.06, deskZ-deskD/2+0.18); // stand neck
+
+// ─── Office Chair ───
+const chairX = deskX;
+const chairZ = deskZ + deskD/2 + 0.35;
+const chairSeatH = tatamiH + 0.05; // chair sits on floor in front of tatami, or on tatami
+// Actually chair is on floor level, user sits cross-legged or chair is low
+// Let's put chair on floor in front of tatami area
+const floorChairZ = tatamiD + 0.08 + 0.4;
+const seatH2 = 0.45;
+
+// Chair base (5-star)
+for (let a = 0; a < 5; a++) {
+  const angle = (a/5) * Math.PI * 2;
+  const legX = chairX + Math.sin(angle)*0.25;
+  const legZ = floorChairZ + Math.cos(angle)*0.25;
+  box(0.03, 0.04, 0.15, mat.chairMetal, legX, 0.02, legZ);
+}
+// Chair cylinder
+box(0.06, seatH2-0.1, 0.06, mat.chairMetal, chairX, seatH2/2, floorChairZ);
+// Chair seat
+box(0.45, 0.06, 0.42, mat.chairSeat, chairX, seatH2, floorChairZ);
+// Chair back
+box(0.44, 0.5, 0.04, mat.chairSeat, chairX, seatH2+0.3, floorChairZ-0.2);
+
+// ─── Upper Cabinets (Wall A, above desk/tatami area) ───
+const cabinetBottom = deskTop + 0.55; // clearance above desk
+const cabinetH1 = 0.5; // open shelves with LED
+const cabinetH2 = 0.45; // cream doors
+const cabinetH3 = 0.4; // oak flip-up
+const cabinetD = 0.35;
+
+// Open shelves with LED strip (middle band)
+const shelfY = cabinetBottom;
+for (let i = 0; i < 4; i++) {
+  const sx = W * (i+0.5) / 4;
+  box(W/4-0.02, cabinetH1, cabinetD, mat.oak, sx, shelfY+cabinetH1/2, cabinetD/2+0.08,
+    '📚 开放格', '📖 常用书籍+装饰品\n💡 内置灯带照明\n\n开放式设计方便取用日常书籍');
+  // LED strip in shelf
+  const led = box(W/4-0.06, 0.01, 0.02, mat.ledStrip, sx, shelfY+cabinetH1-0.02, 0.12);
+  ledMeshes.push(led);
+}
+addLabel('📚 开放格+灯带', W/2, shelfY+cabinetH1/2, cabinetD/2+0.08);
+
+// Cream cabinet doors
+const creamY = shelfY + cabinetH1;
+for (let i = 0; i < 3; i++) {
+  const sx = W * (i+0.5) / 3;
+  box(W/3-0.015, cabinetH2, cabinetD, mat.creamDoor, sx, creamY+cabinetH2/2, cabinetD/2+0.08,
+    '🗄️ 封闭柜', '📁 文件/资料/不常用物品\n\n定制浅色造型柜门\n适合存放文件档案等');
+}
+addLabel('🗄️ 浅色造型柜门', W/2, creamY+cabinetH2/2, cabinetD+0.08);
+
+// Oak flip-up doors (top)
+const oakTopY = creamY + cabinetH2;
+for (let i = 0; i < 3; i++) {
+  const sx = W * (i+0.5) / 3;
+  box(W/3-0.015, cabinetH3, cabinetD, mat.oakLight, sx, oakTopY+cabinetH3/2, cabinetD/2+0.08,
+    '📖 上翻柜', '📚 书籍储备\n\n定制木色上翻柜门\n存放不常翻阅的书籍');
+}
+addLabel('📖 木色上翻柜', W/2, oakTopY+cabinetH3/2, cabinetD+0.08);
+
+// ─── Books on open shelves ───
+const bookMats = [mat.bookRed, mat.bookBlue, mat.bookGreen, mat.oakLight, mat.bookRed];
+for (let i = 0; i < 4; i++) {
+  const sx = W * (i+0.5)/4;
+  for (let b = 0; b < 4; b++) {
+    const bx = sx - 0.15 + b*0.09;
+    const bh = 0.18 + Math.random()*0.08;
+    box(0.06, bh, 0.2, bookMats[b % bookMats.length], bx, shelfY+bh/2+0.02, cabinetD/2-0.02+0.08);
+  }
+}
+
+// ─── Ceiling LED strip (perimeter) ───
+const ledCeiling1 = box(W-0.2, 0.015, 0.03, mat.ledStrip, W/2, H-0.02, 0.15);
+const ledCeiling2 = box(W-0.2, 0.015, 0.03, mat.ledStrip, W/2, H-0.02, D-0.15);
+const ledCeiling3 = box(0.03, 0.015, D-0.3, mat.ledStrip, 0.15, H-0.02, D/2);
+const ledCeiling4 = box(0.03, 0.015, D-0.3, mat.ledStrip, W-0.15, H-0.02, D/2);
+ledMeshes.push(ledCeiling1, ledCeiling2, ledCeiling3, ledCeiling4);
+
+// Gypsum board edge (suspended ceiling detail)
+box(W, 0.08, 0.12, mat.cream, W/2, H-0.04, 0.06);
+box(W, 0.08, 0.12, mat.cream, W/2, H-0.04, D-0.06);
+box(0.12, 0.08, D, mat.cream, 0.06, H-0.04, D/2);
+box(0.12, 0.08, D, mat.cream, W-0.06, H-0.04, D/2);
+
+// ─── AC Vent (Wall C top) ───
+box(0.04, 0.08, 0.8, mat.chairMetal, 0.1, H-0.12, D/2);
+addLabel('❄️ 空调风口', 0.1, H-0.05, D/2);
+
+// ─── Bay Window label ───
+addLabel('🪟 飘窗', W-0.1, winBottom+0.15, D/2);
+
+// ─── Lighting ───
+const ambientLight = new THREE.AmbientLight(0xFFF5E0, 0.4);
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(0xFFF0D0, 0.8);
+mainLight.position.set(W+2, H+2, D+1);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.set(1024, 1024);
+mainLight.shadow.camera.near = 0.5;
+mainLight.shadow.camera.far = 15;
+mainLight.shadow.camera.left = -5;
+mainLight.shadow.camera.right = 5;
+mainLight.shadow.camera.top = 5;
+mainLight.shadow.camera.bottom = -5;
+scene.add(mainLight);
+
+// Window light
+const winLight = new THREE.RectAreaLight(0xE8F0FF, 2, D-0.3, winH-0.1);
+winLight.position.set(W-0.05, winBottom+winH/2, D/2);
+winLight.rotation.y = -Math.PI/2;
+scene.add(winLight);
+
+// Warm ceiling point lights
+const pl1 = new THREE.PointLight(0xFFE0A0, 0.6, 5);
+pl1.position.set(W/2, H-0.1, D/2);
+scene.add(pl1);
+
+const pl2 = new THREE.PointLight(0xFFD080, 0.3, 3);
+pl2.position.set(deskX, deskTop+0.3, deskZ);
+scene.add(pl2);
+
+// ─── Raycaster for click ───
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const popup = document.getElementById('popup');
+const popupTitle = document.getElementById('popup-title');
+const popupBody = document.getElementById('popup-body');
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(clickables);
+  if (hits.length > 0) {
+    const d = hits[0].object.userData;
+    popupTitle.textContent = d.name;
+    popupBody.textContent = d.info;
+    popup.style.display = 'block';
+    popup.style.left = Math.min(e.clientX + 12, innerWidth - 300) + 'px';
+    popup.style.top = Math.min(e.clientY + 12, innerHeight - 200) + 'px';
+  } else {
+    popup.style.display = 'none';
+  }
+});
+
+// ─── Controls API ───
+window.toggleLabels = () => {
+  labelsVisible = !labelsVisible;
+  labels3d.forEach(l => l.visible = labelsVisible);
+};
+
+window.toggleLED = () => {
+  ledOn = !ledOn;
+  const intensity = ledOn ? 1.5 : 0;
+  ledMeshes.forEach(m => m.material.emissiveIntensity = intensity);
+};
+
+window.resetView = () => {
+  camera.position.set(4.5, 3.2, 4.5);
+  controls.target.set(1.75, 1.2, 1.3);
+  controls.update();
+};
+
+window.toggleWireframe = () => {
+  wireframeOn = !wireframeOn;
+  scene.traverse(c => {
+    if (c.isMesh && c.material && c.material.isMeshStandardMaterial) {
+      c.material.wireframe = wireframeOn;
+    }
+  });
+};
+
+// ─── Resize ───
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ─── Animate ───
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
