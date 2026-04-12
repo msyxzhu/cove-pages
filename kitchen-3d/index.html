@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>厨房收纳规划 3D 模型</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; }
+canvas { display: block; }
+
+#controls {
+  position: fixed; top: 16px; right: 16px; z-index: 100;
+  background: rgba(255,255,255,0.95); border-radius: 12px;
+  padding: 16px; min-width: 180px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  backdrop-filter: blur(10px);
+}
+#controls h3 { font-size: 14px; margin-bottom: 12px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+.ctrl-btn {
+  display: block; width: 100%; padding: 8px 12px; margin-bottom: 6px;
+  border: 1px solid #ddd; border-radius: 8px; background: #fff;
+  cursor: pointer; font-size: 13px; text-align: left; transition: all 0.2s;
+  color: #333;
+}
+.ctrl-btn:hover { background: #f5f5f5; border-color: #bbb; }
+.ctrl-btn.active { background: #C4935A; color: #fff; border-color: #C4935A; }
+.ctrl-btn .icon { margin-right: 6px; }
+
+#popup {
+  position: fixed; display: none; z-index: 200;
+  background: rgba(255,255,255,0.97); border-radius: 12px;
+  padding: 16px 20px; max-width: 260px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  pointer-events: auto;
+}
+#popup h4 { font-size: 14px; color: #C4935A; margin-bottom: 8px; }
+#popup p { font-size: 13px; color: #555; line-height: 1.6; }
+#popup .close-btn {
+  position: absolute; top: 8px; right: 12px; cursor: pointer;
+  font-size: 16px; color: #999; background: none; border: none;
+}
+
+#legend {
+  position: fixed; bottom: 16px; left: 16px; z-index: 100;
+  background: rgba(255,255,255,0.9); border-radius: 10px;
+  padding: 12px 16px; font-size: 12px; color: #555;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+}
+#legend b { color: #333; }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <h3>🏠 厨房收纳规划</h3>
+  <button class="ctrl-btn active" id="btnZones" onclick="toggleZones()"><span class="icon">🏷️</span>功能分区</button>
+  <button class="ctrl-btn active" id="btnArrows" onclick="toggleArrows()"><span class="icon">➡️</span>动线流程</button>
+  <button class="ctrl-btn" id="btnLabels" onclick="toggleCabinetLabels()"><span class="icon">📦</span>柜内规划</button>
+  <button class="ctrl-btn" onclick="resetView()"><span class="icon">🔄</span>重置视角</button>
+</div>
+
+<div id="popup">
+  <button class="close-btn" onclick="hidePopup()">✕</button>
+  <h4 id="popupTitle"></h4>
+  <p id="popupContent"></p>
+</div>
+
+<div id="legend">
+  <b>操作:</b> 左键旋转 · 右键平移 · 滚轮缩放 · 点击柜体查看收纳建议
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf0ece6);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 50);
+camera.position.set(4.5, 3.5, 4.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(1.5, 0.9, -0.5);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.update();
+
+// Lighting
+const ambient = new THREE.AmbientLight(0xfff5e6, 0.6);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(3, 5, 4);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xe8e0d0, 0.4);
+fillLight.position.set(-3, 2, -2);
+scene.add(fillLight);
+
+// Scale: 1 unit = 1 meter. All dims converted from mm.
+const MAT = {
+  oak: new THREE.MeshStandardMaterial({ color: 0xC4935A, roughness: 0.6 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xF5F5F0, roughness: 0.3 }),
+  counter: new THREE.MeshStandardMaterial({ color: 0xE8E4DE, roughness: 0.2 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xF5F0EA, roughness: 0.5 }),
+  floor: new THREE.MeshStandardMaterial({ color: 0xD5D0CA, roughness: 0.6 }),
+  black: new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.4 }),
+  darkGrey: new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.5 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.6, roughness: 0.3 }),
+  window: new THREE.MeshStandardMaterial({ color: 0xadd8e6, transparent: true, opacity: 0.3 }),
+  kickboard: new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.7 }),
+  arrow: new THREE.MeshStandardMaterial({ color: 0xC4935A, transparent: true, opacity: 0.7 }),
+};
+
+// Helpers
+function box(w, h, d, mat) {
+  const g = new THREE.BoxGeometry(w, h, d);
+  const m = new THREE.Mesh(g, mat);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+function addAt(mesh, x, y, z) { mesh.position.set(x, y, z); scene.add(mesh); return mesh; }
+
+// Clickable cabinets
+const clickables = [];
+function cabinet(w, h, d, mat, x, y, z, name, content) {
+  const m = box(w, h, d, mat);
+  m.position.set(x, y, z);
+  m.userData = { name, content, isCabinet: true };
+  scene.add(m);
+  clickables.push(m);
+  return m;
+}
+
+// Draw door lines on cabinet faces
+function addDoorLines(cab, nDoors, face) {
+  // face: 'front' (z+), 'side' (x+), 'back' (z-), 'left' (x-)
+  const w = cab.geometry.parameters.width;
+  const h = cab.geometry.parameters.height;
+  const d = cab.geometry.parameters.depth;
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x8a7050 });
+  
+  const doorW = (face === 'front' || face === 'back') ? w / nDoors : d / nDoors;
+  for (let i = 1; i < nDoors; i++) {
+    const pts = [];
+    const offset = -((face === 'front' || face === 'back') ? w : d) / 2 + doorW * i;
+    if (face === 'front') {
+      pts.push(new THREE.Vector3(offset, -h/2, d/2 + 0.001));
+      pts.push(new THREE.Vector3(offset, h/2, d/2 + 0.001));
+    } else if (face === 'back') {
+      pts.push(new THREE.Vector3(offset, -h/2, -d/2 - 0.001));
+      pts.push(new THREE.Vector3(offset, h/2, -d/2 - 0.001));
+    } else if (face === 'side') {
+      pts.push(new THREE.Vector3(w/2 + 0.001, -h/2, offset));
+      pts.push(new THREE.Vector3(w/2 + 0.001, h/2, offset));
+    }
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geo, lineMat);
+    cab.add(line);
+  }
+}
+
+// ===== FLOOR & WALLS =====
+const floorMesh = box(6, 0.02, 5, MAT.floor);
+addAt(floorMesh, 2, 0, -1);
+floorMesh.receiveShadow = true;
+
+// Back wall (along X axis at z = -0.6 - depth area, let's put wall at z = -0.6)
+const backWallZ = -0.6;
+addAt(box(3.5, 2.28, 0.05, MAT.wall), 1.4, 1.14, backWallZ - 0.025);
+// Left wall (along Z axis at x = 0)
+addAt(box(0.05, 2.28, 3, MAT.wall), -0.025, 1.14, 0.5);
+// Ceiling
+addAt(box(6, 0.02, 5, MAT.white), 2, 2.28, -1);
+
+// Window on back wall
+addAt(box(0.7, 1.0, 0.02, MAT.window), 1.4, 1.5, backWallZ - 0.01);
+// Window frame
+const frameMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+addAt(box(0.74, 0.03, 0.04, frameMat), 1.4, 2.0, backWallZ - 0.01);
+addAt(box(0.74, 0.03, 0.04, frameMat), 1.4, 1.0, backWallZ - 0.01);
+addAt(box(0.03, 1.0, 0.04, frameMat), 1.05, 1.5, backWallZ - 0.01);
+addAt(box(0.03, 1.0, 0.04, frameMat), 1.75, 1.5, backWallZ - 0.01);
+
+// ===== BACK WALL BASE CABINETS =====
+const baseH = 0.82; // 900 - 80 kickboard
+const baseY = 0.08 + baseH / 2; // kickboard + half height
+const counterY = 0.08 + baseH + 0.02; // top of counter
+const baseZ = -0.3; // center of 600mm depth cabinet
+
+// Kickboard back wall
+addAt(box(2.811, 0.08, 0.6, MAT.kickboard), 1.4055, 0.04, baseZ);
+
+// Back wall segments: 600 + 402 + 403 + 403 + 403 = ~2211, but total is 2811
+// Cooktop area (left)
+const c1 = cabinet(0.6, baseH, 0.6, MAT.oak, 0.3, baseY, baseZ, '灶台下柜', '调料(spices) + 锅具(pots & pans)\n常用锅铲放抽屉最上层');
+addDoorLines(c1, 2, 'front');
+// Prep area segments
+const c2 = cabinet(0.402, baseH, 0.6, MAT.oak, 0.801, baseY, baseZ, '备菜区抽屉(左)', '刀具(knives) + 砧板(cutting boards)');
+const c3 = cabinet(0.403, baseH, 0.6, MAT.oak, 1.2035, baseY, baseZ, '水槽下柜', '垃圾桶(trash) + 清洁用品(cleaning supplies)\n建议装抽拉式垃圾桶');
+const c4 = cabinet(0.403, baseH, 0.6, MAT.oak, 1.6065, baseY, baseZ, '备菜区抽屉(右)', '保鲜膜/袋(wraps/bags) + 厨房纸巾');
+const c5 = cabinet(0.403, baseH, 0.6, MAT.oak, 2.0095, baseY, baseZ, '洗碗机', '内置洗碗机\n上方可放洗碗粉/盐');
+// Appliance tower right section
+const c6 = cabinet(0.6, baseH, 0.6, MAT.oak, 2.511, baseY, baseZ, '电器柜(下)', '小家电(small appliances)\n建议安装抽拉式搁板');
+addDoorLines(c6, 1, 'front');
+
+// Countertop back wall
+addAt(box(2.811, 0.04, 0.62, MAT.counter), 1.4055, counterY, baseZ);
+
+// ===== BACK WALL WALL CABINETS =====
+const wallCabBottom = 2.28 - 0.32 - 0.7; // top 320 from ceiling, 700mm tall
+const wallCabH = 0.7;
+const wallCabY = wallCabBottom + wallCabH / 2;
+const wallCabZ = backWallZ + 0.15; // shallower, 300mm depth
+
+// Skip window area, place wall cabs on sides
+const wc1 = cabinet(0.6, wallCabH, 0.3, MAT.white, 0.3, wallCabY, wallCabZ, '灶台上方吊柜', '不常用物品(seldom-used)\n调味料备货、干货');
+addDoorLines(wc1, 2, 'front');
+const wc2 = cabinet(0.6, wallCabH, 0.3, MAT.white, 2.511, wallCabY, wallCabZ, '电器柜(上) - 净水器', '净水/管线机(water dispenser)\n内置安装');
+
+// ===== RANGE HOOD =====
+const hood = box(0.6, 0.08, 0.45, MAT.black);
+addAt(hood, 0.3, counterY + 0.6, baseZ + 0.075);
+// Hood chimney
+addAt(box(0.2, 0.5, 0.2, MAT.black), 0.3, counterY + 0.6 + 0.04 + 0.25, wallCabZ);
+
+// ===== COOKTOP =====
+// Two burner circles on the countertop
+function burner(x, z) {
+  const ring = new THREE.TorusGeometry(0.08, 0.008, 8, 24);
+  const m = new THREE.Mesh(ring, MAT.black);
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, counterY + 0.025, z);
+  scene.add(m);
+}
+burner(0.2, baseZ + 0.05);
+burner(0.4, baseZ + 0.05);
+
+// ===== SINK =====
+const sinkW = 0.6, sinkD = 0.4, sinkH = 0.15;
+const sinkMesh = box(sinkW, sinkH, sinkD, MAT.steel);
+addAt(sinkMesh, 1.4, counterY - sinkH / 2 + 0.01, baseZ + 0.05);
+// Sink basin (inset darker)
+const basin = box(sinkW - 0.04, 0.005, sinkD - 0.04, new THREE.MeshStandardMaterial({ color: 0x888888 }));
+addAt(basin, 1.4, counterY + 0.015, baseZ + 0.05);
+// Faucet
+const faucet = box(0.03, 0.3, 0.03, MAT.steel);
+addAt(faucet, 1.4, counterY + 0.17, baseZ - 0.17);
+const spout = box(0.15, 0.02, 0.02, MAT.steel);
+addAt(spout, 1.4, counterY + 0.32, baseZ - 0.07);
+
+// ===== LEFT WALL BASE CABINETS =====
+const leftBaseX = -0.3; // center of 600mm depth
+const leftKick = box(0.6, 0.08, 2.141, MAT.kickboard);
+addAt(leftKick, leftBaseX, 0.04, 1.0705);
+
+const lc1 = cabinet(0.6, baseH, 0.411, MAT.oak, leftBaseX, baseY, 0.2055, '左墙柜(1)', '干货/储粮(dry goods/pantry)\n米面粮油集中存放');
+const lc2 = cabinet(0.6, baseH, 0.410, MAT.oak, leftBaseX, baseY, 0.616, '左墙柜(2)', '干货/储粮(dry goods/pantry)\n罐头、酱料备货');
+const lc3 = cabinet(0.6, baseH, 0.410, MAT.oak, leftBaseX, baseY, 1.026, '左墙柜(3)', '备用厨具(backup utensils)\n不常用锅具、烤盘');
+const lc4 = cabinet(0.6, baseH, 0.410, MAT.oak, leftBaseX, baseY, 1.436, '左墙柜(4)', '备用厨具(backup utensils)\n一次性餐具、保鲜盒');
+
+// Left wall countertop
+addAt(box(0.62, 0.04, 2.141, MAT.counter), leftBaseX, counterY, 1.0705);
+
+// Left wall wall cabinets
+const lwc1 = cabinet(0.3, wallCabH, 0.411, MAT.white, -0.15, wallCabY, 0.2055, '左墙吊柜(1)', '不常用物品\n节日餐具、特殊模具');
+const lwc2 = cabinet(0.3, wallCabH, 0.410, MAT.white, -0.15, wallCabY, 0.616, '左墙吊柜(2)', '不常用物品\n备用调味料');
+const lwc3 = cabinet(0.3, wallCabH, 0.410, MAT.white, -0.15, wallCabY, 1.026, '左墙吊柜(3)', '不常用物品\n茶具、咖啡器具');
+const lwc4 = cabinet(0.3, wallCabH, 0.410, MAT.white, -0.15, wallCabY, 1.436, '左墙吊柜(4)', '不常用物品\n保鲜容器');
+
+// ===== ISLAND =====
+const islandZ = baseZ + 0.6 + 0.892 + 0.3; // back counter front + walkway + half depth
+const islandX = 0.82;
+const islandW = 1.641;
+const islandD = 0.6;
+const islandH = 0.82;
+
+// Kickboard island
+addAt(box(islandW, 0.08, islandD, MAT.kickboard), islandX, 0.04, islandZ);
+
+// Kitchen-side cabinets (facing back wall, z-)
+const ic1 = cabinet(0.8, islandH, islandD, MAT.oak, 0.4, baseY, islandZ, '岛台柜(左)', '碗碟(dishes) + 杯子(cups)\n日常餐具就近取用');
+addDoorLines(ic1, 2, 'back');
+const ic2 = cabinet(0.841, islandH, islandD, MAT.oak, 1.2205, baseY, islandZ, '岛台柜(右)', '碗碟(dishes) + 餐垫/餐巾\n上菜动线最短');
+addDoorLines(ic2, 2, 'back');
+
+// Entrance side shelves (open, for shoes) - visual indication
+const shelfMat = new THREE.MeshStandardMaterial({ color: 0xC4935A, transparent: true, opacity: 0.5 });
+addAt(box(islandW, 0.02, 0.55, shelfMat), islandX, 0.25, islandZ);
+addAt(box(islandW, 0.02, 0.55, shelfMat), islandX, 0.50, islandZ);
+
+// Island countertop
+addAt(box(islandW + 0.04, 0.04, islandD + 0.04, MAT.counter), islandX, counterY, islandZ);
+
+// ===== DOOR =====
+addAt(box(0.8, 2.1, 0.05, MAT.darkGrey), -0.025, 1.05, 2.1);
+
+// ===== ZONE LABELS (CSS2D) =====
+const zoneLabels = [];
+function makeZoneLabel(text, x, y, z) {
+  const div = document.createElement('div');
+  div.style.cssText = 'background:rgba(196,147,90,0.9);color:#fff;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;';
+  div.textContent = text;
+  const label = new CSS2DObject(div);
+  label.position.set(x, y, z);
+  scene.add(label);
+  zoneLabels.push(label);
+  return label;
+}
+
+makeZoneLabel('🔥 烹饪区', 0.3, counterY + 0.15, baseZ + 0.35);
+makeZoneLabel('🔪 切菜区', 0.8, counterY + 0.15, baseZ + 0.35);
+makeZoneLabel('🫧 洗菜区', 1.4, counterY + 0.15, baseZ + 0.35);
+makeZoneLabel('🍽️ 装盘区', islandX, counterY + 0.15, islandZ - 0.1);
+
+// ===== CABINET CONTENT LABELS (CSS2D) =====
+const cabinetLabels = [];
+function makeCabinetLabel(text, x, y, z) {
+  const div = document.createElement('div');
+  div.style.cssText = 'background:rgba(60,60,60,0.85);color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;white-space:nowrap;pointer-events:none;display:none;';
+  div.textContent = text;
+  const label = new CSS2DObject(div);
+  label.position.set(x, y, z);
+  scene.add(label);
+  cabinetLabels.push(label);
+  return label;
+}
+
+makeCabinetLabel('调料+锅具', 0.3, baseY, baseZ + 0.35);
+makeCabinetLabel('刀具+砧板', 0.801, baseY, baseZ + 0.35);
+makeCabinetLabel('垃圾桶+清洁', 1.2035, baseY, baseZ + 0.35);
+makeCabinetLabel('保鲜用品', 1.6065, baseY, baseZ + 0.35);
+makeCabinetLabel('洗碗机', 2.0095, baseY, baseZ + 0.35);
+makeCabinetLabel('小家电', 2.511, baseY, baseZ + 0.35);
+makeCabinetLabel('净水器', 2.511, wallCabY, wallCabZ + 0.2);
+makeCabinetLabel('干货储粮', leftBaseX, baseY, 0.4);
+makeCabinetLabel('备用厨具', leftBaseX, baseY, 1.2);
+makeCabinetLabel('碗碟+杯子', islandX, baseY, islandZ - 0.35);
+
+// ===== WORKFLOW ARROWS =====
+const arrowGroup = new THREE.Group();
+scene.add(arrowGroup);
+
+const workflowPts = [
+  { label: '冰箱', pos: new THREE.Vector3(-0.3, 0.01, 1.6) },
+  { label: '洗菜', pos: new THREE.Vector3(1.4, 0.01, 0.2) },
+  { label: '切菜', pos: new THREE.Vector3(0.8, 0.01, 0.2) },
+  { label: '烹饪', pos: new THREE.Vector3(0.3, 0.01, 0.2) },
+  { label: '装盘', pos: new THREE.Vector3(islandX, 0.01, islandZ - 0.3) },
+];
+
+// Draw arrows between workflow points
+const arrowMat = new THREE.MeshStandardMaterial({ color: 0xC4935A, transparent: true, opacity: 0.6 });
+for (let i = 0; i < workflowPts.length - 1; i++) {
+  const from = workflowPts[i].pos;
+  const to = workflowPts[i + 1].pos;
+  const dir = new THREE.Vector3().subVectors(to, from);
+  const len = dir.length();
+  dir.normalize();
+
+  // Line body
+  const lineGeo = new THREE.CylinderGeometry(0.015, 0.015, len - 0.1, 6);
+  const lineMesh = new THREE.Mesh(lineGeo, arrowMat);
+  const mid = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
+  mid.y = 0.02;
+  lineMesh.position.copy(mid);
+  lineMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  arrowGroup.add(lineMesh);
+
+  // Arrowhead
+  const coneGeo = new THREE.ConeGeometry(0.04, 0.1, 6);
+  const coneMesh = new THREE.Mesh(coneGeo, arrowMat);
+  const tipPos = new THREE.Vector3().copy(to).sub(dir.clone().multiplyScalar(0.05));
+  tipPos.y = 0.02;
+  coneMesh.position.copy(tipPos);
+  coneMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  arrowGroup.add(coneMesh);
+}
+
+// Workflow step labels on floor
+for (const pt of workflowPts) {
+  const div = document.createElement('div');
+  div.style.cssText = 'background:rgba(196,147,90,0.75);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;pointer-events:none;';
+  div.textContent = pt.label;
+  const label = new CSS2DObject(div);
+  label.position.copy(pt.pos);
+  label.position.y = 0.06;
+  arrowGroup.add(label);
+}
+
+// Fridge indicator on left wall
+const fridgeBox = box(0.6, 1.7, 0.6, new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3 }));
+addAt(fridgeBox, leftBaseX, 0.85, 1.8);
+const fridgeLabel = document.createElement('div');
+fridgeLabel.style.cssText = 'background:rgba(100,100,100,0.8);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;pointer-events:none;';
+fridgeLabel.textContent = '冰箱';
+const fl = new CSS2DObject(fridgeLabel);
+fl.position.set(leftBaseX, 1.8, 1.8);
+scene.add(fl);
+
+// ===== INTERACTION =====
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener('click', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(clickables);
+  if (hits.length > 0) {
+    const obj = hits[0].object;
+    const ud = obj.userData;
+    if (ud.isCabinet) {
+      showPopup(e.clientX, e.clientY, ud.name, ud.content);
+    }
+  }
+});
+
+function showPopup(x, y, title, content) {
+  const popup = document.getElementById('popup');
+  document.getElementById('popupTitle').textContent = title;
+  document.getElementById('popupContent').textContent = content;
+  popup.style.display = 'block';
+  // Keep within viewport
+  const px = Math.min(x + 10, window.innerWidth - 280);
+  const py = Math.min(y - 10, window.innerHeight - 150);
+  popup.style.left = px + 'px';
+  popup.style.top = py + 'px';
+}
+
+window.hidePopup = () => { document.getElementById('popup').style.display = 'none'; };
+
+// ===== TOGGLES =====
+let showZones = true, showArrows = true, showCabLabels = false;
+
+window.toggleZones = () => {
+  showZones = !showZones;
+  document.getElementById('btnZones').classList.toggle('active', showZones);
+  zoneLabels.forEach(l => l.element.style.display = showZones ? '' : 'none');
+};
+
+window.toggleArrows = () => {
+  showArrows = !showArrows;
+  document.getElementById('btnArrows').classList.toggle('active', showArrows);
+  arrowGroup.visible = showArrows;
+  arrowGroup.children.forEach(c => {
+    if (c instanceof CSS2DObject) c.element.style.display = showArrows ? '' : 'none';
+  });
+};
+
+window.toggleCabinetLabels = () => {
+  showCabLabels = !showCabLabels;
+  document.getElementById('btnLabels').classList.toggle('active', showCabLabels);
+  cabinetLabels.forEach(l => l.element.style.display = showCabLabels ? '' : 'none');
+};
+
+window.resetView = () => {
+  camera.position.set(4.5, 3.5, 4.5);
+  controls.target.set(1.5, 0.9, -0.5);
+  controls.update();
+};
+
+// ===== RESIZE =====
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ===== ANIMATE =====
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
