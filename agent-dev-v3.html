@@ -110,7 +110,7 @@
 <h2 class="chapter-title" style="border-bottom:2px solid #1890ff;">🗺️ 全局学习路线图</h2>
 <div class="chapter-content">
 
-<p>这份教程共 <strong>24 个章节</strong>，分为 5 个 Part。下面这张图展示了<strong>知识依赖关系</strong>——箭头表示"学 B 之前需要先学 A"。你可以随时回到这里确认自己的位置。</p>
+<p>这份教程共 <strong>25 个章节</strong>，分为 5 个 Part。下面这张图展示了<strong>知识依赖关系</strong>——箭头表示"学 B 之前需要先学 A"。你可以随时回到这里确认自己的位置。</p>
 
 <div class="visualization">
 <pre style="font-size:13px; line-height:1.5; text-align:left;">
@@ -133,9 +133,9 @@
   │         │    (向量数据库/                      (通信机制/                 │
   │         │     ANN/HNSW)                        协作模式)                 │
   │         │                                                               │
-  │         └──→ 09 手写Agent ──→ 10 生产环境                               │
-  │              (实战代码)        (SSE/缓存/                                │
-  │                                DPO/GRPO)                                │
+  │         └──→ 09 手写Agent ──→ 10 SSE/缓存 ──→ 10b 训练与对齐           │
+  │              (实战代码)        (Streaming/      (SFT/DPO/               │
+  │                                Prompt Cache)    GRPO)                   │
   └───────────────────────────┬─────────────────────────────────────────────┘
                               │
                               ▼
@@ -2591,6 +2591,16 @@ app.get(<span class="string">"/api/chat"</span>, (req, res) => {
    <span class="comment">相同的 system prompt 前缀 → 自动缓存，后续请求更便宜</span>
 </pre>
 
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 如何实现 SSE 推送？Agent 工具调用时 SSE 事件结构包含哪些字段？</strong><br><br>
+<strong>标准答案：</strong>SSE 通过设置 Content-Type: text/event-stream，后端逐步推送 data: {json}\n\n 格式的事件。Agent 工具调用时的事件结构通常包含：①type（text_delta / tool_call_start / tool_call_done / done）②content（文本增量）③tool_name / tool_args（工具名和参数）④tool_result（工具返回）。<br><br>
+<strong>加分回答：</strong>提到 OpenClaw 的三层流式事件：lifecycle（start/end/error）、assistant（文本增量）、tool（工具状态），以及 Block Streaming 机制（不是 token 级推送，而是按段落/块推送）。<br><br>
+<strong>常见踩坑：</strong>❌ 把 SSE 和 WebSocket 搞混——SSE 是单向的（服务端→客户端），WebSocket 是双向的。
+</div>
+</div>
+
 <p>工程层面的问题解决了。下一章我们看看模型本身是怎么训练和优化的——这决定了 Agent 的"智商上限"。</p>
 
 </div>
@@ -2634,16 +2644,6 @@ app.get(<span class="string">"/api/chat"</span>, (req, res) => {
   不需要 Reward Model，用组内样本相对排名做优化
   <span class="comment">比 DPO 更灵活，比 PPO 更简单</span>
 </pre>
-
-<div class="interview-box">
-<div class="interview-box-title">🎯 面试高频题</div>
-<div class="interview-box-content">
-<strong>Q: 如何实现 SSE 推送？Agent 工具调用时 SSE 事件结构包含哪些字段？</strong><br><br>
-<strong>标准答案：</strong>SSE 通过设置 Content-Type: text/event-stream，后端逐步推送 data: {json}\n\n 格式的事件。Agent 工具调用时的事件结构通常包含：①type（text_delta / tool_call_start / tool_call_done / done）②content（文本增量）③tool_name / tool_args（工具名和参数）④tool_result（工具返回）。<br><br>
-<strong>加分回答：</strong>提到 OpenClaw 的三层流式事件：lifecycle（start/end/error）、assistant（文本增量）、tool（工具状态），以及 Block Streaming 机制（不是 token 级推送，而是按段落/块推送）。<br><br>
-<strong>常见踩坑：</strong>❌ 把 SSE 和 WebSocket 搞混——SSE 是单向的（服务端→客户端），WebSocket 是双向的。
-</div>
-</div>
 
 <div class="interview-box">
 <div class="interview-box-title">🎯 面试高频题</div>
