@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>儿童房 3D 预览</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+canvas{display:block}
+#info-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-radius:16px;padding:24px 28px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.18);display:none;z-index:100;border:1px solid rgba(255,255,255,0.3)}
+#info-panel h3{font-size:16px;margin-bottom:8px;color:#2d3436}
+#info-panel p{font-size:14px;color:#636e72;line-height:1.6}
+#info-panel .close{position:absolute;top:8px;right:12px;cursor:pointer;font-size:18px;color:#b2bec3;border:none;background:none}
+#controls{position:fixed;top:16px;right:16px;background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);border-radius:14px;padding:14px;z-index:50;border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;gap:8px}
+#controls button{background:rgba(255,255,255,0.85);border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:#2d3436;transition:all .2s}
+#controls button:hover{background:#fff;transform:scale(1.03)}
+#controls button.active{background:#D4D9C8;color:#2d3436}
+#title{position:fixed;top:16px;left:16px;color:rgba(255,255,255,0.9);font-size:20px;font-weight:600;z-index:50;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+#title span{font-size:13px;font-weight:400;opacity:0.7;display:block;margin-top:2px}
+.label2d{color:#fff;font-size:11px;padding:3px 8px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);border-radius:6px;white-space:nowrap;pointer-events:none;font-family:-apple-system,sans-serif}
+</style>
+</head>
+<body>
+<div id="title">🏠 儿童房 Children's Room<span>3102 × 2171mm · 点击家具查看收纳方案</span></div>
+<div id="controls">
+  <button onclick="resetView()">🔄 复位视角</button>
+  <button id="btn-labels" onclick="toggleLabels()">🏷️ 标签</button>
+  <button id="btn-zones" onclick="toggleZones()">📦 收纳区</button>
+</div>
+<div id="info-panel"><button class="close" onclick="closePanel()">✕</button><h3 id="panel-title"></h3><p id="panel-body"></p></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
+
+// Scale: 1 unit = 1mm, we'll work in meters internally
+const W=3.102, D=2.171, H=2.4; // room dims in meters
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xf5f0eb);
+scene.fog=new THREE.Fog(0xf5f0eb,8,14);
+
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.05,20);
+const defaultCamPos=new THREE.Vector3(4.5,2.8,3.8);
+const defaultTarget=new THREE.Vector3(W/2,0.8,D/2);
+camera.position.copy(defaultCamPos);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer=new CSS2DRenderer();
+labelRenderer.setSize(innerWidth,innerHeight);
+labelRenderer.domElement.style.position='absolute';
+labelRenderer.domElement.style.top='0';
+labelRenderer.domElement.style.pointerEvents='none';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.copy(defaultTarget);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.maxPolarAngle=Math.PI/2.05;
+controls.minDistance=1.5;
+controls.maxDistance=8;
+controls.update();
+
+// Lights
+const amb=new THREE.AmbientLight(0xfff5e6,0.5);
+scene.add(amb);
+const sun=new THREE.DirectionalLight(0xfff8f0,1.2);
+sun.position.set(W/2+2,4,D+2);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.near=0.5;sun.shadow.camera.far=10;
+sun.shadow.camera.left=-4;sun.shadow.camera.right=4;
+sun.shadow.camera.top=4;sun.shadow.camera.bottom=-2;
+scene.add(sun);
+// Warm fill from window
+const fill=new THREE.PointLight(0xffeebb,0.6,6);
+fill.position.set(W/2,1.5,D);
+scene.add(fill);
+
+// Materials
+const mat={
+  wall:new THREE.MeshStandardMaterial({color:0xfaf8f5,roughness:0.9}),
+  floor:new THREE.MeshStandardMaterial({color:0xc8a882,roughness:0.7,metalness:0.0}),
+  ceil:new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.95}),
+  oak:new THREE.MeshStandardMaterial({color:0xc4a068,roughness:0.6}),
+  sage:new THREE.MeshStandardMaterial({color:0xd4d9c8,roughness:0.5}),
+  cream:new THREE.MeshStandardMaterial({color:0xf5f0e8,roughness:0.7}),
+  white:new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.6}),
+  brown:new THREE.MeshStandardMaterial({color:0x8b6f4e,roughness:0.7}),
+  blue:new THREE.MeshStandardMaterial({color:0xb8d4d8,roughness:0.6}),
+  glass:new THREE.MeshPhysicalMaterial({color:0xddeeff,transparent:true,opacity:0.3,roughness:0.1,metalness:0.1}),
+  rug:new THREE.MeshStandardMaterial({color:0xe8dcc8,roughness:0.95}),
+  door:new THREE.MeshStandardMaterial({color:0xf0ebe3,roughness:0.5}),
+  mirror:new THREE.MeshPhysicalMaterial({color:0xccd5dd,metalness:0.9,roughness:0.05}),
+  storageZone:new THREE.MeshStandardMaterial({color:0xffcc00,transparent:true,opacity:0.25,side:THREE.DoubleSide}),
+};
+
+function box(w,h,d,m,x,y,z,name,info){
+  const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;
+  if(name){g.userData={name,info};}
+  scene.add(g);return g;
+}
+
+// Floor
+const floor=box(W,0.02,D,mat.floor,W/2,0.01,D/2);
+floor.receiveShadow=true;
+// Add wood floor lines
+for(let i=0;i<15;i++){
+  const line=box(W,0.001,0.005,new THREE.MeshStandardMaterial({color:0xb8986a}),W/2,0.021,0.15*i);
+}
+
+// Ceiling
+box(W,0.02,D,mat.ceil,W/2,H,D/2);
+
+// Walls - Window wall (back, Z=D)
+// Below window
+box(W,0.56,0.12,mat.wall,W/2,0.28,D-0.06);
+// Above window
+box(W,H-0.56-1.92,0.12,mat.wall,W/2,0.56+1.92+(H-0.56-1.92)/2,D-0.06);
+// Window sides
+box(0.3,1.92,0.12,mat.wall,0.15,0.56+0.96,D-0.06);
+box(0.3,1.92,0.12,mat.wall,W-0.15,0.56+0.96,D-0.06);
+// Window glass
+const winGlass=box(W-0.6,1.92,0.02,mat.glass,W/2,0.56+0.96,D-0.06);
+
+// Bay window sill
+const sill=box(W-0.3,0.08,0.35,mat.oak,W/2,0.56,D-0.06-0.17);
+sill.userData={name:'🪟 飘窗台',info:'窗台: 休闲坐卧区 — 阅读、晒太阳\n窗台下: 可加储物抽屉'};
+
+// Left wall (X=0) - headboard wall
+box(0.12,H,D,mat.wall,-0.06,H/2,D/2);
+
+// Right wall (X=W) - wardrobe wall  
+box(0.12,H,D,mat.wall,W+0.06,H/2,D/2);
+
+// Front wall (Z=0) - door wall
+box(W,H,0.12,mat.wall,W/2,H/2,-0.06);
+// Door opening
+const doorW=0.85,doorH=2.05;
+const doorX=W-0.5;
+// Cut door by placing door frame
+box(doorW,doorH,0.13,mat.door,doorX,doorH/2,0);
+// Door frame
+box(doorW+0.08,0.04,0.14,mat.oak,doorX,doorH,0);
+box(0.04,doorH,0.14,mat.oak,doorX-doorW/2-0.02,doorH/2,0);
+box(0.04,doorH,0.14,mat.oak,doorX+doorW/2+0.02,doorH/2,0);
+
+// === WARDROBE (right wall, 4 sliding doors) ===
+const wX=W-0.3, wW=2.5, wD=0.6, wH=H;
+const wardrobeGroup=new THREE.Group();
+// Back panel
+wardrobeGroup.add(makeMesh(wW,wH,0.02,mat.cream,wW/2,wH/2,0.01));
+// Top
+wardrobeGroup.add(makeMesh(wW,0.02,wD,mat.cream,wW/2,wH-0.01,wD/2));
+// Bottom
+wardrobeGroup.add(makeMesh(wW,0.02,wD,mat.cream,wW/2,0.01,wD/2));
+// 4 doors
+const doorColors=[mat.sage,mat.sage,mat.sage,mat.sage];
+const doorWidth=wW/4;
+const doorInfos=[
+  {name:'🧥 左侧·挂衣区',info:'校服、外套 — 挂衣杆\n建议: 分上下两层挂杆\n上层: 当季外套\n下层: 校服/常穿'},
+  {name:'👕 中左·搁板区',info:'叠放衣物、书包\n建议: 4-5层搁板\n上层: 换季衣物\n中层: 常穿T恤/裤子\n下层: 书包/运动包'},
+  {name:'🧦 中右·抽屉区',info:'内衣、袜子、小物件\n建议: 4个抽屉\n分隔收纳盒分类\n上抽屉: 内衣\n下抽屉: 袜子/手帕'},
+  {name:'🧸 右侧·收纳区',info:'被褥、玩具收纳箱\n建议: 上方放换季被褥\n下方放大号玩具箱\n标签标注内容物'}
+];
+for(let i=0;i<4;i++){
+  const d=makeMesh(doorWidth-0.01,wH-0.04,0.018,doorColors[i],doorWidth*i+doorWidth/2,wH/2,wD-0.01);
+  d.userData=doorInfos[i];
+  // Louver lines
+  for(let j=0;j<8;j++){
+    const line=makeMesh(doorWidth-0.08,0.008,0.005,mat.cream,doorWidth*i+doorWidth/2,0.4+j*0.18,wD+0.005);
+    wardrobeGroup.add(line);
+  }
+  wardrobeGroup.add(d);
+}
+wardrobeGroup.position.set(wX-wW,0,0.15);
+scene.add(wardrobeGroup);
+
+function makeMesh(w,h,d,m,x,y,z){
+  const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;return g;
+}
+
+// === BED (along window wall) ===
+const bedX=0.7, bedZ=D-0.65, bedW=2.0, bedD=1.0, bedH=0.35;
+// Frame
+const bedFrame=box(bedW,bedH,bedD,mat.oak,bedX+bedW/2,bedH/2,bedZ);
+bedFrame.userData={name:'🛏️ 床',info:'单人床 2000×1000mm\n木质床架\n床下: 收纳箱/换季被褥\n建议: 2-3个带轮储物箱'};
+// Mattress
+box(bedW-0.06,0.15,bedD-0.06,mat.white,bedX+bedW/2,bedH+0.075,bedZ);
+// Pillow white
+box(0.5,0.08,0.35,mat.white,bedX+0.35,bedH+0.19,bedZ+0.25);
+// Pillow blue
+box(0.4,0.07,0.3,mat.blue,bedX+0.85,bedH+0.185,bedZ+0.28);
+// Brown throw blanket
+box(1.2,0.03,0.6,mat.brown,bedX+bedW/2+0.1,bedH+0.165,bedZ-0.15);
+
+// === OPEN SHELVES (headboard wall, built-in) ===
+const shelfX=0.06, shelfZ=D-0.55, shelfW=0.4, shelfD=0.3;
+for(let i=0;i<3;i++){
+  const sy=0.7+i*0.45;
+  const shelf=box(shelfW,0.02,shelfD,mat.oak,shelfX+shelfW/2,sy,shelfZ);
+  // Side panels
+  box(0.015,0.45,shelfD,mat.oak,shelfX,sy-0.225,shelfZ);
+  box(0.015,0.45,shelfD,mat.oak,shelfX+shelfW,sy-0.225,shelfZ);
+}
+// Back panel
+const shelfBack=box(shelfW,1.35,0.01,mat.cream,shelfX+shelfW/2,0.7+0.675,shelfZ-shelfD/2+0.005);
+shelfBack.userData={name:'📚 床头置物架',info:'上层: 装饰品/夜灯 🌙\n中层: 睡前故事书 📖\n下层: 常用玩具 🧸\n\n建议: 带小挡板防物品掉落'};
+
+// Teddy bear on middle shelf (simple sphere+cylinder)
+const bearBody=new THREE.Mesh(new THREE.SphereGeometry(0.06,12,12),mat.brown);
+bearBody.position.set(shelfX+0.2,1.15+0.06,shelfZ-0.05);scene.add(bearBody);
+const bearHead=new THREE.Mesh(new THREE.SphereGeometry(0.045,12,12),mat.brown);
+bearHead.position.set(shelfX+0.2,1.15+0.16,shelfZ-0.05);scene.add(bearHead);
+
+// Round mirror above shelves
+const mirrorGeo=new THREE.CircleGeometry(0.15,32);
+const mirrorMesh=new THREE.Mesh(mirrorGeo,mat.mirror);
+mirrorMesh.position.set(0.01,2.0,shelfZ);
+mirrorMesh.rotation.y=Math.PI/2;
+scene.add(mirrorMesh);
+
+// === ROUND RUG ===
+const rugGeo=new THREE.CylinderGeometry(0.5,0.5,0.01,32);
+const rug=new THREE.Mesh(rugGeo,mat.rug);
+rug.position.set(1.5,0.025,D/2);
+rug.receiveShadow=true;
+scene.add(rug);
+
+// === SMALL DESK (front wall) ===
+const deskW=0.9,deskD=0.5,deskH=0.72;
+const deskX=0.5,deskZ=0.35;
+box(deskW,0.03,deskD,mat.oak,deskX+deskW/2,deskH,deskZ);
+// Legs
+for(const[lx,lz]of[[deskX+0.05,deskZ-deskD/2+0.05],[deskX+deskW-0.05,deskZ-deskD/2+0.05],[deskX+0.05,deskZ+deskD/2-0.05],[deskX+deskW-0.05,deskZ+deskD/2-0.05]]){
+  box(0.03,deskH-0.03,0.03,mat.oak,lx,deskH/2-0.015,lz);
+}
+
+// === STORAGE ZONE HIGHLIGHTS ===
+const zones=[];
+function addZone(w,h,d,x,y,z,name,info){
+  const m=mat.storageZone.clone();
+  const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  g.position.set(x,y,z);g.visible=false;
+  g.userData={name,info,isZone:true};
+  scene.add(g);zones.push(g);return g;
+}
+// Under bed storage
+addZone(1.8,0.25,0.9,bedX+bedW/2,0.13,bedZ,'📦 床下收纳','收纳箱/换季被褥\n建议: 2-3个带轮扁平储物箱\n标签分类: 夏季/冬季被褥');
+// Bay window under storage  
+addZone(W-0.6,0.4,0.3,W/2,0.3,D-0.22,'🗄️ 窗台下储物','可安装抽屉柜\n放置不常用物品\n建议: 分格收纳盒');
+
+// === 2D Labels ===
+const labels=[];
+function addLabel(text,x,y,z){
+  const div=document.createElement('div');
+  div.className='label2d';div.textContent=text;
+  const lbl=new CSS2DObject(div);
+  lbl.position.set(x,y,z);scene.add(lbl);labels.push(lbl);return lbl;
+}
+addLabel('🛏️ 单人床',bedX+bedW/2,bedH+0.4,bedZ);
+addLabel('🧥 衣柜 2500mm',wX-wW/2-0.3,H/2+0.3,0.45);
+addLabel('📚 置物架',shelfX+0.2,2.15,shelfZ);
+addLabel('🪟 飘窗',W/2,1.5,D-0.05);
+addLabel('🚪 房门',doorX,doorH+0.15,0.1);
+addLabel('📐 书桌',deskX+deskW/2,deskH+0.15,deskZ);
+
+// === RAYCASTER for clicks ===
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+renderer.domElement.addEventListener('click',e=>{
+  mouse.x=(e.clientX/innerWidth)*2-1;
+  mouse.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(scene.children,true);
+  for(const h of hits){
+    let obj=h.object;
+    if(obj.parent&&obj.parent!==scene) obj=obj.parent;// check group children
+    const ud=h.object.userData;
+    if(ud&&ud.name){
+      showPanel(ud.name,ud.info);return;
+    }
+  }
+});
+
+function showPanel(title,body){
+  document.getElementById('panel-title').textContent=title;
+  document.getElementById('panel-body').textContent=body;
+  document.getElementById('info-panel').style.display='block';
+}
+window.closePanel=()=>{document.getElementById('info-panel').style.display='none';}
+
+let labelsOn=true, zonesOn=false;
+window.toggleLabels=()=>{
+  labelsOn=!labelsOn;
+  labels.forEach(l=>l.visible=labelsOn);
+  document.getElementById('btn-labels').classList.toggle('active',labelsOn);
+};
+window.toggleZones=()=>{
+  zonesOn=!zonesOn;
+  zones.forEach(z=>z.visible=zonesOn);
+  document.getElementById('btn-zones').classList.toggle('active',zonesOn);
+};
+document.getElementById('btn-labels').classList.add('active');
+
+window.resetView=()=>{
+  camera.position.copy(defaultCamPos);
+  controls.target.copy(defaultTarget);
+  controls.update();
+};
+
+// Animate
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+  labelRenderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  labelRenderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
