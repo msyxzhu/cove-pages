@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公卫 Guest Bathroom 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+canvas{display:block}
+#info{position:fixed;top:16px;left:16px;color:#fff;font-size:13px;opacity:.7;pointer-events:none;z-index:10}
+#controls{position:fixed;top:16px;right:16px;z-index:20;display:flex;flex-direction:column;gap:8px}
+.ctrl-btn{padding:8px 16px;border:none;border-radius:12px;cursor:pointer;font-size:13px;
+  background:rgba(255,255,255,.15);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  color:#fff;border:1px solid rgba(255,255,255,.2);transition:all .2s}
+.ctrl-btn:hover{background:rgba(255,255,255,.25)}
+.ctrl-btn.active{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.4)}
+#popup{position:fixed;display:none;z-index:30;max-width:280px;padding:16px 20px;
+  border-radius:16px;background:rgba(30,30,30,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;line-height:1.6;
+  box-shadow:0 8px 32px rgba(0,0,0,.4)}
+#popup h3{font-size:15px;margin-bottom:8px;font-weight:600}
+#popup .close{position:absolute;top:8px;right:12px;cursor:pointer;opacity:.6;font-size:16px}
+#popup .close:hover{opacity:1}
+.label-tag{background:rgba(0,0,0,.65);backdrop-filter:blur(8px);color:#fff;padding:4px 10px;
+  border-radius:8px;font-size:11px;pointer-events:auto;cursor:pointer;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.15);transition:all .2s}
+.label-tag:hover{background:rgba(0,0,0,.8);transform:scale(1.05)}
+</style>
+</head>
+<body>
+<div id="info">🏠 公卫 Guest Bathroom · 拖拽旋转 · 点击查看收纳</div>
+<div id="controls">
+  <button class="ctrl-btn" onclick="resetView()">🔄 重置视角</button>
+  <button class="ctrl-btn" id="lblToggle" onclick="toggleLabels()">🏷️ 标签</button>
+  <button class="ctrl-btn" onclick="toggleCeiling()">⬆️ 吊顶</button>
+</div>
+<div id="popup"><span class="close" onclick="closePopup()">✕</span><h3 id="popupTitle"></h3><div id="popupBody"></div></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
+
+// --- Scene setup ---
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#e8e0d8');
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.01,20);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer=new CSS2DRenderer();
+labelRenderer.setSize(innerWidth,innerHeight);
+labelRenderer.domElement.style.position='absolute';
+labelRenderer.domElement.style.top='0';
+labelRenderer.domElement.style.pointerEvents='none';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.minDistance=1;controls.maxDistance=8;
+controls.maxPolarAngle=Math.PI*0.85;
+controls.target.set(1.6,0.8,0.75);
+
+// Dims in meters
+const W=3.257,D=1.536,H=2.28;
+
+// Default camera
+function resetCam(){
+  camera.position.set(3.8,2.2,3.5);
+  controls.target.set(1.6,0.8,0.75);
+  controls.update();
+}
+resetCam();
+window.resetView=resetCam;
+
+// --- Materials ---
+const tileMat=new THREE.MeshStandardMaterial({color:'#e8ddd0',roughness:0.4,metalness:0.05});
+const floorMat=new THREE.MeshStandardMaterial({color:'#ddd5c8',roughness:0.35,metalness:0.05});
+const ceilingMat=new THREE.MeshStandardMaterial({color:'#f5f2ee',roughness:0.6});
+const woodMat=new THREE.MeshStandardMaterial({color:'#C4935A',roughness:0.5,metalness:0.05});
+const whiteMat=new THREE.MeshStandardMaterial({color:'#f0ece6',roughness:0.3,metalness:0.1});
+const blackMat=new THREE.MeshStandardMaterial({color:'#2a2a2a',roughness:0.3,metalness:0.6});
+const glassMat=new THREE.MeshPhysicalMaterial({color:'#ffffff',transparent:true,opacity:0.15,roughness:0,metalness:0.1,transmission:0.8,thickness:0.01});
+const mirrorMat=new THREE.MeshStandardMaterial({color:'#c8d0d8',roughness:0.05,metalness:0.8});
+const pinkMat=new THREE.MeshStandardMaterial({color:'#d4a0a0',roughness:0.5});
+const chromeMat=new THREE.MeshStandardMaterial({color:'#ccc',roughness:0.1,metalness:0.9});
+
+// --- Helpers ---
+function box(w,h,d,mat){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat)}
+function cyl(r,h,mat,seg=16){return new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),mat)}
+
+// --- Room shell ---
+const wallT=0.06;
+// Floor
+const floor=box(W,0.02,D,floorMat);floor.position.set(W/2,0,D/2);floor.receiveShadow=true;scene.add(floor);
+
+// Back wall (z=0)
+const bw=box(W,H,wallT,tileMat);bw.position.set(W/2,H/2,0);scene.add(bw);
+// Left wall (x=0)
+const lw=box(wallT,H,D,tileMat);lw.position.set(0,H/2,D/2);scene.add(lw);
+// Right wall (x=W)
+const rw=box(wallT,H,D,tileMat);rw.position.set(W,H/2,D/2);scene.add(rw);
+// Front wall with door opening (z=D)
+const doorW=0.75,doorH=2.0;
+const fwL=box((W-doorW)/2,H,wallT,tileMat);fwL.position.set((W-doorW)/4,H/2,D);scene.add(fwL);
+const fwR=box((W-doorW)/2,H,wallT,tileMat);fwR.position.set(W-(W-doorW)/4,H/2,D);scene.add(fwR);
+const fwTop=box(doorW,H-doorH,wallT,tileMat);fwTop.position.set(W/2,doorH+(H-doorH)/2,D);scene.add(fwTop);
+
+// Ceiling
+const ceiling=box(W,0.04,D,ceilingMat);ceiling.position.set(W/2,H,D/2);scene.add(ceiling);
+window._ceiling=ceiling;
+
+// Pink accent strip near vanity (back wall)
+const pinkStrip=box(0.9,0.3,0.005,pinkMat);pinkStrip.position.set(0.6,1.3,0.035);scene.add(pinkStrip);
+
+// Window on left wall
+const winW=0.6,winH=0.8;
+const winFrame=box(0.005,winH,winW,blackMat);winFrame.position.set(0.025,1.4,D*0.4);scene.add(winFrame);
+const winGlass=box(0.003,winH-0.05,winW-0.05,new THREE.MeshPhysicalMaterial({color:'#a8c8e0',transparent:true,opacity:0.3,roughness:0,transmission:0.6}));
+winGlass.position.set(0.025,1.4,D*0.4);scene.add(winGlass);
+
+// --- Vanity ---
+const vanityX=0.15,vanityZ=0.04;
+const vanityBase=box(0.8,0.15,0.5,woodMat);vanityBase.position.set(vanityX+0.4,0.85,vanityZ+0.25);vanityBase.castShadow=true;scene.add(vanityBase);
+// Countertop
+const counter=box(0.84,0.03,0.52,whiteMat);counter.position.set(vanityX+0.4,0.935,vanityZ+0.25);scene.add(counter);
+// Basin (inset)
+const basin=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,8,0,Math.PI*2,0,Math.PI/2),whiteMat);
+basin.position.set(vanityX+0.4,0.93,vanityZ+0.25);basin.rotation.x=Math.PI;scene.add(basin);
+
+// Wall-mounted faucet
+const faucetArm=box(0.02,0.02,0.18,blackMat);faucetArm.position.set(vanityX+0.4,1.15,vanityZ+0.1);scene.add(faucetArm);
+const faucetSpout=box(0.02,0.12,0.02,blackMat);faucetSpout.position.set(vanityX+0.4,1.09,vanityZ+0.18);scene.add(faucetSpout);
+
+// Mirror cabinet
+const mcW=0.8,mcH=0.6,mcD=0.14;
+const mcBack=box(mcW,mcH,0.02,new THREE.MeshStandardMaterial({color:'#f5f2ee',roughness:0.5}));mcBack.position.set(vanityX+0.4,1.55,vanityZ+0.01);scene.add(mcBack);
+const mcMirror=box(mcW-0.02,mcH-0.02,0.005,mirrorMat);mcMirror.position.set(vanityX+0.4,1.55,vanityZ+mcD-0.01);scene.add(mcMirror);
+const mcFrame=box(mcW,mcH,mcD,new THREE.MeshStandardMaterial({color:'#ddd',roughness:0.3,transparent:true,opacity:0.15}));mcFrame.position.set(vanityX+0.4,1.55,vanityZ+mcD/2);scene.add(mcFrame);
+
+// --- Toilet ---
+const toiletX=1.8,toiletZ=0.05;
+// Tank (wall-hung so minimal)
+const tBase=box(0.38,0.35,0.55,whiteMat);tBase.position.set(toiletX,0.45,toiletZ+0.28);tBase.castShadow=true;scene.add(tBase);
+// Bowl
+const tBowl=box(0.36,0.15,0.3,whiteMat);tBowl.position.set(toiletX,0.28,toiletZ+0.45);scene.add(tBowl);
+// Seat
+const tSeat=box(0.34,0.02,0.4,new THREE.MeshStandardMaterial({color:'#f8f6f2',roughness:0.3}));tSeat.position.set(toiletX,0.535,toiletZ+0.35);scene.add(tSeat);
+// Lid
+const tLid=box(0.34,0.02,0.25,new THREE.MeshStandardMaterial({color:'#f8f6f2',roughness:0.3}));tLid.position.set(toiletX,0.55,toiletZ+0.15);scene.add(tLid);
+// Tissue holder
+const tissue=box(0.12,0.08,0.04,chromeMat);tissue.position.set(toiletX+0.35,0.9,0.04);scene.add(tissue);
+
+// --- Shower zone ---
+const showerX=2.5,showerZ=0.0;
+// Glass partition
+const glassP=box(0.008,1.5,0.9,glassMat);glassP.position.set(showerX-0.15,0.75,D/2);scene.add(glassP);
+// Glass frame top
+const glassFrame=box(0.02,0.02,0.9,blackMat);glassFrame.position.set(showerX-0.15,1.5,D/2);scene.add(glassFrame);
+
+// Shower head (rain)
+const showerPipe=cyl(0.015,0.8,chromeMat);showerPipe.position.set(showerX+0.35,1.85,0.08);scene.add(showerPipe);
+const showerHead=cyl(0.1,0.02,chromeMat,24);showerHead.position.set(showerX+0.35,2.2,0.25);scene.add(showerHead);
+// Shower arm
+const showerArm=box(0.02,0.02,0.2,chromeMat);showerArm.position.set(showerX+0.35,2.2,0.15);scene.add(showerArm);
+// Hand shower at H=800mm
+const handMount=box(0.04,0.06,0.03,chromeMat);handMount.position.set(showerX+0.35,0.8,0.04);scene.add(handMount);
+
+// Shower niche (壁龛)
+const nicheBack=box(0.3,0.25,0.005,new THREE.MeshStandardMaterial({color:'#d5cec4',roughness:0.4}));
+nicheBack.position.set(showerX+0.35,1.2,0.025);scene.add(nicheBack);
+const nicheShelf=box(0.3,0.008,0.1,whiteMat);nicheShelf.position.set(showerX+0.35,1.15,0.075);scene.add(nicheShelf);
+
+// Floor drain
+const drain=cyl(0.05,0.005,chromeMat);drain.rotation.x=Math.PI/2;drain.position.set(showerX+0.3,0.012,D*0.5);scene.add(drain);
+
+// --- Tile lines (subtle) ---
+function addTileLines(parent,axis,count,len,pos,color='#d8d0c5'){
+  for(let i=1;i<count;i++){
+    const g=new THREE.BufferGeometry().setFromPoints(axis==='h'?
+      [new THREE.Vector3(0,0,0),new THREE.Vector3(len,0,0)]:
+      [new THREE.Vector3(0,0,0),new THREE.Vector3(0,len,0)]);
+    const l=new THREE.Line(g,new THREE.LineBasicMaterial({color,opacity:0.3,transparent:true}));
+    if(axis==='h'){l.position.set(pos.x,pos.y+i*0.6,pos.z)}
+    else{l.position.set(pos.x+i*1.2,pos.y,pos.z)}
+    scene.add(l);
+  }
+}
+
+// --- Lighting ---
+const ambient=new THREE.AmbientLight('#f0e8dd',0.6);scene.add(ambient);
+const mainLight=new THREE.DirectionalLight('#fff5e8',1.2);
+mainLight.position.set(2,4,3);mainLight.castShadow=true;
+mainLight.shadow.mapSize.set(1024,1024);
+mainLight.shadow.camera.near=0.5;mainLight.shadow.camera.far=10;
+mainLight.shadow.camera.left=-3;mainLight.shadow.camera.right=3;
+mainLight.shadow.camera.top=3;mainLight.shadow.camera.bottom=-1;
+scene.add(mainLight);
+
+// Cool fill light (bathroom feel)
+const fillLight=new THREE.DirectionalLight('#d8e8f0',0.4);
+fillLight.position.set(-1,2,-1);scene.add(fillLight);
+
+// Point light above vanity (mirror light)
+const vanityLight=new THREE.PointLight('#fff8f0',0.5,3);
+vanityLight.position.set(vanityX+0.4,2.1,0.3);scene.add(vanityLight);
+
+// Shower area light
+const showerLight=new THREE.PointLight('#f0f0ff',0.3,2.5);
+showerLight.position.set(showerX+0.3,2.1,D*0.4);scene.add(showerLight);
+
+// --- Labels ---
+const labels=[];
+function makeLabel(text,x,y,z,data){
+  const div=document.createElement('div');
+  div.className='label-tag';
+  div.textContent=text;
+  div.addEventListener('click',()=>showPopup(data,div));
+  const obj=new CSS2DObject(div);
+  obj.position.set(x,y,z);
+  scene.add(obj);
+  labels.push(obj);
+  return obj;
+}
+
+const storageData={
+  mirror:{title:'🪞 镜柜 Mirror Cabinet',body:'<b>上层:</b> 护肤品/面霜/乳液<br><b>中层:</b> 牙刷/牙膏/漱口水<br><b>下层:</b> 剃须刀/化妆品'},
+  vanity:{title:'🚿 浴室柜 Vanity',body:'<b>抽屉1:</b> 毛巾/面巾<br><b>抽屉2:</b> 备用洗漱品/清洁用品'},
+  shower:{title:'🚿 淋浴区 Shower',body:'<b>壁龛:</b> 沐浴露/洗发水/护发素<br><b>花洒:</b> 顶喷 + 手持<br>半截玻璃隔断 1500mm'},
+  toilet:{title:'🚽 马桶区 Toilet',body:'壁挂式马桶<br><b>纸巾架:</b> 墙面安装<br><b>清洁刷:</b> 隐藏收纳'},
+  window:{title:'🪟 窗户 Window',body:'原有窗洞<br>自然采光 + 通风'},
+  tiles:{title:'🧱 瓷砖 Tiles',body:'600×1200 素色瓷砖 (奶油色)<br>墙地一体<br>粉色陶土砖点缀'}
+};
+
+makeLabel('🪞 镜柜',vanityX+0.4,1.85,vanityZ+0.15,storageData.mirror);
+makeLabel('🚿 浴室柜',vanityX+0.4,0.65,vanityZ+0.35,storageData.vanity);
+makeLabel('🚿 淋浴区',showerX+0.3,1.7,D*0.4,storageData.shower);
+makeLabel('🚽 马桶',toiletX,0.75,toiletZ+0.5,storageData.toilet);
+makeLabel('🪟 窗户',0.06,1.4,D*0.4,storageData.window);
+makeLabel('🧱 粉色砖',0.6,1.5,0.06,storageData.tiles);
+
+let labelsVisible=true;
+window.toggleLabels=()=>{
+  labelsVisible=!labelsVisible;
+  labels.forEach(l=>l.visible=labelsVisible);
+  document.getElementById('lblToggle').classList.toggle('active',labelsVisible);
+};
+
+let ceilingVisible=true;
+window.toggleCeiling=()=>{
+  ceilingVisible=!ceilingVisible;
+  window._ceiling.visible=ceilingVisible;
+};
+
+// --- Popup ---
+function showPopup(data,el){
+  const popup=document.getElementById('popup');
+  document.getElementById('popupTitle').textContent=data.title;
+  document.getElementById('popupBody').innerHTML=data.body;
+  popup.style.display='block';
+  const r=el.getBoundingClientRect();
+  popup.style.left=Math.min(r.left,innerWidth-300)+'px';
+  popup.style.top=(r.bottom+8)+'px';
+}
+window.closePopup=()=>{document.getElementById('popup').style.display='none'};
+
+// Click outside to close
+renderer.domElement.addEventListener('click',()=>closePopup());
+
+// --- Raycaster for clickable objects ---
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+const clickables=[vanityBase,counter,mcFrame,mcMirror,tBase,tSeat,glassP,nicheBack,nicheShelf];
+const clickMap=new Map();
+[vanityBase,counter].forEach(m=>clickMap.set(m,storageData.vanity));
+[mcFrame,mcMirror].forEach(m=>clickMap.set(m,storageData.mirror));
+[tBase,tSeat].forEach(m=>clickMap.set(m,storageData.toilet));
+[glassP,nicheBack,nicheShelf].forEach(m=>clickMap.set(m,storageData.shower));
+
+renderer.domElement.addEventListener('pointerdown',(e)=>{
+  mouse.x=(e.clientX/innerWidth)*2-1;
+  mouse.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(clickables);
+  if(hits.length>0){
+    const data=clickMap.get(hits[0].object);
+    if(data){
+      const popup=document.getElementById('popup');
+      document.getElementById('popupTitle').textContent=data.title;
+      document.getElementById('popupBody').innerHTML=data.body;
+      popup.style.display='block';
+      popup.style.left=e.clientX+'px';
+      popup.style.top=(e.clientY+10)+'px';
+    }
+  }
+});
+
+// --- Animate ---
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+  labelRenderer.render(scene,camera);
+}
+animate();
+
+// --- Resize ---
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  labelRenderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
