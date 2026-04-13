@@ -3,34 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>厨房方块模型 · 布局讨论版</title>
+<title>厨房方块模型 · 可拖拽版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{overflow:hidden;background:#faf9f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif}
 canvas{display:block}
-#ui{position:fixed;top:16px;right:16px;z-index:100;display:flex;flex-direction:column;gap:8px;max-width:200px}
-.panel{background:rgba(255,255,255,0.85);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:14px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+#ui{position:fixed;top:16px;right:16px;z-index:100;display:flex;flex-direction:column;gap:8px;max-width:210px}
+.panel{background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:14px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 .panel h3{font-size:13px;color:#666;margin-bottom:8px;font-weight:600}
 .btn{display:block;width:100%;padding:6px 10px;margin:3px 0;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.06);border-radius:6px;font-size:12px;cursor:pointer;text-align:left;color:#333;transition:all .15s}
 .btn:hover{background:rgba(0,0,0,0.08)}
 .btn.on{background:#4a6741;color:#fff;border-color:#4a6741}
-#info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:14px 20px;z-index:100;display:none;text-align:center;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
-#info .name{font-size:16px;font-weight:700;color:#2c2c2c}
-#info .dim{font-size:12px;color:#888;margin:4px 0}
-#info .desc{font-size:13px;color:#555;line-height:1.6}
-#info .close{position:absolute;top:6px;right:10px;cursor:pointer;font-size:16px;color:#aaa}
+.btn.warn{background:#C44;color:#fff;border-color:#C44}
+#hint{position:fixed;top:16px;left:16px;z-index:100;max-width:260px}
+#hint .panel{font-size:12px;color:#555;line-height:1.7}
+#hint b{color:#333}
+#selected-info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:12px 20px;z-index:100;display:none;text-align:center;max-width:420px;box-shadow:0 4px 20px rgba(0,0,0,0.08);font-size:13px}
+#selected-info .name{font-size:16px;font-weight:700;color:#2c2c2c}
+#selected-info .pos{font-size:12px;color:#888;margin:4px 0}
+#selected-info .dims{font-size:12px;color:#666}
 #legend{position:fixed;bottom:20px;right:16px;z-index:100}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#666;margin:2px 0}
 .legend-dot{width:10px;height:10px;border-radius:2px}
-#dims{position:fixed;top:16px;left:16px;z-index:100;font-size:12px;color:#888}
-#dims b{color:#333}
 </style>
 </head>
 <body>
 
-<div id="dims">
-  <b>厨房方块模型</b> — 布局讨论版<br>
-  数据来源：施工图 P7/P8/P21/P22
+<div id="hint">
+  <div class="panel">
+    <b>🖱️ 操作方式</b><br>
+    • 点击选中方块（变黄边框）<br>
+    • 拖拽方块移动位置<br>
+    • 方向键微调（每次50mm）<br>
+    • Ctrl+Z 撤销<br>
+    • 右键/两指旋转视角
+  </div>
 </div>
 
 <div id="ui">
@@ -41,27 +48,32 @@ canvas{display:block}
     <button class="btn" id="v-front">正面看</button>
   </div>
   <div class="panel">
-    <h3>📐 标注</h3>
+    <h3>📐 显示</h3>
+    <button class="btn on" id="t-names">名称标签</button>
     <button class="btn" id="t-dims">尺寸标注</button>
-    <button class="btn" id="t-names">名称标签</button>
-    <button class="btn" id="t-walk">走道宽度</button>
+    <button class="btn" id="t-grid">网格 (50mm)</button>
+  </div>
+  <div class="panel">
+    <h3>📋 操作</h3>
+    <button class="btn" id="b-undo">↩ 撤销 (Ctrl+Z)</button>
+    <button class="btn warn" id="b-reset">🔄 重置全部</button>
+    <button class="btn" id="b-export">📥 导出布局</button>
   </div>
 </div>
 
-<div id="info">
-  <span class="close" onclick="document.getElementById('info').style.display='none'">✕</span>
-  <div class="name" id="infoName"></div>
-  <div class="dim" id="infoDim"></div>
-  <div class="desc" id="infoDesc"></div>
+<div id="selected-info">
+  <div class="name" id="selName">—</div>
+  <div class="pos" id="selPos">—</div>
+  <div class="dims" id="selDims">—</div>
 </div>
 
 <div id="legend" class="panel">
   <div class="legend-item"><div class="legend-dot" style="background:#E8A849"></div>电器</div>
   <div class="legend-item"><div class="legend-dot" style="background:#7BAF6E"></div>储物柜</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#6A9BC7"></div>水槽/洗碗机</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#6A9BC7"></div>水槽</div>
   <div class="legend-item"><div class="legend-dot" style="background:#C4935A"></div>台面</div>
   <div class="legend-item"><div class="legend-dot" style="background:#B07070"></div>中岛</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#999"></div>墙体</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#999"></div>墙体(固定)</div>
 </div>
 
 <script type="importmap">
@@ -98,373 +110,439 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.update();
 
-// ========== COORDINATE SYSTEM ==========
-// Based on construction drawings P7/P8/P11/P21/P22
-// Origin: inner corner of L-shaped kitchen (where back wall meets left wall)
-// +X: along back wall (toward entrance/fridge)
-// -Z: along left wall (into room)
-// +Y: up
-// All dimensions in meters (mm / 1000)
+// ========== CONSTANTS ==========
+const SNAP = 0.05; // 50mm grid snap
+const CD = 0.6, CH = 0.82, KB = 0.08, CT = 0.04;
+const TOP = KB + CH + CT; // 0.94
+const CEIL = 2.28;
+const WC_BOT = 1.55, WC_H = 0.65;
+const BW = 2.811, LW = 2.141, WALKWAY = 0.892;
 
-// ========== COLORS ==========
 const C = {
-  wall:    0xDDDDDD,
-  floor:   0xE8E4DE,
-  counter: 0xC4935A,
-  cabinet: 0x7BAF6E,
-  appliance: 0xE8A849,
-  water:   0x6A9BC7,
-  island:  0xB07070,
-  wallCab: 0x8EBF82,
-  dim:     0xCC4444,
+  wall: 0xDDDDDD, floor: 0xE8E4DE, counter: 0xC4935A,
+  cabinet: 0x7BAF6E, appliance: 0xE8A849, water: 0x6A9BC7,
+  island: 0xB07070, wallCab: 0x8EBF82, highlight: 0xFFD700,
 };
 
-// ========== HELPERS ==========
-const clickables = [];
+// ========== STATE ==========
+const draggables = [];   // items user can move
+const statics = [];      // walls, floor, countertops — not movable
+const allItems = [];     // everything with metadata
+let selected = null;
+let isDragging = false;
+const undoStack = [];
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Y=0 plane for drag
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const intersection = new THREE.Vector3();
+let dragOffset = new THREE.Vector3();
 
-function makeBox(w, h, d, color, x, y, z, meta) {
+// ========== HELPERS ==========
+function snap(v) { return Math.round(v / SNAP) * SNAP; }
+
+function makeItem(w, h, d, color, x, y, z, name, movable = true, desc = '') {
   const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.65, transparent: false });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, y, z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  if (meta) {
-    mesh.userData = meta;
-    clickables.push(mesh);
-  }
+
+  // Wireframe outline
+  const edges = new THREE.EdgesGeometry(geo);
+  const outline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.2, transparent: true }));
+  mesh.add(outline);
+
+  // Selection highlight (hidden)
+  const hlMat = new THREE.LineBasicMaterial({ color: C.highlight, linewidth: 2 });
+  const highlight = new THREE.LineSegments(edges.clone(), hlMat);
+  highlight.visible = false;
+  highlight.scale.set(1.02, 1.02, 1.02);
+  mesh.add(highlight);
+
+  // Label
+  const labelDiv = document.createElement('div');
+  labelDiv.style.cssText = 'background:rgba(0,0,0,0.7);color:#fff;padding:2px 7px;border-radius:4px;font-size:11px;white-space:nowrap;pointer-events:none';
+  labelDiv.textContent = name;
+  const label = new CSS2DObject(labelDiv);
+  label.position.set(0, h/2 + 0.12, 0);
+  mesh.add(label);
+
+  mesh.userData = {
+    name, desc, movable, origColor: color,
+    w, h, d,
+    origPos: new THREE.Vector3(x, y, z),
+    label, highlight, labelDiv,
+  };
+
   scene.add(mesh);
+  allItems.push(mesh);
+
+  if (movable) {
+    draggables.push(mesh);
+  } else {
+    statics.push(mesh);
+  }
   return mesh;
 }
 
-function makeEdge(w, h, d, x, y, z) {
-  const geo = new THREE.BoxGeometry(w, h, d);
-  const edges = new THREE.EdgesGeometry(geo);
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.15, transparent: true }));
-  line.position.set(x, y, z);
-  scene.add(line);
-  return line;
-}
-
-// Label groups
-const nameGroup = new THREE.Group(); scene.add(nameGroup);
-const dimGroup = new THREE.Group(); scene.add(dimGroup);
-const walkGroup = new THREE.Group(); scene.add(walkGroup);
-
-function addLabel(text, x, y, z, group, style) {
-  const div = document.createElement('div');
-  div.style.cssText = style || 'background:rgba(0,0,0,0.7);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;pointer-events:none';
-  div.textContent = text;
-  const obj = new CSS2DObject(div);
-  obj.position.set(x, y, z);
-  (group || nameGroup).add(obj);
-}
+// Label group toggles
+const nameGroup = { items: [], visible: true };
+const dimGroup = new THREE.Group(); scene.add(dimGroup); dimGroup.visible = false;
 
 function addDimLine(x1, y1, z1, x2, y2, z2, label) {
   const pts = [new THREE.Vector3(x1,y1,z1), new THREE.Vector3(x2,y2,z2)];
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: C.dim, linewidth: 2 }));
-  dimGroup.add(line);
-  // End ticks
-  const dir = new THREE.Vector3(x2-x1, y2-y1, z2-z1).normalize();
+  dimGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xCC4444 })));
+  const dir = new THREE.Vector3(x2-x1,y2-y1,z2-z1).normalize();
   const perp = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.05);
-  for (const p of [pts[0], pts[1]]) {
+  for (const p of pts) {
     const t = new THREE.BufferGeometry().setFromPoints([p.clone().add(perp), p.clone().sub(perp)]);
-    dimGroup.add(new THREE.Line(t, new THREE.LineBasicMaterial({ color: C.dim })));
+    dimGroup.add(new THREE.Line(t, new THREE.LineBasicMaterial({ color: 0xCC4444 })));
   }
-  const mid = new THREE.Vector3((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
   const div = document.createElement('div');
   div.style.cssText = 'background:#CC4444;color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;pointer-events:none';
   div.textContent = label;
   const obj = new CSS2DObject(div);
-  obj.position.copy(mid);
+  obj.position.set((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
   dimGroup.add(obj);
 }
 
-// ========== KITCHEN DIMENSIONS (from drawings) ==========
-// Back wall (along +X): total cabinet run = 2811mm
-//   Segments: 灶台区 600 + 操作/水槽区 1611 + 电器柜区 600
-// Left wall (along -Z): total cabinet run = 2141mm
-//   Segments: 4 doors × ~410mm each (411+410+410+410)
-// Cabinet depth: 600mm, height: 820mm, kickboard: 80mm, countertop: 40mm
-// Counter top total H = 80 + 820 + 40 = 940mm = 0.94m
-// Wall cabinet bottom: ~1550mm from floor, height ~650mm
-// Walkway back-wall to island: 892mm
-// Island: ~3235mm long × 600mm deep (P22 立面5: 837+2190+208)
-// Ceiling height: 2280mm after soffit
-// Fridge location: near entrance, against right side
+// ========== BUILD SCENE ==========
 
-const CD = 0.6;    // cabinet depth
-const CH = 0.82;   // cabinet body height
-const KB = 0.08;   // kickboard
-const CT = 0.04;   // countertop thickness
-const TOP = KB + CH + CT; // 0.94 counter surface
-const CEIL = 2.28;
-const WC_BOT = 1.55; // wall cabinet bottom
-const WC_H = 0.65;   // wall cabinet height
-const BW = 2.811;    // back wall run
-const LW = 2.141;    // left wall run
-const WALKWAY = 0.892;
+// -- Floor --
+makeItem(6, 0.01, 6, C.floor, 2, -0.005, -2, '', false);
+allItems[allItems.length-1].userData.label.visible = false;
 
-// ========== FLOOR ==========
-makeBox(5, 0.01, 5, C.floor, 2, -0.005, -2);
+// -- Walls (not movable) --
+makeItem(BW + 0.3, CEIL, 0.1, C.wall, BW/2, CEIL/2, CD + 0.05, '后墙', false);
+makeItem(0.1, CEIL, LW + 0.3, C.wall, -0.05, CEIL/2, -LW/2, '左墙', false);
+makeItem(0.1, CEIL, 2.0, C.wall, BW + 0.45, CEIL/2, -0.5, '右墙/入口', false);
 
-// ========== WALLS (thin slabs) ==========
-// Back wall at Z = CD (behind cabinets)
-makeBox(BW + 0.3, CEIL, 0.1, C.wall, BW/2, CEIL/2, CD + 0.05);
-makeEdge(BW + 0.3, CEIL, 0.1, BW/2, CEIL/2, CD + 0.05);
+// -- Back wall base cabinets (movable) --
+makeItem(0.6, CH, CD, C.appliance, 0.3, KB+CH/2, 0,
+  '灶台 600×600', true, '嵌入式灶台+烤箱/蒸箱');
+makeItem(0.8, CH, CD, C.water, 1.0, KB+CH/2, 0,
+  '水槽 800×600', true, '水槽+垃圾桶+净水器');
+makeItem(0.811, CH, CD, C.cabinet, 1.811, KB+CH/2, 0,
+  '操作区 811×600', true, '切菜备菜区，抽屉收纳');
+makeItem(0.6, CH, CD, C.appliance, 2.511, KB+CH/2, 0,
+  '电器柜 600×600', true, '洗碗机(下)+管线机(上)');
 
-// Left wall at X = -CD (behind left wall cabinets). Actually: left wall at X=0, cabinets extend +X
-// Let me re-orient: Left wall surface at X = -0.05 (just a thin wall slab), cabinets in front at X = 0 to X = CD
-// No - simpler: wall behind left-wall cabinets.
-// Left wall cabinets face +X (into room). Cabinet backs at X=0. Wall at X = -0.05.
-makeBox(0.1, CEIL, LW + 0.3, C.wall, -0.05, CEIL/2, -LW/2);
-makeEdge(0.1, CEIL, LW + 0.3, -0.05, CEIL/2, -LW/2);
+// Back wall countertop (static, follows cabinets)
+makeItem(BW, CT, CD+0.02, C.counter, BW/2, KB+CH+CT/2, 0, '后墙台面', false);
 
-// Right / entrance wall segment (partial) at X ≈ 3.5 (where fridge + entry are)
-// From P8: the 370mm entrance zone is at far left of the overall plan
-// From P22 立面4: entrance wall = 3542mm (390+1060+362+1730)
-// The fridge area and hot water heater are along this wall
-// For simplicity: a partial wall at X = BW + 0.4 area
-makeBox(0.1, CEIL, 2.0, C.wall, BW + 0.45, CEIL/2, -0.5);
-makeEdge(0.1, CEIL, 2.0, BW + 0.45, CEIL/2, -0.5);
+// -- Back wall wall cabinets (movable) --
+makeItem(0.6, WC_H*0.6, 0.35, C.appliance, 0.3, WC_BOT+WC_H*0.3, 0.175,
+  '油烟机+柜', true, '油烟机区域');
+makeItem(1.611, WC_H, 0.35, 0x8EBF82, 0.6+1.611/2, WC_BOT+WC_H/2, 0.175,
+  '后墙吊柜 1611', true, '碗碟+杯子+保鲜盒');
+makeItem(0.6, WC_H, 0.35, 0x8EBF82, 2.511, WC_BOT+WC_H/2, 0.175,
+  '电器柜吊柜', true, '保鲜膜/袋/密封盒');
 
-// ========== BACK WALL BASE CABINETS ==========
-// Section 1: 灶台区 X = 0 ~ 0.6
-makeBox(0.6, CH, CD, C.appliance, 0.3, KB + CH/2, 0);
-makeEdge(0.6, CH, CD, 0.3, KB + CH/2, 0);
-addLabel('灶台 600', 0.3, TOP + 0.15, 0, nameGroup);
-
-// Section 2: 操作/水槽区 X = 0.6 ~ 2.211 (1611mm)
-// Subsection: sink area ~800mm
-makeBox(0.8, CH, CD, C.water, 1.0, KB + CH/2, 0);
-makeEdge(0.8, CH, CD, 1.0, KB + CH/2, 0);
-addLabel('水槽 800', 1.0, TOP + 0.15, 0, nameGroup);
-
-// Subsection: prep/cutting area ~811mm
-makeBox(0.811, CH, CD, C.cabinet, 1.811, KB + CH/2, 0);
-makeEdge(0.811, CH, CD, 1.811, KB + CH/2, 0);
-addLabel('操作区 811', 1.811, TOP + 0.15, 0, nameGroup);
-
-// Section 3: 电器柜区 X = 2.211 ~ 2.811 (600mm) — dishwasher + water dispenser
-makeBox(0.6, CH, CD, C.appliance, 2.511, KB + CH/2, 0);
-makeEdge(0.6, CH, CD, 2.511, KB + CH/2, 0);
-addLabel('洗碗机+管线机 600', 2.511, TOP + 0.15, 0, nameGroup);
-
-// Back wall countertop (continuous)
-makeBox(BW, CT, CD + 0.02, C.counter, BW/2, KB + CH + CT/2, 0);
-
-// ========== BACK WALL WALL CABINETS ==========
-// Above cooktop: range hood zone
-makeBox(0.6, WC_H * 0.6, 0.35, C.appliance, 0.3, WC_BOT + WC_H * 0.3, 0.175);
-makeEdge(0.6, WC_H * 0.6, 0.35, 0.3, WC_BOT + WC_H * 0.3, 0.175);
-addLabel('油烟机+柜', 0.3, WC_BOT + WC_H + 0.1, 0.175, nameGroup);
-
-// Above sink/prep: wall cabinets
-makeBox(1.611, WC_H, 0.35, C.wallCab, 0.6 + 1.611/2, WC_BOT + WC_H/2, 0.175);
-makeEdge(1.611, WC_H, 0.35, 0.6 + 1.611/2, WC_BOT + WC_H/2, 0.175);
-addLabel('吊柜 1611', 0.6 + 1.611/2, WC_BOT + WC_H + 0.1, 0.175, nameGroup);
-
-// Above appliance tower
-makeBox(0.6, WC_H, 0.35, C.wallCab, 2.511, WC_BOT + WC_H/2, 0.175);
-makeEdge(0.6, WC_H, 0.35, 2.511, WC_BOT + WC_H/2, 0.175);
-
-// ========== LEFT WALL BASE CABINETS ==========
-// 4 segments along -Z: 411 + 410 + 410 + 410
-const leftDoors = [0.411, 0.410, 0.410, 0.410];
-const leftNames = ['柜1 411', '柜2 410', '柜3 410', '柜4 410'];
+// -- Left wall base cabinets --
+const leftSegs = [
+  { w: 0.411, name: '左柜1 411', desc: '米面粮油' },
+  { w: 0.410, name: '左柜2 410', desc: '干货调味' },
+  { w: 0.410, name: '左柜3 410', desc: '备用厨具' },
+  { w: 0.410, name: '左柜4 410', desc: '一次性用品' },
+];
 let lz = 0;
-leftDoors.forEach((w, i) => {
-  const cz = -(lz + w/2);
-  makeBox(CD, CH, w, C.cabinet, CD/2, KB + CH/2, cz);
-  makeEdge(CD, CH, w, CD/2, KB + CH/2, cz);
-  addLabel(leftNames[i], CD + 0.15, KB + CH/2, cz, nameGroup);
-  lz += w;
+leftSegs.forEach(s => {
+  const cz = -(lz + s.w/2);
+  makeItem(CD, CH, s.w, C.cabinet, CD/2, KB+CH/2, cz, s.name, true, s.desc);
+  lz += s.w;
 });
 
 // Left wall countertop
-makeBox(CD + 0.02, CT, LW, C.counter, CD/2, KB + CH + CT/2, -LW/2);
+makeItem(CD+0.02, CT, LW, C.counter, CD/2, KB+CH+CT/2, -LW/2, '左墙台面', false);
 
 // Left wall wall cabinets
-makeBox(0.35, WC_H, LW, C.wallCab, 0.175, WC_BOT + WC_H/2, -LW/2);
-makeEdge(0.35, WC_H, LW, 0.175, WC_BOT + WC_H/2, -LW/2);
-addLabel('左墙吊柜 2141', 0.35, WC_BOT + WC_H + 0.1, -LW/2, nameGroup);
+makeItem(0.35, WC_H, LW, 0x8EBF82, 0.175, WC_BOT+WC_H/2, -LW/2,
+  '左墙吊柜 2141', true, '不常用餐具/节日用品');
 
-// ========== ISLAND / BAR ==========
-// P22 立面5: 837 + 2190 + 208 = 3235mm total
-// Island depth: ~600mm
-// Position: back wall cabinet front (Z=0 - CD = -0.6) minus walkway (0.892) = island front at Z = -0.6 - 0.892 = -1.492
-// Island extends from Z = -1.492 to Z = -1.492 - 0.6 = -2.092
-const islandZ = -(CD + WALKWAY + 0.3); // island center Z
-const islandLen = 3.235;
-const islandDepth = 0.6;
-
-// Main island body — but it extends past the kitchen area into entrance zone
-// From P8: island starts around X = 0.2 and runs to X ≈ 3.4
-// Let's place it starting at X = 0.2
+// -- Island --
 const islandStartX = 0.2;
-const islandCenterX = islandStartX + islandLen / 2;
+const islandZ = -(CD + WALKWAY + 0.3);
 
-// Split into 3 sections per drawing: 837 + 2190 + 208
-// Section 1 (entrance side/shoe storage): 837mm
-makeBox(0.837, CH, islandDepth, C.island, islandStartX + 0.837/2, KB + CH/2, islandZ);
-makeEdge(0.837, CH, islandDepth, islandStartX + 0.837/2, KB + CH/2, islandZ);
-addLabel('鞋柜侧 837', islandStartX + 0.837/2, TOP + 0.15, islandZ, nameGroup);
-
-// Section 2 (main kitchen side storage): 2190mm
-makeBox(2.190, CH, islandDepth, C.island, islandStartX + 0.837 + 2.190/2, KB + CH/2, islandZ);
-makeEdge(2.190, CH, islandDepth, islandStartX + 0.837 + 2.190/2, KB + CH/2, islandZ);
-addLabel('中岛柜体 2190', islandStartX + 0.837 + 2.190/2, TOP + 0.15, islandZ, nameGroup);
-
-// Section 3 (end): 208mm
-makeBox(0.208, CH, islandDepth, C.island, islandStartX + 0.837 + 2.190 + 0.208/2, KB + CH/2, islandZ);
-makeEdge(0.208, CH, islandDepth, islandStartX + 0.837 + 2.190 + 0.208/2, KB + CH/2, islandZ);
+makeItem(0.837, CH, 0.6, C.island, islandStartX+0.837/2, KB+CH/2, islandZ,
+  '中岛-鞋柜侧 837', true, '入户侧开放鞋架');
+makeItem(2.190, CH, 0.6, C.island, islandStartX+0.837+2.190/2, KB+CH/2, islandZ,
+  '中岛-主体 2190', true, '厨房侧封闭柜体，碗碟餐具');
+makeItem(0.208, CH, 0.6, C.island, islandStartX+0.837+2.190+0.208/2, KB+CH/2, islandZ,
+  '中岛-端部 208', true, '端部收口');
 
 // Island countertop
-makeBox(islandLen + 0.04, CT, islandDepth + 0.02, C.counter, islandCenterX, KB + CH + CT/2, islandZ);
+makeItem(3.235+0.04, CT, 0.62, C.counter, islandStartX+3.235/2, KB+CH+CT/2, islandZ, '中岛台面', false);
 
-// ========== FRIDGE ==========
-// Near entrance, right wall area. From P8 the fridge is at the far-X end
-// Fridge approx 800w × 650d × 1800h
-makeBox(0.8, 1.8, 0.65, C.appliance, BW + 0.05, 0.9, -0.2, {
-  name: '冰箱',
-  dim: '约 800×650×1800',
-  desc: '双门冰箱，靠近入口，买菜回来直接放'
-});
-makeEdge(0.8, 1.8, 0.65, BW + 0.05, 0.9, -0.2);
-addLabel('冰箱', BW + 0.05, 1.85, -0.2, nameGroup);
+// -- Fridge --
+makeItem(0.8, 1.8, 0.65, C.appliance, BW+0.05, 0.9, -0.2,
+  '冰箱 800×650', true, '双门冰箱，靠近入口');
 
-// ========== HOT WATER HEATER (P31) ==========
-// Located on entrance wall, small unit: 340×180, height ~540 space
-// In the cabinets near fridge
-makeBox(0.34, 0.54, 0.18, C.appliance, BW + 0.05, 0.75 + 0.27, -1.0, {
-  name: '热水器',
-  dim: '340×180，安装高度540空间',
-  desc: '燃气热水器，位于入口柜体中'
-});
-makeEdge(0.34, 0.54, 0.18, BW + 0.05, 0.75 + 0.27, -1.0);
-addLabel('热水器', BW + 0.05, 1.4, -1.0, nameGroup);
+// -- Hot water heater --
+makeItem(0.34, 0.54, 0.18, C.appliance, BW+0.05, 0.75+0.27, -1.0,
+  '热水器 340×180', true, '燃气热水器');
 
-// ========== ENTRANCE DOOR ==========
-makeBox(0.08, 2.1, 0.9, 0x8B7355, BW + 0.45, 1.05, -1.3);
-addLabel('入户门', BW + 0.5, 2.2, -1.3, nameGroup);
+// -- Entrance door (static) --
+makeItem(0.08, 2.1, 0.9, 0x8B7355, BW+0.45, 1.05, -1.3, '入户门', false);
 
 // ========== DIMENSION LINES ==========
-const dimY = -0.05; // slightly below floor
+const dy = -0.05;
+addDimLine(0, dy, -CD-0.3, BW, dy, -CD-0.3, '后墙 2811');
+addDimLine(0, dy, -CD-0.15, 0.6, dy, -CD-0.15, '600');
+addDimLine(0.6, dy, -CD-0.15, 2.211, dy, -CD-0.15, '1611');
+addDimLine(2.211, dy, -CD-0.15, BW, dy, -CD-0.15, '600');
+addDimLine(CD+0.15, dy, 0, CD+0.15, dy, -LW, '左墙 2141');
+addDimLine(1.4, dy, -CD, 1.4, dy, -(CD+WALKWAY), '走道 892');
+addDimLine(islandStartX, dy, islandZ-0.45, islandStartX+3.235, dy, islandZ-0.45, '中岛 3235');
 
-// Back wall total length
-addDimLine(0, dimY, -CD - 0.3, BW, dimY, -CD - 0.3, '2811');
-// Back wall segments
-addDimLine(0, dimY, -CD - 0.15, 0.6, dimY, -CD - 0.15, '600');
-addDimLine(0.6, dimY, -CD - 0.15, 2.211, dimY, -CD - 0.15, '1611');
-addDimLine(2.211, dimY, -CD - 0.15, BW, dimY, -CD - 0.15, '600');
+// ========== GRID ==========
+const grid = new THREE.GridHelper(8, 8/SNAP, 0xe0e0e0, 0xf0f0f0);
+grid.position.y = -0.004;
+grid.visible = false;
+scene.add(grid);
 
-// Left wall total length
-addDimLine(CD + 0.15, dimY, 0, CD + 0.15, dimY, -LW, '2141');
-
-// Walkway
-addDimLine(1.4, dimY, -CD, 1.4, dimY, -(CD + WALKWAY), '892 走道');
-
-// Island length
-addDimLine(islandStartX, dimY, islandZ - islandDepth/2 - 0.15, islandStartX + islandLen, dimY, islandZ - islandDepth/2 - 0.15, '3235');
-
-// Height dim (on left wall)
-addDimLine(-0.3, 0, 0.2, -0.3, TOP, 0.2, '940 台面高');
-addDimLine(-0.3, WC_BOT, 0.2, -0.3, WC_BOT + WC_H, 0.2, '650 吊柜');
-
-// ========== WALKWAY WIDTH MARKERS ==========
-// Back wall to island
-{
-  const wz1 = -CD, wz2 = -(CD + WALKWAY);
-  const wx = 1.4;
-  const pts = [new THREE.Vector3(wx, 0.02, wz1), new THREE.Vector3(wx, 0.02, wz2)];
-  const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  walkGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x2196F3, linewidth: 2 })));
-  const div = document.createElement('div');
-  div.style.cssText = 'background:#2196F3;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none';
-  div.textContent = '走道 892mm';
-  const obj = new CSS2DObject(div);
-  obj.position.set(wx, 0.1, (wz1+wz2)/2);
-  walkGroup.add(obj);
-}
-
-// Left wall cabinet front to island end
-{
-  const div = document.createElement('div');
-  div.style.cssText = 'background:#2196F3;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none';
-  div.textContent = '← 左柜到中岛 →';
-  const obj = new CSS2DObject(div);
-  obj.position.set(CD/2 + 0.05, 0.1, islandZ);
-  walkGroup.add(obj);
-}
-
-// ========== CLICKABLE DATA ==========
-// Add metadata to existing boxes by re-creating them... actually let me add userData to key items
-// (The makeBox calls above with meta already handle this)
-
-// Add click data to back wall items
-scene.children.forEach(c => {
-  if (c.isMesh && !c.userData.name) {
-    // We'll rely on the label click instead
-  }
-});
+// Coarse grid always on
+const coarseGrid = new THREE.GridHelper(8, 16, 0xdddddd, 0xeeeeee);
+coarseGrid.position.y = -0.003;
+scene.add(coarseGrid);
 
 // ========== LIGHTING ==========
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const dir = new THREE.DirectionalLight(0xffffff, 0.5);
-dir.position.set(3, 5, -2);
-dir.castShadow = true;
-scene.add(dir);
-scene.add(new THREE.DirectionalLight(0xffffff, 0.2).position.set(-2, 3, -3));
+const dLight = new THREE.DirectionalLight(0xffffff, 0.5);
+dLight.position.set(3, 5, -2); dLight.castShadow = true;
+scene.add(dLight);
+scene.add(new THREE.DirectionalLight(0xffffff, 0.2));
 
-// ========== GRID HELPER ==========
-const grid = new THREE.GridHelper(8, 40, 0xcccccc, 0xe8e8e8);
-grid.position.y = -0.005;
-scene.add(grid);
+// ========== DRAG PROXY LINE (shows distance while dragging) ==========
+const dragLine = new THREE.Group(); scene.add(dragLine); dragLine.visible = false;
+const dragLabelDiv = document.createElement('div');
+dragLabelDiv.style.cssText = 'background:#2196F3;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none';
+const dragLabel = new CSS2DObject(dragLabelDiv);
+dragLine.add(dragLabel);
 
-// ========== TOGGLE CONTROLS ==========
-nameGroup.visible = true;
-dimGroup.visible = false;
-walkGroup.visible = false;
-
-function toggle(group, btn) {
-  group.visible = !group.visible;
-  btn.classList.toggle('on');
+// ========== SELECTION & DRAG ==========
+function selectItem(mesh) {
+  if (selected) {
+    selected.userData.highlight.visible = false;
+    selected.userData.labelDiv.style.background = 'rgba(0,0,0,0.7)';
+  }
+  selected = mesh;
+  if (mesh) {
+    mesh.userData.highlight.visible = true;
+    mesh.userData.labelDiv.style.background = '#E8A849';
+    const u = mesh.userData;
+    const p = mesh.position;
+    document.getElementById('selName').textContent = u.name;
+    document.getElementById('selPos').textContent =
+      `位置: X=${(p.x*1000).toFixed(0)} Z=${(p.z*1000).toFixed(0)}mm | 原始: X=${(u.origPos.x*1000).toFixed(0)} Z=${(u.origPos.z*1000).toFixed(0)}mm`;
+    document.getElementById('selDims').textContent =
+      `尺寸: ${(u.w*1000).toFixed(0)}×${(u.d*1000).toFixed(0)}×${(u.h*1000).toFixed(0)}mm`;
+    document.getElementById('selected-info').style.display = 'block';
+  } else {
+    document.getElementById('selected-info').style.display = 'none';
+  }
 }
 
-document.getElementById('t-names').classList.add('on');
-document.getElementById('t-names').onclick = () => toggle(nameGroup, document.getElementById('t-names'));
-document.getElementById('t-dims').onclick = () => toggle(dimGroup, document.getElementById('t-dims'));
-document.getElementById('t-walk').onclick = () => toggle(walkGroup, document.getElementById('t-walk'));
-
-// View presets
-function setView(pos, target) {
-  camera.position.set(...pos);
-  controls.target.set(...target);
-  controls.update();
+function updateInfoPanel() {
+  if (!selected) return;
+  const u = selected.userData, p = selected.position;
+  document.getElementById('selPos').textContent =
+    `位置: X=${(p.x*1000).toFixed(0)} Z=${(p.z*1000).toFixed(0)}mm | 原始: X=${(u.origPos.x*1000).toFixed(0)} Z=${(u.origPos.z*1000).toFixed(0)}mm`;
 }
-document.getElementById('v-top').onclick = () => setView([1.5, 5, -1.2], [1.5, 0, -1.2]);
-document.getElementById('v-3d').onclick = () => setView([4, 3.5, -3], [1.5, 0.5, -1.2]);
-document.getElementById('v-front').onclick = () => setView([1.4, 1.2, -3.5], [1.4, 0.8, 0]);
 
-// ========== CLICK INTERACTION ==========
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const infoPanel = document.getElementById('info');
+function pushUndo(mesh, oldPos) {
+  undoStack.push({ mesh, pos: oldPos.clone() });
+  if (undoStack.length > 50) undoStack.shift();
+}
 
-renderer.domElement.addEventListener('click', (e) => {
+// ========== POINTER EVENTS ==========
+let pointerDown = false;
+let pointerMoved = false;
+let downPos = new THREE.Vector2();
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  pointerDown = true;
+  pointerMoved = false;
+  downPos.set(e.clientX, e.clientY);
+
   mouse.x = (e.clientX / innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(clickables);
+  const hits = raycaster.intersectObjects(draggables);
+
   if (hits.length > 0) {
-    const d = hits[0].object.userData;
-    document.getElementById('infoName').textContent = d.name;
-    document.getElementById('infoDim').textContent = d.dim;
-    document.getElementById('infoDesc').textContent = d.desc;
-    infoPanel.style.display = 'block';
+    const mesh = hits[0].object;
+    selectItem(mesh);
+
+    // Prepare drag
+    controls.enabled = false;
+    // Set drag plane at object's Y
+    dragPlane.set(new THREE.Vector3(0, 1, 0), -mesh.position.y);
+    raycaster.ray.intersectPlane(dragPlane, intersection);
+    dragOffset.copy(mesh.position).sub(intersection);
+    isDragging = true;
+    pushUndo(mesh, mesh.position.clone());
+    renderer.domElement.style.cursor = 'grabbing';
   }
 });
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+
+  if (pointerDown) {
+    const dx = e.clientX - downPos.x, dy = e.clientY - downPos.y;
+    if (dx*dx + dy*dy > 9) pointerMoved = true;
+  }
+
+  if (isDragging && selected) {
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.ray.intersectPlane(dragPlane, intersection);
+    const newX = snap(intersection.x + dragOffset.x);
+    const newZ = snap(intersection.z + dragOffset.z);
+    selected.position.x = newX;
+    selected.position.z = newZ;
+    updateInfoPanel();
+
+    // Show drag distance from original
+    const orig = selected.userData.origPos;
+    const dx = ((newX - orig.x)*1000).toFixed(0);
+    const dz = ((newZ - orig.z)*1000).toFixed(0);
+    dragLabelDiv.textContent = `移动: ΔX=${dx} ΔZ=${dz}mm`;
+    dragLabel.position.copy(selected.position);
+    dragLabel.position.y += selected.userData.h/2 + 0.3;
+    dragLine.visible = true;
+  } else {
+    // Hover effect
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(draggables);
+    renderer.domElement.style.cursor = hits.length > 0 ? 'grab' : 'default';
+  }
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (isDragging) {
+    isDragging = false;
+    controls.enabled = true;
+    dragLine.visible = false;
+    renderer.domElement.style.cursor = 'default';
+    // If barely moved, pop undo (it was just a click-select)
+    if (!pointerMoved && undoStack.length > 0) {
+      const last = undoStack[undoStack.length - 1];
+      if (last.mesh === selected) {
+        selected.position.copy(last.pos);
+        undoStack.pop();
+      }
+    }
+    updateInfoPanel();
+  } else if (!pointerMoved) {
+    // Click on empty space — deselect
+    mouse.x = (e.clientX / innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(draggables);
+    if (hits.length === 0) selectItem(null);
+  }
+  pointerDown = false;
+});
+
+// ========== KEYBOARD ==========
+window.addEventListener('keydown', (e) => {
+  // Undo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    e.preventDefault();
+    if (undoStack.length > 0) {
+      const { mesh, pos } = undoStack.pop();
+      mesh.position.copy(pos);
+      if (selected === mesh) updateInfoPanel();
+    }
+    return;
+  }
+  // Arrow keys to nudge selected
+  if (selected && selected.userData.movable) {
+    let dx = 0, dz = 0;
+    if (e.key === 'ArrowLeft') dx = -SNAP;
+    if (e.key === 'ArrowRight') dx = SNAP;
+    if (e.key === 'ArrowUp') dz = SNAP;
+    if (e.key === 'ArrowDown') dz = -SNAP;
+    if (dx || dz) {
+      e.preventDefault();
+      pushUndo(selected, selected.position.clone());
+      selected.position.x = snap(selected.position.x + dx);
+      selected.position.z = snap(selected.position.z + dz);
+      updateInfoPanel();
+    }
+  }
+});
+
+// ========== UI BUTTONS ==========
+function toggleBtn(id, fn) {
+  document.getElementById(id).onclick = () => {
+    document.getElementById(id).classList.toggle('on');
+    fn();
+  };
+}
+
+toggleBtn('t-names', () => {
+  const show = document.getElementById('t-names').classList.contains('on');
+  allItems.forEach(m => { if (m.userData.label) m.userData.label.visible = show; });
+});
+toggleBtn('t-dims', () => { dimGroup.visible = !dimGroup.visible; });
+toggleBtn('t-grid', () => { grid.visible = !grid.visible; });
+
+// Views
+function setView(pos, tgt) { camera.position.set(...pos); controls.target.set(...tgt); controls.update(); }
+document.getElementById('v-top').onclick = () => setView([1.5, 5.5, -1.2], [1.5, 0, -1.2]);
+document.getElementById('v-3d').onclick = () => setView([4, 3.5, -3], [1.5, 0.5, -1.2]);
+document.getElementById('v-front').onclick = () => setView([1.4, 1.2, -3.5], [1.4, 0.8, 0]);
+
+// Undo button
+document.getElementById('b-undo').onclick = () => {
+  if (undoStack.length > 0) {
+    const { mesh, pos } = undoStack.pop();
+    mesh.position.copy(pos);
+    if (selected === mesh) updateInfoPanel();
+  }
+};
+
+// Reset
+document.getElementById('b-reset').onclick = () => {
+  if (!confirm('重置所有物件到原始位置？')) return;
+  allItems.forEach(m => {
+    if (m.userData.origPos) m.position.copy(m.userData.origPos);
+  });
+  undoStack.length = 0;
+  updateInfoPanel();
+};
+
+// Export
+document.getElementById('b-export').onclick = () => {
+  const data = {};
+  draggables.forEach(m => {
+    const u = m.userData, p = m.position, o = u.origPos;
+    const dx = Math.round((p.x - o.x)*1000), dz = Math.round((p.z - o.z)*1000);
+    if (dx !== 0 || dz !== 0) {
+      data[u.name] = {
+        原位置_mm: { x: Math.round(o.x*1000), z: Math.round(o.z*1000) },
+        新位置_mm: { x: Math.round(p.x*1000), z: Math.round(p.z*1000) },
+        移动_mm: { dx, dz },
+      };
+    }
+  });
+  if (Object.keys(data).length === 0) {
+    alert('还没有移动任何物件');
+    return;
+  }
+  const text = JSON.stringify(data, null, 2);
+  // Copy to clipboard
+  navigator.clipboard.writeText(text).then(() => {
+    alert('布局变更已复制到剪贴板！\n可以发给 Nook 来更新模型。\n\n' + text);
+  }).catch(() => {
+    prompt('复制以下内容发给 Nook：', text);
+  });
+};
 
 // ========== RESIZE ==========
 window.addEventListener('resize', () => {
