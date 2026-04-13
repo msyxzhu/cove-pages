@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>厨房方块模型 · 布局讨论版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#faf9f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif}
+canvas{display:block}
+#ui{position:fixed;top:16px;right:16px;z-index:100;display:flex;flex-direction:column;gap:8px;max-width:200px}
+.panel{background:rgba(255,255,255,0.85);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:14px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.panel h3{font-size:13px;color:#666;margin-bottom:8px;font-weight:600}
+.btn{display:block;width:100%;padding:6px 10px;margin:3px 0;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.06);border-radius:6px;font-size:12px;cursor:pointer;text-align:left;color:#333;transition:all .15s}
+.btn:hover{background:rgba(0,0,0,0.08)}
+.btn.on{background:#4a6741;color:#fff;border-color:#4a6741}
+#info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:14px 20px;z-index:100;display:none;text-align:center;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+#info .name{font-size:16px;font-weight:700;color:#2c2c2c}
+#info .dim{font-size:12px;color:#888;margin:4px 0}
+#info .desc{font-size:13px;color:#555;line-height:1.6}
+#info .close{position:absolute;top:6px;right:10px;cursor:pointer;font-size:16px;color:#aaa}
+#legend{position:fixed;bottom:20px;right:16px;z-index:100}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#666;margin:2px 0}
+.legend-dot{width:10px;height:10px;border-radius:2px}
+#dims{position:fixed;top:16px;left:16px;z-index:100;font-size:12px;color:#888}
+#dims b{color:#333}
+</style>
+</head>
+<body>
+
+<div id="dims">
+  <b>厨房方块模型</b> — 布局讨论版<br>
+  数据来源：施工图 P7/P8/P21/P22
+</div>
+
+<div id="ui">
+  <div class="panel">
+    <h3>🔍 视角</h3>
+    <button class="btn" id="v-top">俯视图</button>
+    <button class="btn" id="v-3d">3D 视角</button>
+    <button class="btn" id="v-front">正面看</button>
+  </div>
+  <div class="panel">
+    <h3>📐 标注</h3>
+    <button class="btn" id="t-dims">尺寸标注</button>
+    <button class="btn" id="t-names">名称标签</button>
+    <button class="btn" id="t-walk">走道宽度</button>
+  </div>
+</div>
+
+<div id="info">
+  <span class="close" onclick="document.getElementById('info').style.display='none'">✕</span>
+  <div class="name" id="infoName"></div>
+  <div class="dim" id="infoDim"></div>
+  <div class="desc" id="infoDesc"></div>
+</div>
+
+<div id="legend" class="panel">
+  <div class="legend-item"><div class="legend-dot" style="background:#E8A849"></div>电器</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7BAF6E"></div>储物柜</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#6A9BC7"></div>水槽/洗碗机</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#C4935A"></div>台面</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#B07070"></div>中岛</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#999"></div>墙体</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ========== SETUP ==========
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xfaf9f7);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.body.appendChild(labelRenderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 30);
+camera.position.set(4, 3.5, -3);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(1.5, 0.5, -1.2);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.update();
+
+// ========== COORDINATE SYSTEM ==========
+// Based on construction drawings P7/P8/P11/P21/P22
+// Origin: inner corner of L-shaped kitchen (where back wall meets left wall)
+// +X: along back wall (toward entrance/fridge)
+// -Z: along left wall (into room)
+// +Y: up
+// All dimensions in meters (mm / 1000)
+
+// ========== COLORS ==========
+const C = {
+  wall:    0xDDDDDD,
+  floor:   0xE8E4DE,
+  counter: 0xC4935A,
+  cabinet: 0x7BAF6E,
+  appliance: 0xE8A849,
+  water:   0x6A9BC7,
+  island:  0xB07070,
+  wallCab: 0x8EBF82,
+  dim:     0xCC4444,
+};
+
+// ========== HELPERS ==========
+const clickables = [];
+
+function makeBox(w, h, d, color, x, y, z, meta) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  if (meta) {
+    mesh.userData = meta;
+    clickables.push(mesh);
+  }
+  scene.add(mesh);
+  return mesh;
+}
+
+function makeEdge(w, h, d, x, y, z) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const edges = new THREE.EdgesGeometry(geo);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.15, transparent: true }));
+  line.position.set(x, y, z);
+  scene.add(line);
+  return line;
+}
+
+// Label groups
+const nameGroup = new THREE.Group(); scene.add(nameGroup);
+const dimGroup = new THREE.Group(); scene.add(dimGroup);
+const walkGroup = new THREE.Group(); scene.add(walkGroup);
+
+function addLabel(text, x, y, z, group, style) {
+  const div = document.createElement('div');
+  div.style.cssText = style || 'background:rgba(0,0,0,0.7);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;pointer-events:none';
+  div.textContent = text;
+  const obj = new CSS2DObject(div);
+  obj.position.set(x, y, z);
+  (group || nameGroup).add(obj);
+}
+
+function addDimLine(x1, y1, z1, x2, y2, z2, label) {
+  const pts = [new THREE.Vector3(x1,y1,z1), new THREE.Vector3(x2,y2,z2)];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: C.dim, linewidth: 2 }));
+  dimGroup.add(line);
+  // End ticks
+  const dir = new THREE.Vector3(x2-x1, y2-y1, z2-z1).normalize();
+  const perp = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.05);
+  for (const p of [pts[0], pts[1]]) {
+    const t = new THREE.BufferGeometry().setFromPoints([p.clone().add(perp), p.clone().sub(perp)]);
+    dimGroup.add(new THREE.Line(t, new THREE.LineBasicMaterial({ color: C.dim })));
+  }
+  const mid = new THREE.Vector3((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#CC4444;color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;pointer-events:none';
+  div.textContent = label;
+  const obj = new CSS2DObject(div);
+  obj.position.copy(mid);
+  dimGroup.add(obj);
+}
+
+// ========== KITCHEN DIMENSIONS (from drawings) ==========
+// Back wall (along +X): total cabinet run = 2811mm
+//   Segments: 灶台区 600 + 操作/水槽区 1611 + 电器柜区 600
+// Left wall (along -Z): total cabinet run = 2141mm
+//   Segments: 4 doors × ~410mm each (411+410+410+410)
+// Cabinet depth: 600mm, height: 820mm, kickboard: 80mm, countertop: 40mm
+// Counter top total H = 80 + 820 + 40 = 940mm = 0.94m
+// Wall cabinet bottom: ~1550mm from floor, height ~650mm
+// Walkway back-wall to island: 892mm
+// Island: ~3235mm long × 600mm deep (P22 立面5: 837+2190+208)
+// Ceiling height: 2280mm after soffit
+// Fridge location: near entrance, against right side
+
+const CD = 0.6;    // cabinet depth
+const CH = 0.82;   // cabinet body height
+const KB = 0.08;   // kickboard
+const CT = 0.04;   // countertop thickness
+const TOP = KB + CH + CT; // 0.94 counter surface
+const CEIL = 2.28;
+const WC_BOT = 1.55; // wall cabinet bottom
+const WC_H = 0.65;   // wall cabinet height
+const BW = 2.811;    // back wall run
+const LW = 2.141;    // left wall run
+const WALKWAY = 0.892;
+
+// ========== FLOOR ==========
+makeBox(5, 0.01, 5, C.floor, 2, -0.005, -2);
+
+// ========== WALLS (thin slabs) ==========
+// Back wall at Z = CD (behind cabinets)
+makeBox(BW + 0.3, CEIL, 0.1, C.wall, BW/2, CEIL/2, CD + 0.05);
+makeEdge(BW + 0.3, CEIL, 0.1, BW/2, CEIL/2, CD + 0.05);
+
+// Left wall at X = -CD (behind left wall cabinets). Actually: left wall at X=0, cabinets extend +X
+// Let me re-orient: Left wall surface at X = -0.05 (just a thin wall slab), cabinets in front at X = 0 to X = CD
+// No - simpler: wall behind left-wall cabinets.
+// Left wall cabinets face +X (into room). Cabinet backs at X=0. Wall at X = -0.05.
+makeBox(0.1, CEIL, LW + 0.3, C.wall, -0.05, CEIL/2, -LW/2);
+makeEdge(0.1, CEIL, LW + 0.3, -0.05, CEIL/2, -LW/2);
+
+// Right / entrance wall segment (partial) at X ≈ 3.5 (where fridge + entry are)
+// From P8: the 370mm entrance zone is at far left of the overall plan
+// From P22 立面4: entrance wall = 3542mm (390+1060+362+1730)
+// The fridge area and hot water heater are along this wall
+// For simplicity: a partial wall at X = BW + 0.4 area
+makeBox(0.1, CEIL, 2.0, C.wall, BW + 0.45, CEIL/2, -0.5);
+makeEdge(0.1, CEIL, 2.0, BW + 0.45, CEIL/2, -0.5);
+
+// ========== BACK WALL BASE CABINETS ==========
+// Section 1: 灶台区 X = 0 ~ 0.6
+makeBox(0.6, CH, CD, C.appliance, 0.3, KB + CH/2, 0);
+makeEdge(0.6, CH, CD, 0.3, KB + CH/2, 0);
+addLabel('灶台 600', 0.3, TOP + 0.15, 0, nameGroup);
+
+// Section 2: 操作/水槽区 X = 0.6 ~ 2.211 (1611mm)
+// Subsection: sink area ~800mm
+makeBox(0.8, CH, CD, C.water, 1.0, KB + CH/2, 0);
+makeEdge(0.8, CH, CD, 1.0, KB + CH/2, 0);
+addLabel('水槽 800', 1.0, TOP + 0.15, 0, nameGroup);
+
+// Subsection: prep/cutting area ~811mm
+makeBox(0.811, CH, CD, C.cabinet, 1.811, KB + CH/2, 0);
+makeEdge(0.811, CH, CD, 1.811, KB + CH/2, 0);
+addLabel('操作区 811', 1.811, TOP + 0.15, 0, nameGroup);
+
+// Section 3: 电器柜区 X = 2.211 ~ 2.811 (600mm) — dishwasher + water dispenser
+makeBox(0.6, CH, CD, C.appliance, 2.511, KB + CH/2, 0);
+makeEdge(0.6, CH, CD, 2.511, KB + CH/2, 0);
+addLabel('洗碗机+管线机 600', 2.511, TOP + 0.15, 0, nameGroup);
+
+// Back wall countertop (continuous)
+makeBox(BW, CT, CD + 0.02, C.counter, BW/2, KB + CH + CT/2, 0);
+
+// ========== BACK WALL WALL CABINETS ==========
+// Above cooktop: range hood zone
+makeBox(0.6, WC_H * 0.6, 0.35, C.appliance, 0.3, WC_BOT + WC_H * 0.3, 0.175);
+makeEdge(0.6, WC_H * 0.6, 0.35, 0.3, WC_BOT + WC_H * 0.3, 0.175);
+addLabel('油烟机+柜', 0.3, WC_BOT + WC_H + 0.1, 0.175, nameGroup);
+
+// Above sink/prep: wall cabinets
+makeBox(1.611, WC_H, 0.35, C.wallCab, 0.6 + 1.611/2, WC_BOT + WC_H/2, 0.175);
+makeEdge(1.611, WC_H, 0.35, 0.6 + 1.611/2, WC_BOT + WC_H/2, 0.175);
+addLabel('吊柜 1611', 0.6 + 1.611/2, WC_BOT + WC_H + 0.1, 0.175, nameGroup);
+
+// Above appliance tower
+makeBox(0.6, WC_H, 0.35, C.wallCab, 2.511, WC_BOT + WC_H/2, 0.175);
+makeEdge(0.6, WC_H, 0.35, 2.511, WC_BOT + WC_H/2, 0.175);
+
+// ========== LEFT WALL BASE CABINETS ==========
+// 4 segments along -Z: 411 + 410 + 410 + 410
+const leftDoors = [0.411, 0.410, 0.410, 0.410];
+const leftNames = ['柜1 411', '柜2 410', '柜3 410', '柜4 410'];
+let lz = 0;
+leftDoors.forEach((w, i) => {
+  const cz = -(lz + w/2);
+  makeBox(CD, CH, w, C.cabinet, CD/2, KB + CH/2, cz);
+  makeEdge(CD, CH, w, CD/2, KB + CH/2, cz);
+  addLabel(leftNames[i], CD + 0.15, KB + CH/2, cz, nameGroup);
+  lz += w;
+});
+
+// Left wall countertop
+makeBox(CD + 0.02, CT, LW, C.counter, CD/2, KB + CH + CT/2, -LW/2);
+
+// Left wall wall cabinets
+makeBox(0.35, WC_H, LW, C.wallCab, 0.175, WC_BOT + WC_H/2, -LW/2);
+makeEdge(0.35, WC_H, LW, 0.175, WC_BOT + WC_H/2, -LW/2);
+addLabel('左墙吊柜 2141', 0.35, WC_BOT + WC_H + 0.1, -LW/2, nameGroup);
+
+// ========== ISLAND / BAR ==========
+// P22 立面5: 837 + 2190 + 208 = 3235mm total
+// Island depth: ~600mm
+// Position: back wall cabinet front (Z=0 - CD = -0.6) minus walkway (0.892) = island front at Z = -0.6 - 0.892 = -1.492
+// Island extends from Z = -1.492 to Z = -1.492 - 0.6 = -2.092
+const islandZ = -(CD + WALKWAY + 0.3); // island center Z
+const islandLen = 3.235;
+const islandDepth = 0.6;
+
+// Main island body — but it extends past the kitchen area into entrance zone
+// From P8: island starts around X = 0.2 and runs to X ≈ 3.4
+// Let's place it starting at X = 0.2
+const islandStartX = 0.2;
+const islandCenterX = islandStartX + islandLen / 2;
+
+// Split into 3 sections per drawing: 837 + 2190 + 208
+// Section 1 (entrance side/shoe storage): 837mm
+makeBox(0.837, CH, islandDepth, C.island, islandStartX + 0.837/2, KB + CH/2, islandZ);
+makeEdge(0.837, CH, islandDepth, islandStartX + 0.837/2, KB + CH/2, islandZ);
+addLabel('鞋柜侧 837', islandStartX + 0.837/2, TOP + 0.15, islandZ, nameGroup);
+
+// Section 2 (main kitchen side storage): 2190mm
+makeBox(2.190, CH, islandDepth, C.island, islandStartX + 0.837 + 2.190/2, KB + CH/2, islandZ);
+makeEdge(2.190, CH, islandDepth, islandStartX + 0.837 + 2.190/2, KB + CH/2, islandZ);
+addLabel('中岛柜体 2190', islandStartX + 0.837 + 2.190/2, TOP + 0.15, islandZ, nameGroup);
+
+// Section 3 (end): 208mm
+makeBox(0.208, CH, islandDepth, C.island, islandStartX + 0.837 + 2.190 + 0.208/2, KB + CH/2, islandZ);
+makeEdge(0.208, CH, islandDepth, islandStartX + 0.837 + 2.190 + 0.208/2, KB + CH/2, islandZ);
+
+// Island countertop
+makeBox(islandLen + 0.04, CT, islandDepth + 0.02, C.counter, islandCenterX, KB + CH + CT/2, islandZ);
+
+// ========== FRIDGE ==========
+// Near entrance, right wall area. From P8 the fridge is at the far-X end
+// Fridge approx 800w × 650d × 1800h
+makeBox(0.8, 1.8, 0.65, C.appliance, BW + 0.05, 0.9, -0.2, {
+  name: '冰箱',
+  dim: '约 800×650×1800',
+  desc: '双门冰箱，靠近入口，买菜回来直接放'
+});
+makeEdge(0.8, 1.8, 0.65, BW + 0.05, 0.9, -0.2);
+addLabel('冰箱', BW + 0.05, 1.85, -0.2, nameGroup);
+
+// ========== HOT WATER HEATER (P31) ==========
+// Located on entrance wall, small unit: 340×180, height ~540 space
+// In the cabinets near fridge
+makeBox(0.34, 0.54, 0.18, C.appliance, BW + 0.05, 0.75 + 0.27, -1.0, {
+  name: '热水器',
+  dim: '340×180，安装高度540空间',
+  desc: '燃气热水器，位于入口柜体中'
+});
+makeEdge(0.34, 0.54, 0.18, BW + 0.05, 0.75 + 0.27, -1.0);
+addLabel('热水器', BW + 0.05, 1.4, -1.0, nameGroup);
+
+// ========== ENTRANCE DOOR ==========
+makeBox(0.08, 2.1, 0.9, 0x8B7355, BW + 0.45, 1.05, -1.3);
+addLabel('入户门', BW + 0.5, 2.2, -1.3, nameGroup);
+
+// ========== DIMENSION LINES ==========
+const dimY = -0.05; // slightly below floor
+
+// Back wall total length
+addDimLine(0, dimY, -CD - 0.3, BW, dimY, -CD - 0.3, '2811');
+// Back wall segments
+addDimLine(0, dimY, -CD - 0.15, 0.6, dimY, -CD - 0.15, '600');
+addDimLine(0.6, dimY, -CD - 0.15, 2.211, dimY, -CD - 0.15, '1611');
+addDimLine(2.211, dimY, -CD - 0.15, BW, dimY, -CD - 0.15, '600');
+
+// Left wall total length
+addDimLine(CD + 0.15, dimY, 0, CD + 0.15, dimY, -LW, '2141');
+
+// Walkway
+addDimLine(1.4, dimY, -CD, 1.4, dimY, -(CD + WALKWAY), '892 走道');
+
+// Island length
+addDimLine(islandStartX, dimY, islandZ - islandDepth/2 - 0.15, islandStartX + islandLen, dimY, islandZ - islandDepth/2 - 0.15, '3235');
+
+// Height dim (on left wall)
+addDimLine(-0.3, 0, 0.2, -0.3, TOP, 0.2, '940 台面高');
+addDimLine(-0.3, WC_BOT, 0.2, -0.3, WC_BOT + WC_H, 0.2, '650 吊柜');
+
+// ========== WALKWAY WIDTH MARKERS ==========
+// Back wall to island
+{
+  const wz1 = -CD, wz2 = -(CD + WALKWAY);
+  const wx = 1.4;
+  const pts = [new THREE.Vector3(wx, 0.02, wz1), new THREE.Vector3(wx, 0.02, wz2)];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  walkGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x2196F3, linewidth: 2 })));
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#2196F3;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none';
+  div.textContent = '走道 892mm';
+  const obj = new CSS2DObject(div);
+  obj.position.set(wx, 0.1, (wz1+wz2)/2);
+  walkGroup.add(obj);
+}
+
+// Left wall cabinet front to island end
+{
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#2196F3;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none';
+  div.textContent = '← 左柜到中岛 →';
+  const obj = new CSS2DObject(div);
+  obj.position.set(CD/2 + 0.05, 0.1, islandZ);
+  walkGroup.add(obj);
+}
+
+// ========== CLICKABLE DATA ==========
+// Add metadata to existing boxes by re-creating them... actually let me add userData to key items
+// (The makeBox calls above with meta already handle this)
+
+// Add click data to back wall items
+scene.children.forEach(c => {
+  if (c.isMesh && !c.userData.name) {
+    // We'll rely on the label click instead
+  }
+});
+
+// ========== LIGHTING ==========
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+dir.position.set(3, 5, -2);
+dir.castShadow = true;
+scene.add(dir);
+scene.add(new THREE.DirectionalLight(0xffffff, 0.2).position.set(-2, 3, -3));
+
+// ========== GRID HELPER ==========
+const grid = new THREE.GridHelper(8, 40, 0xcccccc, 0xe8e8e8);
+grid.position.y = -0.005;
+scene.add(grid);
+
+// ========== TOGGLE CONTROLS ==========
+nameGroup.visible = true;
+dimGroup.visible = false;
+walkGroup.visible = false;
+
+function toggle(group, btn) {
+  group.visible = !group.visible;
+  btn.classList.toggle('on');
+}
+
+document.getElementById('t-names').classList.add('on');
+document.getElementById('t-names').onclick = () => toggle(nameGroup, document.getElementById('t-names'));
+document.getElementById('t-dims').onclick = () => toggle(dimGroup, document.getElementById('t-dims'));
+document.getElementById('t-walk').onclick = () => toggle(walkGroup, document.getElementById('t-walk'));
+
+// View presets
+function setView(pos, target) {
+  camera.position.set(...pos);
+  controls.target.set(...target);
+  controls.update();
+}
+document.getElementById('v-top').onclick = () => setView([1.5, 5, -1.2], [1.5, 0, -1.2]);
+document.getElementById('v-3d').onclick = () => setView([4, 3.5, -3], [1.5, 0.5, -1.2]);
+document.getElementById('v-front').onclick = () => setView([1.4, 1.2, -3.5], [1.4, 0.8, 0]);
+
+// ========== CLICK INTERACTION ==========
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const infoPanel = document.getElementById('info');
+
+renderer.domElement.addEventListener('click', (e) => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(clickables);
+  if (hits.length > 0) {
+    const d = hits[0].object.userData;
+    document.getElementById('infoName').textContent = d.name;
+    document.getElementById('infoDim').textContent = d.dim;
+    document.getElementById('infoDesc').textContent = d.desc;
+    infoPanel.style.display = 'block';
+  }
+});
+
+// ========== RESIZE ==========
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ========== ANIMATE ==========
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
