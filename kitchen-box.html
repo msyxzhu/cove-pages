@@ -153,12 +153,21 @@ function makeItem(w, h, d, color, x, y, z, name, movable = true, desc = '') {
   const outline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.2, transparent: true }));
   mesh.add(outline);
 
-  // Selection highlight (hidden)
-  const hlMat = new THREE.LineBasicMaterial({ color: C.highlight, linewidth: 2 });
-  const highlight = new THREE.LineSegments(edges.clone(), hlMat);
+  // Selection highlight: a slightly larger translucent yellow box
+  const hlGeo = new THREE.BoxGeometry(w + 0.04, h + 0.04, d + 0.04);
+  const hlMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.35, depthTest: false });
+  const highlight = new THREE.Mesh(hlGeo, hlMat);
   highlight.visible = false;
-  highlight.scale.set(1.02, 1.02, 1.02);
+  highlight.renderOrder = 999;
   mesh.add(highlight);
+
+  // Selection edges: bright yellow wireframe on top
+  const hlEdges = new THREE.EdgesGeometry(hlGeo);
+  const hlLine = new THREE.LineSegments(hlEdges, new THREE.LineBasicMaterial({ color: 0xFFAA00, depthTest: false }));
+  hlLine.visible = false;
+  hlLine.renderOrder = 1000;
+  mesh.add(hlLine);
+  const highlightGroup = { glow: highlight, edges: hlLine };
 
   // Label
   const labelDiv = document.createElement('div');
@@ -172,7 +181,7 @@ function makeItem(w, h, d, color, x, y, z, name, movable = true, desc = '') {
     name, desc, movable, origColor: color,
     w, h, d,
     origPos: new THREE.Vector3(x, y, z),
-    label, highlight, labelDiv,
+    label, highlight: highlightGroup, labelDiv,
   };
 
   scene.add(mesh);
@@ -324,12 +333,14 @@ dragLine.add(dragLabel);
 // ========== SELECTION & DRAG ==========
 function selectItem(mesh) {
   if (selected) {
-    selected.userData.highlight.visible = false;
+    selected.userData.highlight.glow.visible = false;
+    selected.userData.highlight.edges.visible = false;
     selected.userData.labelDiv.style.background = 'rgba(0,0,0,0.7)';
   }
   selected = mesh;
   if (mesh) {
-    mesh.userData.highlight.visible = true;
+    mesh.userData.highlight.glow.visible = true;
+    mesh.userData.highlight.edges.visible = true;
     mesh.userData.labelDiv.style.background = '#E8A849';
     const u = mesh.userData;
     const p = mesh.position;
