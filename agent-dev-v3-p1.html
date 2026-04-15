@@ -96,7 +96,8 @@
         <li class="nav-item"><a href="#chapter-2" class="nav-link"><span class="nav-number">02</span>ReAct 循环</a></li>
         <li class="nav-item"><a href="#chapter-3" class="nav-link"><span class="nav-number">03</span>Tool / MCP / Skill</a></li>
         <li class="nav-item"><a href="#chapter-4" class="nav-link"><span class="nav-number">04</span>System Prompt</a></li>
-        <li class="nav-item"><a href="#chapter-5" class="nav-link"><span class="nav-number">05</span>记忆 + RAG</a></li>
+        <li class="nav-item"><a href="#chapter-5" class="nav-link"><span class="nav-number">05a</span>记忆系统</a></li>
+        <li class="nav-item"><a href="#chapter-5b" class="nav-link"><span class="nav-number">05b</span>RAG 检索增强</a></li>
         <li class="nav-item"><a href="#chapter-6" class="nav-link"><span class="nav-number">06</span>Planning + 评估</a></li>
         <li class="nav-item"><a href="#chapter-7" class="nav-link"><span class="nav-number">07</span>多 Agent 协作</a></li>
         <li class="nav-item"><a href="#chapter-8" class="nav-link"><span class="nav-number">08</span>Harness + 幻觉</a></li>
@@ -742,10 +743,10 @@ R: TL;DR → 直觉 → 深入 → 动手
 <!--                    CHAPTER 5                                      -->
 <!-- ================================================================ -->
 <section id="chapter-5" class="chapter">
-<h2 class="chapter-title">05 · 记忆系统 + RAG:Agent 如何"记住"和"检索"</h2>
+<h2 class="chapter-title">05a · 记忆系统：Agent 如何"记住"</h2>
 <div class="chapter-content">
 
-<p><strong>TL;DR:</strong>Agent 的记忆分三层(短期/长期/程序性)。RAG 是最重要的外部知识检索技术,面试考察频率极高。</p>
+<p><strong>TL;DR:</strong>Agent 的记忆分三层(短期/长期/程序性)。理解记忆架构是理解 Agent “为什么能记住上文”的关键。</p>
 
 <h3>记忆的三层模型</h3>
 <div class="visualization">
@@ -822,7 +823,19 @@ R: TL;DR → 直觉 → 深入 → 动手
 }
 </pre>
 
-<h3>🔥 RAG:检索增强生成(超高频!)</h3>
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 5b: RAG                                -->
+<!-- ================================================================ -->
+<section id="chapter-5b" class="chapter">
+<h2 class="chapter-title">05b · RAG：检索增强生成（超高频！）</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR：</strong>RAG 让 LLM 能基于外部知识库回答问题，是当前 AI 工程中最重要的技术之一。面试考察频率极高。</p>
+
+<h3>🔥 RAG:检索增强生成</h3>
 <p><strong>RAG(Retrieval-Augmented Generation,检索增强生成)</strong>是让 LLM 基于外部知识库回答问题的技术。这是面试中考察最多的知识点之一。</p>
 
 <div class="visualization">
