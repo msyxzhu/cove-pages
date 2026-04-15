@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 3-4: OpenClaw + 源码 - Agent 开发原理</title>
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.8; color: #333; background-color: #fafafa; }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; border-right: 1px solid #e8e8e8; padding: 32px 24px; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1890ff; }
+        .nav-list { list-style: none; }
+        .nav-item { margin-bottom: 6px; }
+        .nav-link { display: block; padding: 8px 14px; color: #595959; text-decoration: none; border-radius: 6px; transition: all 0.2s ease; font-size: 13.5px; }
+        .nav-link:hover { background-color: #f0f7ff; color: #1890ff; }
+        .nav-link.active { background-color: #e6f4ff; color: #1890ff; font-weight: 500; }
+        .nav-number { color: #8c8c8c; margin-right: 8px; }
+        .nav-part { font-size: 11px; font-weight: 600; color: #8c8c8c; text-transform: uppercase; letter-spacing: 1px; margin-top: 16px; margin-bottom: 8px; padding: 0 14px; }
+        .main-content { flex: 1; margin-left: 300px; padding: 48px 64px; max-width: 920px; }
+        .chapter { margin-bottom: 72px; scroll-margin-top: 24px; }
+        .chapter-title { font-size: 28px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8; }
+        .chapter-content { font-size: 16px; color: #333; }
+        .chapter-content h3 { font-size: 18px; font-weight: 500; color: #262626; margin: 28px 0 12px; }
+        .chapter-content p { margin-bottom: 16px; }
+        .chapter-content ul, .chapter-content ol { margin: 16px 0; padding-left: 24px; }
+        .chapter-content li { margin-bottom: 8px; }
+        .chapter-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; font-size: 14px; color: #d4380d; }
+        .chapter-content pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13.5px; line-height: 1.6; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; }
+        .chapter-content pre .comment { color: #6a9955; }
+        .chapter-content pre .keyword { color: #569cd6; }
+        .chapter-content pre .string { color: #ce9178; }
+        .chapter-content pre .func { color: #dcdcaa; }
+        .chapter-content pre .type { color: #4ec9b0; }
+        .chapter-content pre .number { color: #b5cea8; }
+        .visualization { margin: 32px 0; padding: 24px; background-color: #fff; border-radius: 8px; border: 1px solid #e8e8e8; text-align: center; }
+        .visualization-title { font-size: 14px; color: #8c8c8c; margin-bottom: 16px; }
+        .tip-box { margin: 24px 0; padding: 16px 20px; background-color: #fffbe6; border-left: 4px solid #faad14; border-radius: 4px; }
+        .tip-box-title { font-weight: 500; color: #d48806; margin-bottom: 8px; }
+        .tip-box-content { color: #595959; font-size: 14px; }
+        .insight-box { margin: 24px 0; padding: 16px 20px; background-color: #f0f7ff; border-left: 4px solid #1890ff; border-radius: 4px; }
+        .insight-box-title { font-weight: 500; color: #096dd9; margin-bottom: 8px; }
+        .insight-box-content { color: #595959; font-size: 14px; }
+        .danger-box { margin: 24px 0; padding: 16px 20px; background-color: #fff2f0; border-left: 4px solid #ff4d4f; border-radius: 4px; }
+        .danger-box-title { font-weight: 500; color: #cf1322; margin-bottom: 8px; }
+        .danger-box-content { color: #595959; font-size: 14px; }
+        .interview-box { margin: 24px 0; padding: 16px 20px; background-color: #f0fff0; border-left: 4px solid #52c41a; border-radius: 4px; }
+        .interview-box-title { font-weight: 500; color: #389e0d; margin-bottom: 8px; }
+        .interview-box-content { color: #595959; font-size: 14px; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        .compare-table th { background: #fafafa; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e8e8e8; color: #262626; font-weight: 500; }
+        .compare-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+        .compare-table tr:hover { background: #fafafa; }
+        .part-divider { margin: 80px 0 40px; padding: 20px 0; border-top: 3px solid #1890ff; }
+        .part-title { font-size: 22px; font-weight: 600; color: #1890ff; margin-bottom: 8px; }
+        .part-subtitle { font-size: 14px; color: #8c8c8c; }
+        .references { margin-top: 64px; padding-top: 32px; border-top: 2px solid #e8e8e8; }
+        .references-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+        .references-list { list-style: none; }
+        .references-list li { margin-bottom: 8px; color: #595959; }
+        .references-list a { color: #1890ff; text-decoration: none; }
+        .references-list a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .sidebar { position: relative; width: 100%; height: auto; } .main-content { margin-left: 0; padding: 24px; } .container { flex-direction: column; } .compare-table { display: block; overflow-x: auto; white-space: nowrap; } pre { overflow-x: auto; max-width: 100vw; } }
+    </style>
+
+    <style>
+        .topnav { background:#fff; border-bottom:1px solid #e8e8e8; padding:0 24px; display:flex; gap:0; position:fixed; top:0; left:0; right:0; z-index:100; height:44px; align-items:center; }
+        .topnav a { padding:10px 16px; color:#595959; text-decoration:none; font-size:13px; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; }
+        .topnav a:hover { color:#1890ff; background:#f0f7ff; }
+        .topnav a.topnav-active { color:#1890ff; font-weight:600; border-bottom-color:#1890ff; }
+        .sidebar { top:44px !important; height:calc(100vh - 44px) !important; }
+        .main-content { padding-top:92px !important; }
+        @media (max-width: 768px) {
+            .topnav { overflow-x:auto; }
+            .topnav a { padding:8px 10px; font-size:12px; }
+            .sidebar { top:0 !important; height:auto !important; }
+            .main-content { padding-top:24px !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="topnav">
+    <a href="agent-dev-v3.html">🗺️ 总览</a>
+<a href="agent-dev-v3-p0.html">Part 0: AI 基础</a>
+<a href="agent-dev-v3-p1.html">Part 1: Agent 原理</a>
+<a href="agent-dev-v3-hw.html">🔨 Hello World</a>
+<a href="agent-dev-v3-p2.html">Part 2: 工程</a>
+<a href="agent-dev-v3-p34.html" class="topnav-active">Part 3-4: OpenClaw</a>
+</div>
+<div class="container">
+<nav class="sidebar">
+    <h1 class="sidebar-title">📚 Agent 开发原理<br><small style="font-size:12px;color:#8c8c8c;">Part 3-4 · OpenClaw</small></h1>
+    <ul class="nav-list">
+        
+        <li class="nav-part">Part 3: OpenClaw 架构</li>
+        <li class="nav-item"><a href="#chapter-14" class="nav-link active"><span class="nav-number">14</span>Gateway 架构</a></li>
+        <li class="nav-item"><a href="#chapter-15" class="nav-link"><span class="nav-number">15</span>Channel + Binding</a></li>
+        <li class="nav-item"><a href="#chapter-16" class="nav-link"><span class="nav-number">16</span>多 Agent 路由</a></li>
+        <li class="nav-item"><a href="#chapter-17" class="nav-link"><span class="nav-number">17</span>Plugin + Engine</a></li>
+        <li class="nav-item"><a href="#chapter-18" class="nav-link"><span class="nav-number">18</span>Skills 系统</a></li>
+        <li class="nav-part">Part 4: 源码导读</li>
+        <li class="nav-item"><a href="#chapter-19" class="nav-link"><span class="nav-number">19</span>Prompt Pipeline</a></li>
+        <li class="nav-item"><a href="#chapter-20" class="nav-link"><span class="nav-number">20</span>源码导读</a></li>
+    
+    </ul>
+</nav>
+<main class="main-content">
+
+<!-- ════════════════ Part 3 ════════════════ -->
+<div class="part-divider">
+    <div class="part-title">Part 3: OpenClaw 架构</div>
+    <div class="part-subtitle">从通用知识到具体实现</div>
+</div>
+
+<!-- ================================================================ -->
+<!--                    CHAPTERS 14-20 (Condensed but complete)        -->
+<!-- ================================================================ -->
+<section id="chapter-14" class="chapter">
+<h2 class="chapter-title">14 · Gateway 架构</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>Gateway 是 OpenClaw 的"神经中枢"--所有消息渠道、Agent、Node 都通过 WebSocket 连接到它。</p>
+
+<h3>核心架构</h3>
+<pre>
+<span class="comment">// 单进程长驻,默认端口 127.0.0.1:18789</span>
+
+               ┌─────── Gateway ────────┐
+               │                        │
+  WhatsApp ──→ │                        │ ←── macOS App
+  Telegram ──→ │   WebSocket Server     │ ←── CLI
+  Discord  ──→ │   (所有渠道/客户端      │ ←── WebChat
+  飞书      ──→ │    都连到这里)          │ ←── Node (手机)
+  Signal   ──→ │                        │
+               └────────────────────────┘
+
+<span class="comment">// Wire Protocol(线路协议)</span>
+Request:  { type: <span class="string">"req"</span>,   id: <span class="string">"1"</span>, method: <span class="string">"agent"</span>, params: {...} }
+Response: { type: <span class="string">"res"</span>,   id: <span class="string">"1"</span>, ok: <span class="keyword">true</span>, payload: {...} }
+Event:    { type: <span class="string">"event"</span>, event: <span class="string">"agent"</span>, payload: {...}, seq: <span class="number">1</span> }
+</pre>
+</div>
+</section>
+
+<section id="chapter-15" class="chapter">
+<h2 class="chapter-title">15 · Channel + Binding</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>Channel 是消息入口/出口,Binding 是路由规则。匹配优先级:peer &gt; guildId &gt; accountId &gt; channel &gt; default。</p>
+<pre>
+<span class="comment">// 典型配置</span>
+bindings: [
+  <span class="comment">// 精确路由:特定人 → coding agent</span>
+  { agentId: <span class="string">"coding"</span>, match: { channel: <span class="string">"whatsapp"</span>,
+    peer: { kind: <span class="string">"direct"</span>, id: <span class="string">"+8613800138000"</span> } } },
+  <span class="comment">// 飞书全部 → sage</span>
+  { agentId: <span class="string">"sage"</span>, match: { channel: <span class="string">"feishu"</span> } },
+  <span class="comment">// 兜底 → main</span>
+  { agentId: <span class="string">"main"</span>, match: { channel: <span class="string">"whatsapp"</span> } },
+]
+</pre>
+</div>
+</section>
+
+<section id="chapter-16" class="chapter">
+<h2 class="chapter-title">16 · 多 Agent 路由(深入版)</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>每个 Agent 完全隔离(workspace + auth + sessions)。Sub-Agent 用 <code>sessions_spawn</code> 生成,promptMode: minimal 精简上下文。</p>
+<pre>
+<span class="comment">// 每个 Agent 有三层隔离</span>
+Agent: sage
+├── 🏠 Workspace (SOUL.md, AGENTS.md, USER.md, skills/)
+├── 🔑 Auth     (auth-profiles.json - 独立凭证)
+└── 💬 Sessions (sessions.json + *.jsonl - 独立对话)
+
+<span class="comment">// Sub-Agent 生命周期</span>
+sessions_spawn({ task: <span class="string">"..."</span>, mode: <span class="string">"run"</span> })
+  → 继承父 workspace → 独立 session → 完成后推送结果
+  → promptMode: <span class="string">"minimal"</span>(只注入 AGENTS.md + TOOLS.md)
+</pre>
+</div>
+</section>
+
+<section id="chapter-17" class="chapter">
+<h2 class="chapter-title">17 · Plugin + Context Engine</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>Plugin 是 OpenClaw 的扩展机制(模型/渠道/工具),Context Engine 控制模型"看到什么"。</p>
+<pre>
+<span class="comment">// Plugin 四层架构</span>
+1. Manifest + Discovery  → 发现候选插件
+2. Enablement + Validation → 决定启用/禁用
+3. Runtime Loading       → 调用 register(api)
+4. Surface Consumption   → Gateway 各模块读取 Registry
+
+<span class="comment">// Context Engine 四阶段生命周期</span>
+ingest(message)          → 存储新消息
+assemble(msgs, budget)   → 精选送进 context window 的消息 ⭐
+compact(sessionId)       → 压缩旧历史
+afterTurn(session)       → 后处理
+</pre>
+</div>
+</section>
+
+<section id="chapter-18" class="chapter">
+<h2 class="chapter-title">18 · Skills 系统</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>Skill = Agent 的专业手册,按需加载不占 context。三级优先:Workspace &gt; Managed &gt; Bundled。</p>
+
+<h3>渐进式披露(Progressive Disclosure)</h3>
+<pre>
+<span class="comment">// 问题:Agent 有 50 个 Skill,每个 SKILL.md 几千字</span>
+<span class="comment">// 全放进 context window → 几万 token → 爆了</span>
+
+<span class="comment">// 解决:渐进式披露</span>
+<span class="keyword">Level 1:</span> System Prompt 只包含目录
+  <span class="comment">"可用技能:weather(天气), github(GitHub)..."</span>
+  <span class="comment">→ 每个 Skill 只占 ~50 tokens</span>
+
+<span class="keyword">Level 2:</span> 需要时读取 SKILL.md
+  Agent → read("~/.openclaw/skills/weather/SKILL.md")
+  <span class="comment">→ 只有用到时才加载完整指令</span>
+
+<span class="comment">// 类似 MCP 的 Progressive Discovery(2026.01 新增)</span>
+<span class="comment">// Skill 更早实现了这种"按需加载"的设计</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: Skill 了解吗?渐进式披露是怎么实现的?Skill 里面有没有工具?</strong><br><br>
+<strong>标准答案:</strong>Skill 是 Agent 的行为指令文件(SKILL.md),定义"遇到什么场景,怎么做"。渐进式披露:system prompt 只注入 Skill 目录(名称+描述+路径),Agent 需要时再用 read 工具加载完整内容。Skill 本身不是工具,但 Skill 的指令中通常会引导 Agent 调用特定工具(如 exec、web_search)。<br><br>
+<strong>加分回答:</strong>提到三级加载优先级(Workspace &gt; Managed &gt; Bundled)和 MCP 在 2026.01 也加入了类似的 Progressive Discovery(工具搜索),解决 context 污染问题。<br><br>
+<strong>常见踩坑:</strong>❌ "Skill 就是工具"--不是,Skill 是指令/方法论,工具是能力。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ════════════════ Part 4 ════════════════ -->
+<div class="part-divider">
+    <div class="part-title">Part 4: 源码导读</div>
+    <div class="part-subtitle">打开引擎盖,看看里面怎么转</div>
+</div>
+
+<section id="chapter-19" class="chapter">
+<h2 class="chapter-title">19 · Prompt Pipeline 全链路</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>用户消息到 Agent 回复经过:Channel接收 → Binding路由 → Session解析 → Queue排队 → System Prompt组装 → LLM推理 → Tool执行 → Reply投递。</p>
+
+<div class="visualization">
+<div class="visualization-title">Prompt Pipeline(简化版)</div>
+<svg width="560" height="400" viewBox="0 0 560 400">
+    <defs><marker id="arr19" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#595959"/></marker></defs>
+    <rect x="180" y="10" width="200" height="35" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="280" y="32" text-anchor="middle" font-size="12" fill="#096dd9">1. Channel 接收消息</text>
+    <path d="M 280 45 L 280 58" stroke="#595959" stroke-width="1.5" marker-end="url(#arr19)"/>
+    <rect x="180" y="58" width="200" height="35" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="280" y="80" text-anchor="middle" font-size="12" fill="#096dd9">2. Binding 路由到 Agent</text>
+    <path d="M 280 93 L 280 106" stroke="#595959" stroke-width="1.5" marker-end="url(#arr19)"/>
+    <rect x="180" y="106" width="200" height="35" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="280" y="128" text-anchor="middle" font-size="12" fill="#389e0d">3. Session 解析</text>
+    <path d="M 280 141 L 280 154" stroke="#595959" stroke-width="1.5" marker-end="url(#arr19)"/>
+    <rect x="180" y="154" width="200" height="35" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="280" y="176" text-anchor="middle" font-size="12" fill="#389e0d">4. Queue 排队</text>
+    <path d="M 280 189 L 280 202" stroke="#595959" stroke-width="1.5" marker-end="url(#arr19)"/>
+    <rect x="120" y="202" width="320" height="45" rx="8" fill="#fff2f0" stroke="#ff4d4f" stroke-width="2.5"/>
+    <text x="280" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="#cf1322">5. System Prompt 组装 ⭐</text>
+    <text x="280" y="238" text-anchor="middle" font-size="10" fill="#8c8c8c">Tools + Skills + Bootstrap 文件 + Time + Runtime</text>
+    <path d="M 280 247 L 280 260" stroke="#595959" stroke-width="1.5" marker-end="url(#arr19)"/>
+    <rect x="180" y="260" width="200" height="35" rx="6" fill="#f9f0ff" stroke="#722ed1" stroke-width="2"/>
+    <text x="280" y="282" text-anchor="middle" font-size="12" fill="#531dab">6. LLM 推理 + Tool 执行</text>
+    <path d="M 280 295 L 280 308" stroke="#595959" stroke-width="1.5" marker-end="url(#arr19)"/>
+    <rect x="180" y="308" width="200" height="35" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="280" y="330" text-anchor="middle" font-size="12" fill="#096dd9">7. Reply 投递回 Channel</text>
+
+    <path d="M 450 278 Q 480 250 450 222" fill="none" stroke="#722ed1" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="490" y="255" font-size="9" fill="#722ed1">ReAct Loop</text>
+</svg>
+</div>
+
+<pre>
+<span class="comment">// System Prompt 由以下部分组装:</span>
+1 Tooling     - 可用工具列表
+2 Safety      - 安全准则
+3 Skills      - 技能目录(按需加载)
+4 Workspace   - 工作目录路径
+5 Date/Time   - 当前时间
+6 Runtime     - 模型/OS/主机信息
+7 Project Context(Bootstrap 文件):
+   - AGENTS.md  - 操作指令
+   - SOUL.md    - 人格定义  <span class="comment">← 你正在体验这个!</span>
+   - USER.md    - 用户信息
+   - IDENTITY.md
+   - TOOLS.md
+   - MEMORY.md  - 长期记忆
+
+<span class="comment">// Sub-Agent 只注入 AGENTS.md + TOOLS.md(精简模式)</span>
+</pre>
+</div>
+</section>
+
+<section id="chapter-20" class="chapter">
+<h2 class="chapter-title">20 · OpenClaw 源码导读</h2>
+<div class="chapter-content">
+<p><strong>TL;DR:</strong>核心调用链:agent RPC → agentCommand → runEmbeddedPiAgent → subscribeEmbeddedPiSession。理解这条链,就理解了 80% 的源码。</p>
+
+<h3>核心调用链</h3>
+<pre>
+<span class="keyword">agent RPC</span>(入口)
+  → 验证参数,解析 session,返回 runId
+       ↓
+<span class="keyword">agentCommand</span>
+  → 解析模型 + 加载 Skills + 构建 pi session
+       ↓
+<span class="keyword">runEmbeddedPiAgent</span> ⭐
+  → per-session + global queue 序列化
+  → 构建 pi session → 启动推理 → 超时管理
+       ↓
+<span class="keyword">subscribeEmbeddedPiSession</span>
+  → 桥接 pi-agent-core 事件到 OpenClaw 流
+  → tool events → <span class="string">"tool"</span> 流
+  → assistant deltas → <span class="string">"assistant"</span> 流
+  → lifecycle → <span class="string">"lifecycle"</span> 流 (start/end/error)
+</pre>
+
+<h3>四大核心抽象</h3>
+<pre>
+🔄 <span class="keyword">Agent Loop</span>      = 发动机    - 驱动一切运转
+🔌 <span class="keyword">Plugin Registry</span> = 管线系统  - 连接所有组件
+💬 <span class="keyword">Session Manager</span> = 记录仪    - 管理所有会话
+🧠 <span class="keyword">Context Engine</span>  = 导航系统  - 决定模型看到什么
+</pre>
+
+<h3>推荐阅读路径</h3>
+<pre>
+<span class="keyword">Level 1:</span> 读文档(你刚读完的这 20 章 ✅)
+<span class="keyword">Level 2:</span> 读配置(openclaw.json 的每个字段)
+<span class="keyword">Level 3:</span> 跟着一条消息走源码
+  → 从 Channel 收到消息
+  → 追踪 Binding → Session → Queue → Agent Loop
+  → 看 System Prompt 怎么组装
+  → 看 LLM 推理 + Tool 执行
+  → 看 Reply 怎么投递回去
+<span class="keyword">Level 4:</span> 读一个 Plugin 的完整源码
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 给轩的建议</div>
+<div class="insight-box-content">不要试图一次读完所有源码。<strong>带着具体问题去读</strong>--比如"SOUL.md 是在哪里被注入 system prompt 的?""Binding 匹配是在哪个函数?"有了这 20 章的知识地图,你已经知道该去哪里找答案了。🚀</div>
+</div>
+
+</div>
+</section>
+
+<!-- ════════════════ References ════════════════ -->
+<div class="references">
+<h2 class="references-title">📚 参考文献与延伸阅读</h2>
+<ul class="references-list">
+    <li>📄 Yao et al. (2022) - <a href="https://arxiv.org/abs/2210.03629" target="_blank">ReAct: Synergizing Reasoning and Acting in Language Models</a></li>
+    <li>📄 Lewis et al. (2020) - <a href="https://arxiv.org/abs/2005.11401" target="_blank">Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a></li>
+    <li>📄 Vaswani et al. (2017) - <a href="https://arxiv.org/abs/1706.03762" target="_blank">Attention Is All You Need</a></li>
+    <li>📄 Rafailov et al. (2023) - <a href="https://arxiv.org/abs/2305.18290" target="_blank">DPO: Direct Preference Optimization</a></li>
+    <li>📄 Wang et al. (2023) - <a href="https://arxiv.org/abs/2308.11432" target="_blank">A Survey on Large Language Model based Autonomous Agents</a></li>
+    <li>📄 Shinn et al. (2023) - <a href="https://arxiv.org/abs/2303.11366" target="_blank">Reflexion: Language Agents with Verbal Reinforcement Learning</a></li>
+    <li>📖 Anthropic - <a href="https://modelcontextprotocol.io" target="_blank">Model Context Protocol (MCP) Specification</a></li>
+    <li>📖 Google - <a href="https://a2a-protocol.org" target="_blank">Agent-to-Agent (A2A) Protocol</a></li>
+    <li>📖 Anthropic - <a href="https://claude.com/blog/equipping-agents-for-the-real-world-with-agent-skills" target="_blank">Agent Skills</a></li>
+    <li>📖 OpenClaw Documentation - <a href="https://docs.openclaw.ai" target="_blank">https://docs.openclaw.ai</a></li>
+    <li>📖 Lilian Weng - <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">LLM Powered Autonomous Agents</a></li>
+    <li>📖 Andrew Ng - <a href="https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-1/" target="_blank">Agentic Design Patterns</a></li>
+</ul>
+</div>
+
+</main>
+</div>
+<script>
+
+
+
+<div style="display:flex;justify-content:space-between;margin:64px 0 32px;padding:24px 0;border-top:2px solid #e8e8e8;">
+    <div><a href="agent-dev-v3-p2.html" style="color:#1890ff;text-decoration:none;">← Part 2: 工程基础</a></div>
+    <div></div>
+</div>
+
+
+</main>
+</div>
+<script>
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const id = entry.target.id;
+            const link = document.querySelector(`a[href="$#${id}"]`);
+            if (link) link.classList.add('active');
+        }
+    });
+}, { rootMargin: '-20% 0px -80% 0px' });
+document.querySelectorAll('.chapter').forEach(ch => observer.observe(ch));
+</script>
+</body>
+</html>

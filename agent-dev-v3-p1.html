@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 1: Agent 原理 - Agent 开发原理</title>
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.8; color: #333; background-color: #fafafa; }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; border-right: 1px solid #e8e8e8; padding: 32px 24px; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1890ff; }
+        .nav-list { list-style: none; }
+        .nav-item { margin-bottom: 6px; }
+        .nav-link { display: block; padding: 8px 14px; color: #595959; text-decoration: none; border-radius: 6px; transition: all 0.2s ease; font-size: 13.5px; }
+        .nav-link:hover { background-color: #f0f7ff; color: #1890ff; }
+        .nav-link.active { background-color: #e6f4ff; color: #1890ff; font-weight: 500; }
+        .nav-number { color: #8c8c8c; margin-right: 8px; }
+        .nav-part { font-size: 11px; font-weight: 600; color: #8c8c8c; text-transform: uppercase; letter-spacing: 1px; margin-top: 16px; margin-bottom: 8px; padding: 0 14px; }
+        .main-content { flex: 1; margin-left: 300px; padding: 48px 64px; max-width: 920px; }
+        .chapter { margin-bottom: 72px; scroll-margin-top: 24px; }
+        .chapter-title { font-size: 28px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8; }
+        .chapter-content { font-size: 16px; color: #333; }
+        .chapter-content h3 { font-size: 18px; font-weight: 500; color: #262626; margin: 28px 0 12px; }
+        .chapter-content p { margin-bottom: 16px; }
+        .chapter-content ul, .chapter-content ol { margin: 16px 0; padding-left: 24px; }
+        .chapter-content li { margin-bottom: 8px; }
+        .chapter-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; font-size: 14px; color: #d4380d; }
+        .chapter-content pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13.5px; line-height: 1.6; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; }
+        .chapter-content pre .comment { color: #6a9955; }
+        .chapter-content pre .keyword { color: #569cd6; }
+        .chapter-content pre .string { color: #ce9178; }
+        .chapter-content pre .func { color: #dcdcaa; }
+        .chapter-content pre .type { color: #4ec9b0; }
+        .chapter-content pre .number { color: #b5cea8; }
+        .visualization { margin: 32px 0; padding: 24px; background-color: #fff; border-radius: 8px; border: 1px solid #e8e8e8; text-align: center; }
+        .visualization-title { font-size: 14px; color: #8c8c8c; margin-bottom: 16px; }
+        .tip-box { margin: 24px 0; padding: 16px 20px; background-color: #fffbe6; border-left: 4px solid #faad14; border-radius: 4px; }
+        .tip-box-title { font-weight: 500; color: #d48806; margin-bottom: 8px; }
+        .tip-box-content { color: #595959; font-size: 14px; }
+        .insight-box { margin: 24px 0; padding: 16px 20px; background-color: #f0f7ff; border-left: 4px solid #1890ff; border-radius: 4px; }
+        .insight-box-title { font-weight: 500; color: #096dd9; margin-bottom: 8px; }
+        .insight-box-content { color: #595959; font-size: 14px; }
+        .danger-box { margin: 24px 0; padding: 16px 20px; background-color: #fff2f0; border-left: 4px solid #ff4d4f; border-radius: 4px; }
+        .danger-box-title { font-weight: 500; color: #cf1322; margin-bottom: 8px; }
+        .danger-box-content { color: #595959; font-size: 14px; }
+        .interview-box { margin: 24px 0; padding: 16px 20px; background-color: #f0fff0; border-left: 4px solid #52c41a; border-radius: 4px; }
+        .interview-box-title { font-weight: 500; color: #389e0d; margin-bottom: 8px; }
+        .interview-box-content { color: #595959; font-size: 14px; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        .compare-table th { background: #fafafa; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e8e8e8; color: #262626; font-weight: 500; }
+        .compare-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+        .compare-table tr:hover { background: #fafafa; }
+        .part-divider { margin: 80px 0 40px; padding: 20px 0; border-top: 3px solid #1890ff; }
+        .part-title { font-size: 22px; font-weight: 600; color: #1890ff; margin-bottom: 8px; }
+        .part-subtitle { font-size: 14px; color: #8c8c8c; }
+        .references { margin-top: 64px; padding-top: 32px; border-top: 2px solid #e8e8e8; }
+        .references-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+        .references-list { list-style: none; }
+        .references-list li { margin-bottom: 8px; color: #595959; }
+        .references-list a { color: #1890ff; text-decoration: none; }
+        .references-list a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .sidebar { position: relative; width: 100%; height: auto; } .main-content { margin-left: 0; padding: 24px; } .container { flex-direction: column; } .compare-table { display: block; overflow-x: auto; white-space: nowrap; } pre { overflow-x: auto; max-width: 100vw; } }
+    </style>
+
+    <style>
+        .topnav { background:#fff; border-bottom:1px solid #e8e8e8; padding:0 24px; display:flex; gap:0; position:fixed; top:0; left:0; right:0; z-index:100; height:44px; align-items:center; }
+        .topnav a { padding:10px 16px; color:#595959; text-decoration:none; font-size:13px; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; }
+        .topnav a:hover { color:#1890ff; background:#f0f7ff; }
+        .topnav a.topnav-active { color:#1890ff; font-weight:600; border-bottom-color:#1890ff; }
+        .sidebar { top:44px !important; height:calc(100vh - 44px) !important; }
+        .main-content { padding-top:92px !important; }
+        @media (max-width: 768px) {
+            .topnav { overflow-x:auto; }
+            .topnav a { padding:8px 10px; font-size:12px; }
+            .sidebar { top:0 !important; height:auto !important; }
+            .main-content { padding-top:24px !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="topnav">
+    <a href="agent-dev-v3.html">🗺️ 总览</a>
+<a href="agent-dev-v3-p0.html">Part 0: AI 基础</a>
+<a href="agent-dev-v3-p1.html" class="topnav-active">Part 1: Agent 原理</a>
+<a href="agent-dev-v3-hw.html">🔨 Hello World</a>
+<a href="agent-dev-v3-p2.html">Part 2: 工程</a>
+<a href="agent-dev-v3-p34.html">Part 3-4: OpenClaw</a>
+</div>
+<div class="container">
+<nav class="sidebar">
+    <h1 class="sidebar-title">📚 Agent 开发原理<br><small style="font-size:12px;color:#8c8c8c;">Part 1 · Agent 原理</small></h1>
+    <ul class="nav-list">
+        
+        <li class="nav-item"><a href="#chapter-1" class="nav-link active"><span class="nav-number">01</span>LLM → Agent</a></li>
+        <li class="nav-item"><a href="#chapter-2" class="nav-link"><span class="nav-number">02</span>ReAct 循环</a></li>
+        <li class="nav-item"><a href="#chapter-3" class="nav-link"><span class="nav-number">03</span>Tool / MCP / Skill</a></li>
+        <li class="nav-item"><a href="#chapter-4" class="nav-link"><span class="nav-number">04</span>System Prompt</a></li>
+        <li class="nav-item"><a href="#chapter-5" class="nav-link"><span class="nav-number">05</span>记忆 + RAG</a></li>
+        <li class="nav-item"><a href="#chapter-6" class="nav-link"><span class="nav-number">06</span>Planning + 评估</a></li>
+        <li class="nav-item"><a href="#chapter-7" class="nav-link"><span class="nav-number">07</span>多 Agent 协作</a></li>
+        <li class="nav-item"><a href="#chapter-8" class="nav-link"><span class="nav-number">08</span>Harness + 幻觉</a></li>
+        <li class="nav-item"><a href="#chapter-9" class="nav-link"><span class="nav-number">09</span>手写 Agent + RAG</a></li>
+        <li class="nav-item"><a href="#chapter-10" class="nav-link"><span class="nav-number">10</span>生产 + SSE + 缓存</a></li>
+        <li class="nav-item"><a href="#chapter-10b" class="nav-link"><span class="nav-number">10b</span>训练与对齐</a></li>
+    
+    </ul>
+</nav>
+<main class="main-content">
+
+<div class="part-divider">
+    <div class="part-title">Part 1: Agent 原理</div>
+    <div class="part-subtitle">从 LLM 到 Agent 的核心概念 - 10 个关键知识点</div>
+</div>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 1                                      -->
+<!-- ================================================================ -->
+<section id="chapter-1" class="chapter">
+<h2 class="chapter-title">01 · LLM 是怎么变成 Agent 的</h2>
+<div class="chapter-content">
+
+<p><em>经过 Part 0 的旅程,你已经知道了:神经网络是怎么学习的,文字是怎么变成数字的,Attention 是怎么让模型理解上下文的,以及 LLM 是怎么通过三阶段训练变成 ChatGPT 的。现在,让我们进入最激动人心的部分--把这个聪明的 LLM 变成一个真正能做事的 Agent。</em></p>
+
+<p><strong>TL;DR:</strong>Agent = LLM + Loop + Action(Tools) + Memory + Planning。LLM 是"大脑",其余四个组件(LAMP 🪔)让它从"只能说"变成"能做事"。</p>
+
+<h3>直觉:从计算器到员工</h3>
+<p>想象你有一个超级聪明的朋友--他读过所有的书,能回答任何问题。但有个问题:<strong>他被关在一个房间里</strong>,只能通过纸条和你交流。</p>
+<pre>
+<span class="comment">// 纯 LLM(被关在房间里的天才)</span>
+你写纸条:  "帮我订明天去上海的机票"
+他回纸条:  "好的,你可以去携程网搜索..."  <span class="comment">← 他只能"说",不能"做"</span>
+
+<span class="comment">// Agent(放出来的天才,有手有脚有记忆)</span>
+你说:      "帮我订明天去上海的机票"
+他:         打开携程 → 搜索航班 → 比价 → 下单 → 告诉你 "订好了,东航 MU5101,¥680"
+</pre>
+
+<p>这就是 LLM 和 Agent 的核心区别:<strong>LLM 是大脑,Agent 是一个完整的"人"</strong>。</p>
+
+<h3>Agent 的精确定义</h3>
+<p><strong>AI Agent(AI 智能体)</strong>是一个能够自主感知环境、做出决策、并采取行动来实现目标的 AI 系统。</p>
+
+<div class="visualization">
+<div class="visualization-title">Agent 核心公式</div>
+<svg width="580" height="180" viewBox="0 0 580 180">
+    <rect x="10" y="40" width="100" height="60" rx="8" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="60" y="65" text-anchor="middle" font-size="13" font-weight="600" fill="#096dd9">🧠 LLM</text>
+    <text x="60" y="82" text-anchor="middle" font-size="10" fill="#8c8c8c">大脑</text>
+
+    <text x="130" y="75" text-anchor="middle" font-size="20" fill="#333">+</text>
+
+    <rect x="150" y="10" width="85" height="45" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="192" y="37" text-anchor="middle" font-size="11" font-weight="500" fill="#389e0d">🔄 Loop</text>
+
+    <rect x="150" y="65" width="85" height="45" rx="6" fill="#fff7e6" stroke="#faad14" stroke-width="1.5"/>
+    <text x="192" y="92" text-anchor="middle" font-size="11" font-weight="500" fill="#d48806">🔧 Tools</text>
+
+    <rect x="245" y="10" width="85" height="45" rx="6" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="287" y="37" text-anchor="middle" font-size="11" font-weight="500" fill="#531dab">🧠 Memory</text>
+
+    <rect x="245" y="65" width="85" height="45" rx="6" fill="#fff2f0" stroke="#ff4d4f" stroke-width="1.5"/>
+    <text x="287" y="92" text-anchor="middle" font-size="11" font-weight="500" fill="#cf1322">📋 Planning</text>
+
+    <text x="355" y="75" text-anchor="middle" font-size="20" fill="#333">=</text>
+
+    <rect x="380" y="30" width="180" height="70" rx="10" fill="#1890ff" fill-opacity="0.1" stroke="#1890ff" stroke-width="2.5"/>
+    <text x="470" y="60" text-anchor="middle" font-size="16" font-weight="700" fill="#096dd9">🤖 Agent</text>
+    <text x="470" y="82" text-anchor="middle" font-size="11" fill="#1890ff">LAMP 🪔</text>
+
+    <text x="290" y="150" text-anchor="middle" font-size="12" fill="#8c8c8c">Loop · Action/Tools · Memory · Planning</text>
+    <text x="290" y="170" text-anchor="middle" font-size="12" fill="#8c8c8c">记忆法:LAMP(灯)-- 没有 LAMP,LLM 只是黑暗中的大脑</text>
+</svg>
+</div>
+
+<h3>Agent vs ChatBot vs Workflow vs RPA:深度对比</h3>
+<p>面试中经常会问这几个概念的区别。让我们用一个统一的场景来对比--<strong>"处理客户退款申请"</strong>:</p>
+
+<table class="compare-table">
+<tr><th>维度</th><th>ChatBot(聊天机器人)</th><th>Workflow(工作流)</th><th>RPA(机器人流程自动化)</th><th>AI Agent</th></tr>
+<tr><td><strong>本质</strong></td><td>预设对话树/意图匹配</td><td>预定义的流程图</td><td>模拟人类操作 UI</td><td>自主决策 + 行动</td></tr>
+<tr><td><strong>智能程度</strong></td><td>低(规则匹配)</td><td>无(纯执行)</td><td>无(录制回放)</td><td>高(理解 + 推理)</td></tr>
+<tr><td><strong>灵活性</strong></td><td>只能处理预设场景</td><td>只能走预定义路径</td><td>UI 变了就挂</td><td>能处理未知场景</td></tr>
+<tr><td><strong>退款场景</strong></td><td>"请问您的订单号是?" →<br>固定模板回复</td><td>订单号→查数据库→<br>金额&lt;100自动退→<br>否则转人工</td><td>打开后台→输入订单号→<br>点退款按钮→截图存档</td><td>理解用户诉求→查订单→<br>判断退款合理性→<br>决定全退/部分退→执行→<br>发确认邮件</td></tr>
+<tr><td><strong>应对意外</strong></td><td>❌ "抱歉,我不理解"</td><td>❌ 走不通就卡住</td><td>❌ 页面改版就崩溃</td><td>✅ 自己想办法绕过</td></tr>
+</table>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 一句话区别</div>
+<div class="insight-box-content">
+<strong>ChatBot</strong> 是"会说话的菜单",<strong>Workflow</strong> 是"自动化流水线",<strong>RPA</strong> 是"模拟鼠标键盘的脚本",<strong>Agent</strong> 是"能独立思考的员工"。<br><br>
+核心差异:前三者都需要<strong>人类预定义所有可能的路径</strong>,Agent 能<strong>自主决策面对未知情况</strong>。
+</div>
+</div>
+
+<h3>Agent 的自主性(Autonomy)</h3>
+<p>Agent 的核心特征是<strong>目标驱动执行(Goal-driven Execution)</strong>--你给它一个目标,它自己决定怎么实现:</p>
+<pre>
+<span class="comment">// 普通 LLM 调用:你决定每一步</span>
+response1 = llm.chat(<span class="string">"搜索北京天气"</span>)     <span class="comment">← 你指挥</span>
+response2 = llm.chat(<span class="string">"根据天气推荐穿搭"</span>) <span class="comment">← 你指挥</span>
+response3 = llm.chat(<span class="string">"生成朋友圈文案"</span>)   <span class="comment">← 你指挥</span>
+
+<span class="comment">// Agent:你只给目标,它自己决定怎么做</span>
+agent.run(<span class="string">"帮我发一条关于今天天气的朋友圈"</span>)
+  <span class="comment">→ Agent 自己决定:先查天气 → 再想穿搭 → 再写文案 → 发布</span>
+  <span class="comment">→ 如果天气 API 挂了:换一个 API 试试</span>
+  <span class="comment">→ 如果文案不够好:自己重写一遍</span>
+</pre>
+
+<h3>为什么 Agent 比 ChatBot 复杂得多?</h3>
+<pre>
+ChatBot 的复杂度 = O(场景数量)
+  <span class="comment">// 每多一个场景,多写一组规则</span>
+  <span class="comment">// 100 个场景 = 100 组规则</span>
+
+Agent 的复杂度 = O(能力组合 × 环境不确定性)
+  <span class="comment">// 10 个工具的组合方式 = 10! 种</span>
+  <span class="comment">// 每步结果都可能偏离预期</span>
+  <span class="comment">// 需要实时重新规划</span>
+
+这就是为什么 Agent 需要 LAMP 四个组件:
+  Loop     → 持续运转,处理不确定性
+  Tools    → 与外界交互的能力
+  Memory   → 记住上下文和历史
+  Planning → 拆解目标为可执行步骤
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 什么是 AI Agent?和普通 LLM API 调用有什么本质区别?</strong><br><br>
+<strong>标准答案:</strong>AI Agent 是能自主感知环境、决策和行动的 AI 系统。核心组件是 LLM + Loop + Tools + Memory + Planning。与普通 LLM 调用的区别在于:LLM 调用是"一问一答",人驱动每一步;Agent 是"给目标自己跑",有自主循环、能调用工具、能记住上下文、能拆解任务。<br><br>
+<strong>加分回答:</strong>可以用 LAMP 记忆法解释四个组件,并举例说明--比如 ChatGPT 普通对话 vs Claude Code 自动修 bug 的区别。<br><br>
+<strong>常见踩坑:</strong>❌ "Agent 就是加了工具的 LLM"--这只说了 1/4,漏了 Loop、Memory 和 Planning。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: Agent 和 Workflow 的区别是什么?</strong><br><br>
+<strong>标准答案:</strong>Workflow 是预定义的确定性流程(if-else 分支),所有路径在设计时就固定了。Agent 是非确定性的,它根据实时观察结果动态决策下一步。Workflow 适合流程稳定的场景,Agent 适合需要灵活应对的场景。<br><br>
+<strong>加分回答:</strong>实际系统中两者常结合--用 Workflow 做确定性骨架,在不确定的节点嵌入 Agent 做决策。比如退款流程用 Workflow,但"判断退款是否合理"这一步用 Agent。<br><br>
+<strong>常见踩坑:</strong>❌ "Agent 可以完全替代 Workflow"--不是。对于规则明确的流程,Workflow 更可靠、更便宜、更可审计。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 模型和 Agent 的区别是什么?</strong><br><br>
+<strong>标准答案:</strong>模型(LLM)是 Agent 的"大脑"--一个输入文本、输出文本的数学函数。Agent 是包含模型在内的<strong>完整系统</strong>,还包括工具调用、记忆管理、任务规划和执行循环。模型本身不能操作外部世界,Agent 可以。<br><br>
+<strong>加分回答:</strong>类比:模型 = CPU,Agent = 整台电脑(CPU + 硬盘 + 网卡 + 操作系统)。CPU 再强也不能单独上网,得有完整系统才行。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 2                                      -->
+<!-- ================================================================ -->
+<section id="chapter-2" class="chapter">
+<h2 class="chapter-title">02 · ReAct 循环:思考-行动-观察</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>ReAct = Reasoning + Acting。Agent 的每一步都是"先想再做,看结果,再想"--不断循环直到任务完成。这是 Agent 的心跳。</p>
+
+<h3>直觉:你去陌生城市找餐厅</h3>
+<pre>
+🧠 思考:我饿了,想吃火锅,先查一下附近有什么
+🔧 行动:打开大众点评搜索"附近火锅"
+👁 观察:海底捞 4.8分,排队 2小时
+
+🧠 思考:太久了,看第二家
+🔧 行动:点开第二家
+👁 观察:评分 4.6,不用排队,步行 10 分钟
+
+🧠 思考:可以,走吧
+🔧 行动:导航过去
+✅ 完成:开吃!
+</pre>
+
+<p>你没有提前规划好所有步骤--你是<strong>边做边想,根据每步结果决定下一步</strong>。这就是 ReAct。</p>
+
+<div class="visualization">
+<div class="visualization-title">ReAct 循环</div>
+<svg width="500" height="280" viewBox="0 0 500 280">
+    <defs><marker id="arr2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#595959"/></marker></defs>
+    <circle cx="250" cy="55" r="45" fill="#e6f4ff" stroke="#1890ff" stroke-width="2.5"/>
+    <text x="250" y="50" text-anchor="middle" font-size="13" font-weight="600" fill="#096dd9">🧠 思考</text>
+    <text x="250" y="68" text-anchor="middle" font-size="10" fill="#1890ff">Reason</text>
+
+    <circle cx="420" cy="200" r="45" fill="#f6ffed" stroke="#52c41a" stroke-width="2.5"/>
+    <text x="420" y="195" text-anchor="middle" font-size="13" font-weight="600" fill="#389e0d">🔧 行动</text>
+    <text x="420" y="213" text-anchor="middle" font-size="10" fill="#52c41a">Act</text>
+
+    <circle cx="80" cy="200" r="45" fill="#fff7e6" stroke="#faad14" stroke-width="2.5"/>
+    <text x="80" y="195" text-anchor="middle" font-size="13" font-weight="600" fill="#d48806">👁 观察</text>
+    <text x="80" y="213" text-anchor="middle" font-size="10" fill="#faad14">Observe</text>
+
+    <path d="M 285 90 Q 370 120 395 165" fill="none" stroke="#595959" stroke-width="2" marker-end="url(#arr2)"/>
+    <text x="355" y="115" font-size="11" fill="#8c8c8c">选择工具</text>
+    <path d="M 375 220 Q 250 260 125 220" fill="none" stroke="#595959" stroke-width="2" marker-end="url(#arr2)"/>
+    <text x="250" y="255" text-anchor="middle" font-size="11" fill="#8c8c8c">获取结果</text>
+    <path d="M 105 160 Q 150 110 215 70" fill="none" stroke="#595959" stroke-width="2" marker-end="url(#arr2)"/>
+    <text x="130" y="105" font-size="11" fill="#8c8c8c">更新上下文</text>
+
+    <text x="250" y="185" text-anchor="middle" font-size="12" font-weight="500" fill="#595959">循环直到完成 ✅</text>
+</svg>
+</div>
+
+<h3>三种方法对比</h3>
+<table class="compare-table">
+<tr><th>方法</th><th>过程</th><th>缺点</th></tr>
+<tr><td><strong>Chain-of-Thought</strong><br>只想不做</td><td>LLM 纯推理,不调用工具</td><td>可能在"瞎猜",没有真实数据</td></tr>
+<tr><td><strong>纯 Tool Calling</strong><br>只做不想</td><td>收到请求就调工具,不推理</td><td>不会反思结果,不会换方案</td></tr>
+<tr><td><strong>ReAct ✅</strong><br>边想边做</td><td>每步先推理→再决定行动→看结果→再推理</td><td>可能比较慢(多轮 LLM 调用)</td></tr>
+</table>
+
+<h3>ReAct 的变体模式</h3>
+<p>面试会问"ReAct 那几个模式有什么差别"。主要有三种:</p>
+<pre>
+<span class="keyword">1. 标准 ReAct</span>
+   思考 → 行动 → 观察 → 思考 → ...
+   <span class="comment">每一步都"想",适合需要深度推理的任务</span>
+
+<span class="keyword">2. Act-only(纯行动)</span>
+   行动 → 观察 → 行动 → 观察 → ...
+   <span class="comment">省略思考步骤,靠工具结果直接驱动</span>
+   <span class="comment">快但容易跑偏,适合简单任务</span>
+
+<span class="keyword">3. Plan-then-Execute</span>
+   规划 → [行动 → 观察] × N
+   <span class="comment">先做完整计划,再按计划执行</span>
+   <span class="comment">适合步骤明确的任务,但不够灵活</span>
+
+<span class="keyword">对比:</span>
+标准 ReAct  = 边走边看路的司机(灵活但可能绕路)
+Act-only   = 闷头开的司机(快但可能撞墙)
+Plan-first = 先看完地图再出发(稳但不能应对堵车)
+</pre>
+
+<h3>如何避免无限循环?</h3>
+<p>这是面试高频问题。Agent 陷入死循环是生产中最常见的问题之一:</p>
+<pre>
+<span class="comment">// 死循环示例</span>
+🧠 思考:搜索结果不对,换个关键词再搜
+🔧 行动:web_search(<span class="string">"xxx"</span>)
+👁 观察:还是找不到
+🧠 思考:再换一个关键词...
+🔧 行动:web_search(<span class="string">"yyy"</span>)
+👁 观察:还是找不到
+<span class="comment">→ 无限循环...</span>
+
+<span class="comment">// 四种防护策略</span>
+<span class="keyword">1. 最大轮次限制</span>(Max Iterations)
+   max_turns = <span class="number">25</span>  <span class="comment">// 超过就强制停止</span>
+
+<span class="keyword">2. 超时机制</span>(Timeout)
+   timeout = <span class="number">300</span>  <span class="comment">// 5 分钟超时</span>
+
+<span class="keyword">3. 重复检测</span>(Loop Detection)
+   <span class="comment">如果连续 3 次调用同一个工具且参数相似 → 强制终止</span>
+
+<span class="keyword">4. Token 预算</span>(Budget)
+   max_tokens = <span class="number">100000</span>  <span class="comment">// 花完就停</span>
+</pre>
+
+<h3>Checkpoint / Resume:中断恢复</h3>
+<pre>
+<span class="comment">// Agent 在执行长任务时,每完成一步保存状态</span>
+{
+  task: <span class="string">"分析 10 个竞品"</span>,
+  checkpoint: {
+    completed: [<span class="string">"竞品A"</span>, <span class="string">"竞品B"</span>, <span class="string">"竞品C"</span>],
+    current: <span class="string">"竞品D"</span>,
+    remaining: [<span class="string">"竞品E"</span>, ... <span class="string">"竞品J"</span>],
+    partial_results: { ... }
+  }
+}
+
+<span class="comment">// 如果中断(超时/崩溃),可以从 checkpoint 恢复</span>
+agent.resume(checkpoint)  <span class="comment">→ 从"竞品D"继续,不用从头来</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 什么是 ReAct?Agent 如何避免无限循环调用工具?</strong><br><br>
+<strong>标准答案:</strong>ReAct = Reasoning + Acting,Agent 交替进行推理和行动:先思考下一步做什么→执行→观察结果→再思考。避免无限循环的策略:1设置最大轮次(如 25 轮)2设置超时(如 5 分钟)3重复调用检测(连续相同工具调用则终止)4Token 预算限制。<br><br>
+<strong>加分回答:</strong>提到 ReAct 的三种变体(标准/Act-only/Plan-then-Execute)的区别和适用场景。提到 OpenClaw 的 Agent Loop 默认超时是 48 小时,通过 per-session + global queue 序列化来保证安全。<br><br>
+<strong>常见踩坑:</strong>❌ "设一个 max_turns 就够了"--不够,需要多层防护;❌ 把 ReAct 和 React(前端框架)搞混。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 3                                      -->
+<!-- ================================================================ -->
+<section id="chapter-3" class="chapter">
+<h2 class="chapter-title">03 · Tool Use / MCP / Skill:给 Agent 接入世界的三种方式</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>LLM 不能执行工具--它只是"说"想调用什么。真正执行的是外部系统。Tool Calling 是基础协议,MCP 是工具连接标准,Skill 是行为指令标准,A2A 是 Agent 间通信标准,ACP 是 Agent 间任务委派标准。</p>
+
+<h3>直觉:LLM 是老板,Tool 是员工</h3>
+<pre>
+老板(LLM):"小王,帮我查一下北京今天天气"
+                  ↓
+  老板<strong>不会自己查</strong>--他写了一张便条:
+  { "tool": "get_weather", "args": { "city": "北京" } }
+                  ↓
+  秘书(Runtime)把便条交给气象组(Tool)
+                  ↓
+  气象组执行查询,返回结果:"22°C,晴"
+                  ↓
+  秘书把结果递给老板
+                  ↓
+  老板看了结果,继续下一步决策
+</pre>
+
+<h3>Function Calling 协议详解</h3>
+<p>当你调用 OpenAI/Anthropic 的 API 时,工具调用实际上是这样工作的:</p>
+<pre>
+<span class="comment">// Step 1: 你告诉 LLM 有哪些工具可用</span>
+{
+  <span class="string">"model"</span>: <span class="string">"gpt-4"</span>,
+  <span class="string">"messages"</span>: [{ <span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: <span class="string">"北京天气怎么样?"</span> }],
+  <span class="string">"tools"</span>: [{
+    <span class="string">"type"</span>: <span class="string">"function"</span>,
+    <span class="string">"function"</span>: {
+      <span class="string">"name"</span>: <span class="string">"get_weather"</span>,
+      <span class="string">"description"</span>: <span class="string">"获取指定城市的天气信息"</span>,
+      <span class="string">"parameters"</span>: {
+        <span class="string">"type"</span>: <span class="string">"object"</span>,
+        <span class="string">"properties"</span>: {
+          <span class="string">"city"</span>: { <span class="string">"type"</span>: <span class="string">"string"</span>, <span class="string">"description"</span>: <span class="string">"城市名"</span> }
+        }
+      }
+    }
+  }]
+}
+
+<span class="comment">// Step 2: LLM 返回"我想调用这个工具"(不是直接执行!)</span>
+{
+  <span class="string">"role"</span>: <span class="string">"assistant"</span>,
+  <span class="string">"tool_calls"</span>: [{
+    <span class="string">"id"</span>: <span class="string">"call_abc123"</span>,
+    <span class="string">"function"</span>: { <span class="string">"name"</span>: <span class="string">"get_weather"</span>, <span class="string">"arguments"</span>: <span class="string">"{\"city\":\"北京\"}"</span> }
+  }]
+}
+
+<span class="comment">// Step 3: 你的代码执行工具,把结果送回去</span>
+{
+  <span class="string">"role"</span>: <span class="string">"tool"</span>,
+  <span class="string">"tool_call_id"</span>: <span class="string">"call_abc123"</span>,
+  <span class="string">"content"</span>: <span class="string">"北京今天 22°C,晴,微风"</span>
+}
+
+<span class="comment">// Step 4: LLM 根据工具结果生成最终回答</span>
+</pre>
+
+<h3>MCP / Skill / A2A / ACP:四大协议对比</h3>
+<p>2024-2025年,AI 领域出现了四个重要的协议标准。这是面试<strong>超高频</strong>话题:</p>
+
+<div class="visualization">
+<div class="visualization-title">四大协议的层次关系</div>
+<svg width="560" height="300" viewBox="0 0 560 300">
+    <rect x="30" y="220" width="500" height="60" rx="8" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="280" y="245" text-anchor="middle" font-size="14" font-weight="600" fill="#096dd9">🔌 MCP (Model Context Protocol)</text>
+    <text x="280" y="265" text-anchor="middle" font-size="11" fill="#8c8c8c">Agent ↔ 工具/数据/资源 的连接标准(Anthropic, 2024.11)</text>
+
+    <rect x="30" y="145" width="240" height="60" rx="8" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="150" y="170" text-anchor="middle" font-size="14" font-weight="600" fill="#389e0d">📜 Skill (Agent Skills)</text>
+    <text x="150" y="190" text-anchor="middle" font-size="11" fill="#8c8c8c">Agent 的行为指令(Anthropic, 2025.10)</text>
+
+    <rect x="290" y="145" width="240" height="60" rx="8" fill="#fff7e6" stroke="#faad14" stroke-width="2"/>
+    <text x="410" y="170" text-anchor="middle" font-size="14" font-weight="600" fill="#d48806">🤝 A2A (Agent-to-Agent)</text>
+    <text x="410" y="190" text-anchor="middle" font-size="11" fill="#8c8c8c">Agent ↔ Agent 发现与通信(Google, 2025)</text>
+
+    <rect x="130" y="70" width="300" height="60" rx="8" fill="#f9f0ff" stroke="#722ed1" stroke-width="2"/>
+    <text x="280" y="95" text-anchor="middle" font-size="14" font-weight="600" fill="#531dab">📡 ACP (Agent Communication Protocol)</text>
+    <text x="280" y="115" text-anchor="middle" font-size="11" fill="#8c8c8c">Agent 委派任务给另一个 Agent(OpenClaw, 2025)</text>
+
+    <text x="280" y="30" text-anchor="middle" font-size="13" fill="#595959" font-weight="500">四者互补,不是竞争关系</text>
+    <text x="280" y="50" text-anchor="middle" font-size="11" fill="#8c8c8c">MCP = 连接工具 | Skill = 定义行为 | A2A = Agent 间发现 | ACP = Agent 间委派</text>
+</svg>
+</div>
+
+<table class="compare-table">
+<tr><th>维度</th><th>MCP</th><th>Agent Skill</th><th>A2A</th><th>ACP</th></tr>
+<tr><td><strong>全称</strong></td><td>Model Context Protocol</td><td>Agent Skills</td><td>Agent-to-Agent Protocol</td><td>Agent Communication Protocol</td></tr>
+<tr><td><strong>解决什么问题</strong></td><td>Agent 怎么连接工具和数据</td><td>Agent 怎么知道"该怎么做"</td><td>Agent 之间怎么发现和通信</td><td>Agent 怎么把任务<strong>委派</strong>给另一个 Agent</td></tr>
+<tr><td><strong>核心模型</strong></td><td>Host → Client → Server</td><td>SKILL.md 文件 + 按需加载</td><td>Agent Card + Task 生命周期</td><td>Parent Session → Child Session(任务委派+结果回传)</td></tr>
+<tr><td><strong>传输协议</strong></td><td>JSON-RPC (Stdio/HTTP+SSE)</td><td>文件系统(Markdown)</td><td>HTTP / WebSocket</td><td>WebSocket / HTTP(session 级别)</td></tr>
+<tr><td><strong>谁提出的</strong></td><td>Anthropic (2024.11)</td><td>Anthropic / OpenClaw (2024-2025)</td><td>Google (2025)</td><td>OpenClaw (2025)</td></tr>
+<tr><td><strong>关键区别</strong></td><td>提供<strong>能力</strong>(工具+数据)</td><td>提供<strong>纪律</strong>(怎么用能力)</td><td>提供<strong>发现+协作</strong>(Agent 间沟通)</td><td>提供<strong>委派+编排</strong>(任务下发+结果回收)</td></tr>
+</table>
+
+<h3>ACP 是什么?</h3>
+
+<p><strong>ACP(Agent Communication Protocol,Agent 通信协议)</strong>是 OpenClaw 提出的标准,解决一个具体问题:<strong>一个 Agent 怎么把任务交给另一个 Agent 执行,然后拿回结果?</strong></p>
+
+<p>举个真实例子--你在飞书群里跟 Cove(OpenClaw 的主 Agent)说:</p>
+
+<pre>
+<span class="comment">// 真实场景:Cove 通过 ACP 委派任务给 Claude Code</span>
+
+<span class="keyword">你:</span>"帮我写一个 Python 爬虫,抓取 Hacker News 前 10 条新闻"
+
+<span class="keyword">Cove(主 Agent):</span>
+  1 判断:这是一个编码任务,我自己不擅长,交给 Claude Code
+  2 通过 ACP 发起委派:
+     sessions_spawn({
+       runtime: <span class="string">"acp"</span>,
+       agentId: <span class="string">"claude-code"</span>,
+       task: <span class="string">"写一个 Python 爬虫抓取 HN 前 10 条..."</span>,
+       mode: <span class="string">"run"</span>   <span class="comment">// 一次性任务</span>
+     })
+
+<span class="keyword">Claude Code(ACP Agent):</span>
+  1 在自己的沙箱工作空间里写代码
+  2 运行、调试、测试
+  3 完成后通过 ACP 返回结果
+
+<span class="keyword">Cove:</span>
+  1 收到 Claude Code 的完成通知
+  2 把结果整理后回复给你
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 ACP vs A2A 的区别</div>
+<div class="tip-box-content">
+<strong>A2A(Agent-to-Agent Protocol)</strong>是 Google 提出的通用 Agent 间通信标准,强调的是 Agent 的<strong>发现</strong>(Agent Card)和<strong>对等通信</strong>--两个 Agent 地位平等,互相发消息。<br><br>
+<strong>ACP(Agent Communication Protocol)</strong>更侧重<strong>任务委派</strong>关系--有明确的父子关系(Parent Agent 委派任务,Child Agent 执行并回报)。它更像一个"工头-工人"模型,适合编排(orchestration)场景。<br><br>
+<strong>实际中两者可以共存:</strong>A2A 负责跨平台 Agent 发现,ACP 负责同一平台内的任务编排。
+</div>
+</div>
+
+<h3>MCP 是什么?</h3>
+<pre>
+<span class="comment">// MCP 的三层架构(来自官方规范 modelcontextprotocol.io)</span>
+┌──────────────────────────────────────┐
+│  <span class="keyword">Host</span>(宿主)                         │
+│  IDE / Chat UI / Agent Orchestrator  │
+│  └─ 内嵌一个或多个 MCP Client          │
+└──────────┬───────────────────────────┘
+           │ JSON-RPC(有状态会话)
+┌──────────▼───────────────────────────┐
+│  <span class="keyword">MCP Server</span>(服务端)                  │
+│  暴露三种原语(Primitives):           │
+│  1 Tools     - 可调用的函数(如查天气)  │
+│  2 Resources - 可读取的数据源(如数据库)│
+│  3 Prompts   - 预设的提示词模板         │
+│                                       │
+│  传输方式:                             │
+│  • Stdio(本地进程,Host 启动 Server)   │
+│  • HTTP + SSE(远程服务)               │
+└──────────────────────────────────────┘
+
+<span class="comment">// MCP 的生命周期</span>
+1. Client 发送 <span class="func">initialize</span> → 协商支持的功能(capabilities)
+2. Client 调用 <span class="func">tools/list</span>  → 发现可用工具
+3. Client 调用 <span class="func">tools/call</span>  → 执行某个工具
+4. Server 发送通知        → 如工具列表变更
+5. Client 发送 <span class="func">shutdown</span>   → 关闭会话
+
+<span class="comment">// 关键设计选择:</span>
+<span class="comment">// • 有状态会话(不是无状态 REST)</span>
+<span class="comment">// • JSON-RPC 2.0 作为消息格式</span>
+<span class="comment">// • 服务端可以主动推送通知</span>
+<span class="comment">// • 一个 Host 可以连多个 MCP Server</span>
+</pre>
+
+<h3>Skill 和 MCP 的区别</h3>
+<pre>
+<span class="comment">// MCP 给 Agent 的是"能力"(access)</span>
+MCP: <span class="string">"你可以调用 get_weather、send_email、query_db..."</span>
+
+<span class="comment">// Skill 给 Agent 的是"纪律"(discipline)</span>
+Skill: <span class="string">"当用户问天气时,先查城市→再查天气→用友好格式回复→</span>
+       <span class="string"> 如果查不到就推荐最近的城市→回复要包含穿衣建议"</span>
+
+<span class="comment">// Skill 通常建立在 MCP 工具之上</span>
+<span class="comment">// MCP = 给你一把刀(工具)</span>
+<span class="comment">// Skill = 教你怎么用这把刀切菜(方法论)</span>
+</pre>
+
+<h3>工具调用失败:降级策略</h3>
+<pre>
+<span class="comment">// 生产环境中,工具调用会失败。必须有降级方案:</span>
+
+<span class="keyword">策略 1: 重试</span>(Retry)
+  tool_call → 失败 → 等 1s → 重试 → 成功
+  <span class="comment">适合:网络抖动、临时错误</span>
+
+<span class="keyword">策略 2: 备用工具</span>(Fallback Tool)
+  weather_api_A → 失败 → 尝试 weather_api_B
+  <span class="comment">适合:有多个同类工具可选</span>
+
+<span class="keyword">策略 3: 优雅降级</span>(Graceful Degradation)
+  精确天气 → 失败 → 返回"近期北京天气一般在 15-25°C"
+  <span class="comment">适合:有历史数据或通用知识可用</span>
+
+<span class="keyword">策略 4: 跳过并告知</span>(Skip & Inform)
+  "抱歉,天气查询暂时不可用,我先帮你完成其他部分"
+  <span class="comment">适合:非关键步骤</span>
+
+<span class="keyword">策略 5: 人工介入</span>(Human-in-the-Loop)
+  "这步需要你手动确认..."
+  <span class="comment">适合:高风险操作</span>
+</pre>
+
+<h3>结构化输出</h3>
+<pre>
+<span class="comment">// 问题:LLM 输出的是自然语言,怎么得到结构化 JSON?</span>
+
+<span class="keyword">方法 1: Prompt 引导</span>(最简单)
+  prompt = <span class="string">"请以 JSON 格式返回:{name, price, rating}"</span>
+  <span class="comment">⚠️ 不保证格式正确</span>
+
+<span class="keyword">方法 2: JSON Mode</span>(OpenAI 支持)
+  response_format = { <span class="string">"type"</span>: <span class="string">"json_object"</span> }
+  <span class="comment">✅ 保证输出是合法 JSON,但不保证 schema</span>
+
+<span class="keyword">方法 3: Structured Output</span>(最可靠)
+  response_format = {
+    <span class="string">"type"</span>: <span class="string">"json_schema"</span>,
+    <span class="string">"json_schema"</span>: { ... 严格的 schema 定义 }
+  }
+  <span class="comment">✅ 保证输出严格匹配指定的 JSON Schema</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: MCP 是什么?本地工具、MCP Tools、Skill 三者的区别?</strong><br><br>
+<strong>标准答案:</strong>MCP(Model Context Protocol)是 Anthropic 提出的开放标准,标准化 AI 应用连接外部工具/数据的方式,采用 JSON-RPC 协议。三者区别:<br>
+• <strong>本地工具</strong>:直接在代码中定义的函数,硬编码在 Agent 里<br>
+• <strong>MCP Tools</strong>:通过 MCP 协议远程连接的标准化工具,可插拔、跨平台<br>
+• <strong>Skill</strong>:不是工具本身,而是"怎么使用工具"的行为指令(SKILL.md),通常建立在 MCP 工具之上<br><br>
+<strong>加分回答:</strong>解释为什么 Anthropic 在有了 MCP 之后还做 Skill--因为 MCP 解决的是"连接"问题(access),Skill 解决的是"应用"问题(discipline)。一个给能力,一个给方法论。再加上 Google 的 A2A 解决"Agent 间发现与通信",OpenClaw 的 ACP 解决"Agent 间任务委派",四者互补。<br><br>
+<strong>常见踩坑:</strong>❌ "Skill 是 MCP 的替代品"--不是,它们在不同层次;❌ 不知道 MCP 用 JSON-RPC 协议。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 工具调用失败怎么办?降级方案怎么设计?</strong><br><br>
+<strong>标准答案:</strong>五层降级:1重试(网络抖动)2备用工具(同类替换)3优雅降级(用缓存/通用知识替代)4跳过非关键步骤5人工介入。生产中通常配合超时设置(如 30 秒)和熔断器模式(连续失败 N 次则暂停该工具)。<br><br>
+<strong>加分回答:</strong>提到 OpenClaw 的做法--通过 Harness Engineering 的"熵管理"来控制工具失败的连锁反应,以及 before_tool_call / after_tool_call 钩子可以拦截和处理失败。<br><br>
+<strong>常见踩坑:</strong>❌ 只说"设置重试"--重试不能解决所有问题,需要多层策略。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 4                                      -->
+<!-- ================================================================ -->
+<section id="chapter-4" class="chapter">
+<h2 class="chapter-title">04 · 系统提示词:Agent 的"灵魂"</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>System Prompt 定义了 Agent "是谁"和"怎么行为"。好的 Prompt 设计是 Agent 开发中投入产出比最高的工作。</p>
+
+<h3>三种 Role 的作用</h3>
+<pre>
+<span class="comment">// LLM API 中的三种角色</span>
+messages = [
+  { role: <span class="string">"system"</span>,    content: <span class="string">"你是一个天气助手..."</span> },  <span class="comment">← 定义身份和规则</span>
+  { role: <span class="string">"user"</span>,      content: <span class="string">"北京天气怎么样"</span> },    <span class="comment">← 用户的输入</span>
+  { role: <span class="string">"assistant"</span>, content: <span class="string">"北京今天22°C..."</span> },   <span class="comment">← AI 的回复(历史)</span>
+]
+
+<span class="keyword">System</span>:人格 + 规则 + 约束(<strong>最重要</strong>,每次都会注入)
+<span class="keyword">User</span>:用户说的话
+<span class="keyword">Assistant</span>:AI 之前说过的话(对话历史)
+</pre>
+
+<h3>Prompt 设计方法论:COSTAR 框架</h3>
+<pre>
+<span class="keyword">C</span> - Context(上下文)   你是谁,在什么场景下工作
+<span class="keyword">O</span> - Objective(目标)   你要达成什么目标
+<span class="keyword">S</span> - Style(风格)       用什么语气和方式
+<span class="keyword">T</span> - Tone(语调)        情感基调是什么
+<span class="keyword">A</span> - Audience(受众)    面向谁说话
+<span class="keyword">R</span> - Response(格式)    用什么格式输出
+
+<span class="comment">// 示例:你正在使用的 Sage 就是一个 COSTAR 的实践</span>
+C: 你是 AI 领域的私人导师(SOUL.md)
+O: 教会轩 AI 知识,从基础到源码
+S: 中文讲解,术语保持英文
+T: 耐心、清晰、有深度
+A: 有编程经验的开发者
+R: TL;DR → 直觉 → 深入 → 动手
+</pre>
+
+<h3>Prompt A/B 测试</h3>
+<pre>
+<span class="comment">// 如何科学地优化 Prompt?</span>
+
+<span class="keyword">Step 1:</span> 准备测试数据集(50-100 个真实用户问题)
+
+<span class="keyword">Step 2:</span> 设计 Prompt 变体
+  Prompt A: <span class="string">"你是一个客服助手,请回答用户问题"</span>
+  Prompt B: <span class="string">"你是一个专业客服,请先确认用户问题,再给出解决方案,最后询问是否还有其他问题"</span>
+
+<span class="keyword">Step 3:</span> 跑评估
+  <span class="keyword">for</span> question <span class="keyword">in</span> test_set:
+    answer_A = llm(prompt_A, question)
+    answer_B = llm(prompt_B, question)
+
+<span class="keyword">Step 4:</span> 评估维度
+  - 准确性(答案是否正确)
+  - 完整性(是否覆盖所有要点)
+  - 用户满意度(可以用 LLM 打分)
+  - Token 消耗(成本)
+  - 延迟(速度)
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 提示词怎么设计的?如何做 Prompt 优化?</strong><br><br>
+<strong>标准答案:</strong>使用 COSTAR 框架设计:Context→Objective→Style→Tone→Audience→Response。优化方法:1Few-shot 示例(给几个好的例子)2Chain-of-Thought(让模型先推理再回答)3A/B 测试(准备测试集,对比不同 Prompt 版本的效果)4迭代优化(根据 bad case 调整)。<br><br>
+<strong>加分回答:</strong>提到 Prompt 压缩技术(长 Prompt 占 token 太多时,可以用更精练的措辞或 embedding 表示),以及自动化 Prompt 优化工具(如 DSPy)。<br><br>
+<strong>常见踩坑:</strong>❌ "Prompt 越长越好"--不是,过长的 Prompt 会稀释重点,增加成本;❌ 不提评估方法,只说"凭感觉调"。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 5                                      -->
+<!-- ================================================================ -->
+<section id="chapter-5" class="chapter">
+<h2 class="chapter-title">05 · 记忆系统 + RAG:Agent 如何"记住"和"检索"</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>Agent 的记忆分三层(短期/长期/程序性)。RAG 是最重要的外部知识检索技术,面试考察频率极高。</p>
+
+<h3>记忆的三层模型</h3>
+<div class="visualization">
+<div class="visualization-title">Agent 记忆架构</div>
+<svg width="560" height="260" viewBox="0 0 560 260">
+    <rect x="30" y="10" width="500" height="70" rx="8" fill="#fff2f0" stroke="#ff4d4f" stroke-width="2"/>
+    <text x="280" y="35" text-anchor="middle" font-size="14" font-weight="600" fill="#cf1322">短期记忆 (Short-term / Working Memory)</text>
+    <text x="280" y="58" text-anchor="middle" font-size="11" fill="#8c8c8c">= Context Window 里的对话历史 | 会话结束就消失 | 类比:你的工作台</text>
+
+    <rect x="30" y="95" width="500" height="70" rx="8" fill="#fff7e6" stroke="#faad14" stroke-width="2"/>
+    <text x="280" y="120" text-anchor="middle" font-size="14" font-weight="600" fill="#d48806">长期记忆 (Long-term Memory)</text>
+    <text x="280" y="143" text-anchor="middle" font-size="11" fill="#8c8c8c">= 持久化到磁盘的事实和偏好 | 跨会话存在 | 类比:你的笔记本</text>
+
+    <rect x="30" y="180" width="240" height="70" rx="8" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="150" y="205" text-anchor="middle" font-size="14" font-weight="600" fill="#096dd9">程序性记忆</text>
+    <text x="150" y="228" text-anchor="middle" font-size="11" fill="#8c8c8c">= System Prompt + Skills</text>
+
+    <rect x="290" y="180" width="240" height="70" rx="8" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="410" y="205" text-anchor="middle" font-size="14" font-weight="600" fill="#389e0d">外部知识 (RAG)</text>
+    <text x="410" y="228" text-anchor="middle" font-size="11" fill="#8c8c8c">= 向量数据库 + 检索</text>
+</svg>
+</div>
+
+<h3>记忆的更新与遗忘</h3>
+<pre>
+<span class="comment">// 面试高频:传统记忆如何更新和遗忘?</span>
+
+<span class="keyword">更新策略:</span>
+1 <span class="func">Append</span>     - 新信息追加(最简单)
+2 <span class="func">Overwrite</span>  - 新信息覆盖旧信息(如用户改了手机号)
+3 <span class="func">Merge</span>      - 新旧信息合并(冲突时保留最新)
+4 <span class="func">Summarize</span>  - 定期把零散记忆总结为精简版
+
+<span class="keyword">遗忘策略:</span>
+1 <span class="func">LRU</span>(Least Recently Used)- 最久没用的先淘汰
+2 <span class="func">TTL</span>(Time To Live)      - 超过时间自动过期
+3 <span class="func">Relevance</span>               - 与当前任务无关的逐渐衰减
+4 <span class="func">Compaction</span>              - 压缩旧记忆为摘要
+
+<span class="comment">// OpenClaw 的做法:</span>
+<span class="comment">// 短期记忆 = session transcript (JSONL)</span>
+<span class="comment">// 长期记忆 = MEMORY.md + memory/YYYY-MM-DD.md</span>
+<span class="comment">// 遗忘 = auto-compaction(自动摘要旧对话)</span>
+</pre>
+
+<h3>LRU 原理与实现</h3>
+<pre>
+<span class="comment">// LRU = Least Recently Used(最近最少使用)</span>
+<span class="comment">// 用于限制记忆容量:满了就淘汰最久没用的</span>
+
+<span class="keyword">class</span> <span class="type">LRUCache</span> {
+  <span class="keyword">constructor</span>(capacity) {
+    <span class="keyword">this</span>.capacity = capacity;
+    <span class="keyword">this</span>.map = <span class="keyword">new</span> Map();  <span class="comment">// Map 保持插入顺序</span>
+  }
+
+  <span class="func">get</span>(key) {
+    <span class="keyword">if</span> (!<span class="keyword">this</span>.map.has(key)) <span class="keyword">return</span> <span class="keyword">undefined</span>;
+    <span class="keyword">const</span> value = <span class="keyword">this</span>.map.get(key);
+    <span class="keyword">this</span>.map.delete(key);     <span class="comment">// 删除</span>
+    <span class="keyword">this</span>.map.set(key, value);  <span class="comment">// 重新插入(变成最新)</span>
+    <span class="keyword">return</span> value;
+  }
+
+  <span class="func">put</span>(key, value) {
+    <span class="keyword">if</span> (<span class="keyword">this</span>.map.has(key)) <span class="keyword">this</span>.map.delete(key);
+    <span class="keyword">this</span>.map.set(key, value);
+    <span class="keyword">if</span> (<span class="keyword">this</span>.map.size > <span class="keyword">this</span>.capacity) {
+      <span class="comment">// 淘汰最老的(Map 的第一个)</span>
+      <span class="keyword">const</span> oldest = <span class="keyword">this</span>.map.keys().next().value;
+      <span class="keyword">this</span>.map.delete(oldest);
+    }
+  }
+}
+</pre>
+
+<h3>🔥 RAG:检索增强生成(超高频!)</h3>
+<p><strong>RAG(Retrieval-Augmented Generation,检索增强生成)</strong>是让 LLM 基于外部知识库回答问题的技术。这是面试中考察最多的知识点之一。</p>
+
+<div class="visualization">
+<div class="visualization-title">RAG 完整 Pipeline</div>
+<svg width="560" height="400" viewBox="0 0 560 400">
+    <defs><marker id="arr5" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#595959"/></marker></defs>
+
+    <text x="280" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#8c8c8c">── 离线阶段(Indexing)──</text>
+    <rect x="30" y="35" width="120" height="45" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="90" y="62" text-anchor="middle" font-size="12" font-weight="500" fill="#096dd9">📄 文档</text>
+    <path d="M 150 57 L 175 57" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="178" y="35" width="100" height="45" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="228" y="55" text-anchor="middle" font-size="11" font-weight="500" fill="#389e0d">✂️ Chunking</text>
+    <text x="228" y="70" text-anchor="middle" font-size="9" fill="#8c8c8c">切分文档</text>
+    <path d="M 278 57 L 303 57" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="306" y="35" width="100" height="45" rx="6" fill="#fff7e6" stroke="#faad14" stroke-width="1.5"/>
+    <text x="356" y="55" text-anchor="middle" font-size="11" font-weight="500" fill="#d48806">🔢 Embedding</text>
+    <text x="356" y="70" text-anchor="middle" font-size="9" fill="#8c8c8c">文本→向量</text>
+    <path d="M 406 57 L 431 57" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="434" y="35" width="100" height="45" rx="6" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="484" y="55" text-anchor="middle" font-size="11" font-weight="500" fill="#531dab">🗄️ 向量数据库</text>
+    <text x="484" y="70" text-anchor="middle" font-size="9" fill="#8c8c8c">索引存储</text>
+
+    <text x="280" y="115" text-anchor="middle" font-size="13" font-weight="600" fill="#8c8c8c">── 在线阶段(Retrieval + Generation)──</text>
+
+    <rect x="30" y="135" width="120" height="45" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="90" y="162" text-anchor="middle" font-size="12" font-weight="500" fill="#096dd9">❓ 用户提问</text>
+    <path d="M 150 157 L 175 157" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="178" y="135" width="100" height="45" rx="6" fill="#fff7e6" stroke="#faad14" stroke-width="1.5"/>
+    <text x="228" y="155" text-anchor="middle" font-size="11" font-weight="500" fill="#d48806">🔢 Embedding</text>
+    <text x="228" y="170" text-anchor="middle" font-size="9" fill="#8c8c8c">问题→向量</text>
+    <path d="M 278 157 L 303 157" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="306" y="135" width="100" height="45" rx="6" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="356" y="155" text-anchor="middle" font-size="11" font-weight="500" fill="#531dab">🔍 向量检索</text>
+    <text x="356" y="170" text-anchor="middle" font-size="9" fill="#8c8c8c">相似度匹配</text>
+    <path d="M 406 157 L 431 157" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="434" y="135" width="100" height="45" rx="6" fill="#fff2f0" stroke="#ff4d4f" stroke-width="1.5"/>
+    <text x="484" y="155" text-anchor="middle" font-size="11" font-weight="500" fill="#cf1322">🔄 Rerank</text>
+    <text x="484" y="170" text-anchor="middle" font-size="9" fill="#8c8c8c">重排序</text>
+
+    <path d="M 484 180 L 484 210" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <rect x="130" y="210" width="400" height="60" rx="8" fill="#1890ff" fill-opacity="0.08" stroke="#1890ff" stroke-width="2"/>
+    <text x="330" y="235" text-anchor="middle" font-size="13" font-weight="600" fill="#096dd9">🧠 LLM 生成回答</text>
+    <text x="330" y="255" text-anchor="middle" font-size="11" fill="#8c8c8c">Prompt = "基于以下参考文档回答:" + 检索结果 + 用户问题</text>
+
+    <path d="M 330 270 L 330 295" stroke="#595959" stroke-width="1.5" marker-end="url(#arr5)"/>
+    <rect x="230" y="295" width="200" height="40" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="330" y="320" text-anchor="middle" font-size="13" font-weight="600" fill="#389e0d">✅ 带引用的回答</text>
+
+    <text x="280" y="370" text-anchor="middle" font-size="11" fill="#8c8c8c">完整流程:文档→切分→嵌入→索引 | 提问→嵌入→检索→重排→生成</text>
+</svg>
+</div>
+
+<h3>Chunk 策略详解(7 种策略)</h3>
+<table class="compare-table">
+<tr><th>策略</th><th>方法</th><th>优点</th><th>缺点</th><th>适用场景</th></tr>
+<tr><td><strong>固定大小</strong></td><td>每 512 token 切一块</td><td>简单快速</td><td>可能切断语义</td><td>快速原型</td></tr>
+<tr><td><strong>递归分割</strong></td><td>先按段落→句子→词逐级切</td><td>尽量保持语义完整</td><td>块大小不均</td><td>通用文档 ✅ 推荐入门</td></tr>
+<tr><td><strong>文档结构</strong></td><td>按 Markdown 标题/HTML 标签切</td><td>利用文档本身结构</td><td>依赖文档格式</td><td>结构化文档</td></tr>
+<tr><td><strong>语义分割</strong></td><td>用 embedding 检测语义边界</td><td>语义完整性最好</td><td>计算开销大</td><td>长文章/论文</td></tr>
+<tr><td><strong>父子索引</strong></td><td>小块检索,返回父块</td><td>检索精准+上下文完整</td><td>实现复杂</td><td>生产系统 ✅ 推荐生产</td></tr>
+<tr><td><strong>上下文增强</strong></td><td>给每个 chunk 加上下文摘要</td><td>检索时有上下文信息</td><td>需要额外 LLM 调用</td><td>高质量要求</td></tr>
+<tr><td><strong>Late Chunking</strong></td><td>先编码整篇文档再切分</td><td>保留全局上下文</td><td>需要特定模型(Jina)</td><td>长文档+Jina</td></tr>
+</table>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 实际选型建议</div>
+<div class="tip-box-content">
+<strong>入门/原型:</strong>递归分割(LangChain RecursiveCharacterTextSplitter),chunk_size=512, overlap=50<br>
+<strong>生产系统:</strong>父子索引 + Rerank。小块(128-256 token)做检索,返回父块(512-1024 token)给 LLM<br>
+<strong>如果已有 Rerank + Hybrid Search:</strong>语义分割的边际收益较小,递归分割就够了<br>
+<strong>记住:</strong>chunking 策略的影响 > embedding 模型的选择(研究表明)
+</div>
+</div>
+
+<p><strong>父子索引(Parent-Child Index)</strong>是面试高频考点:</p>
+<pre>
+<span class="comment">// 问题:小 chunk 检索精准但缺上下文,大 chunk 有上下文但检索不精准</span>
+<span class="comment">// 解决:用小 chunk 做检索(精准),返回它的父 chunk(完整上下文)</span>
+
+原文档:[=======================整篇文章=======================]
+         ↓ 切分
+父 chunk:[=====段落1=====] [=====段落2=====] [=====段落3=====]
+         ↓ 再切分
+子 chunk:[句1][句2][句3]   [句4][句5][句6]   [句7][句8][句9]
+
+检索时:用户问题 → embedding → 与子 chunk 匹配 → 找到"句5最相关"
+返回时:不返回句5,而是返回它的父 chunk(整个段落2)
+<span class="comment">→ 既精准又有上下文 ✅</span>
+</pre>
+
+<h3>Embedding + 向量检索</h3>
+<pre>
+<span class="comment">// Embedding = 把文本转成向量(一串数字)</span>
+<span class="string">"今天天气真好"</span> → [0.12, -0.34, 0.56, 0.78, ...]  <span class="comment">(1536 维)</span>
+<span class="string">"天气不错啊"</span>   → [0.13, -0.33, 0.55, 0.79, ...]  <span class="comment">(非常接近!)</span>
+<span class="string">"我喜欢猫"</span>     → [-0.45, 0.67, -0.12, 0.34, ...] <span class="comment">(很不同)</span>
+
+<span class="comment">// 相似度计算</span>
+<span class="keyword">余弦相似度</span>(Cosine Similarity)= cos(θ)
+  "天气真好" vs "天气不错" → 0.95(非常相似)
+  "天气真好" vs "我喜欢猫" → 0.12(不相似)
+
+<span class="comment">// 常用 Embedding 模型</span>
+OpenAI  : text-embedding-3-small (1536维, 便宜)
+         text-embedding-3-large (3072维, 更准)
+国产     : bge-large-zh (1024维, 中文最佳之一)
+         m3e-large (1024维)
+</pre>
+
+<h3>向量数据库:Embedding 的家</h3>
+
+<p>上面我们把文本变成了向量(Embedding),也知道了怎么计算相似度。但实际场景中,你可能有<strong>几百万甚至上亿</strong>个文档向量。每来一个查询,都和所有向量逐一比较(暴力搜索)?一个 1536 维的向量比较一次就要 1536 次乘法--乘以一百万个文档,每次查询要十几亿次运算。太慢了!</p>
+
+<p><strong>类比:在图书馆找书。</strong>如果书随便堆在地上(暴力搜索),你得翻遍每一本。但如果书按主题分类、放在标了标签的书架上(索引),你先走到对的区域,再扫一遍那个书架就行了。向量数据库就是帮你"整理书架"的系统。</p>
+
+<h4>为什么不用传统数据库?</h4>
+
+<p>MySQL、PostgreSQL 这类关系型数据库擅长<strong>精确匹配</strong>:<code>WHERE id = 123</code>、<code>WHERE name = '张三'</code>。它们的索引(B-Tree)是为"等于""大于""小于"这类操作设计的。</p>
+
+<p>但向量检索需要的是"在 1536 维空间中,找到离这个点最近的 10 个点"--这是一个完全不同的数学问题。传统索引结构在高维空间中效率极差(这叫<strong>"维度诅咒"</strong>)。所以需要专门的向量数据库。</p>
+
+<h4>ANN(Approximate Nearest Neighbor,近似最近邻)</h4>
+
+<p>核心思路:<strong>用一点点精度换巨大的速度提升</strong>。不追求找到"最最最近"的向量,而是找到"非常非常近"的向量。实践中,ANN 通常能达到 99%+ 的召回率,但速度比暴力搜索快 100 倍以上。</p>
+
+<h4>HNSW(Hierarchical Navigable Small World)--最流行的 ANN 算法</h4>
+
+<p><strong>类比:"六度分隔"理论。</strong>在社交网络里,任何两个人之间平均只隔 6 个人。HNSW 就是给向量建一个类似的"社交网络"--每个向量和一些"邻居"建立连接,搜索时沿着连接跳转,很快就能找到目标附近。</p>
+
+<div class="visualization">
+<pre style="font-size:14px;line-height:1.4;">
+  HNSW 多层图结构:
+
+  Layer 2 (稀疏)    A ──────────────── D        ← 高速公路:少数节点,远距离跳转
+                    │                  │
+  Layer 1 (中等)    A ─── B ────── D ── E       ← 主干道:更多节点
+                    │     │        │    │
+  Layer 0 (稠密)    A ─ B ─ C ─ D ─ E ─ F ─ G   ← 本地街道:所有节点,短距离连接
+
+  搜索过程:从顶层开始 → 快速定位大致区域 → 逐层下沉 → 在底层精确搜索
+</pre>
+</div>
+
+<h4>常见向量数据库对比</h4>
+
+<table class="compare-table">
+<tr><th>数据库</th><th>特点</th><th>适合场景</th></tr>
+<tr><td><strong>Milvus</strong></td><td>开源,分布式,生产级</td><td>大规模生产环境、企业级 RAG</td></tr>
+<tr><td><strong>Pinecone</strong></td><td>全托管云服务,开箱即用</td><td>快速上手、不想运维</td></tr>
+<tr><td><strong>Chroma</strong></td><td>轻量,API 简单</td><td>原型开发、小项目</td></tr>
+<tr><td><strong>FAISS</strong></td><td>Meta 开源的库(不是完整数据库)</td><td>研究、需要嵌入现有系统</td></tr>
+<tr><td><strong>Qdrant</strong></td><td>Rust 编写,性能好</td><td>追求性能、支持丰富的过滤条件</td></tr>
+</table>
+
+<p>现在你知道了 Embedding 存在哪(向量数据库)、怎么快速找到(ANN/HNSW)。接下来看看怎么让检索更准。</p>
+
+<h3>Hybrid Search(混合检索)</h3>
+<pre>
+<span class="comment">// 问题:向量检索擅长语义匹配,但对精确关键词匹配弱</span>
+<span class="comment">// BM25 擅长关键词匹配,但不懂语义</span>
+
+用户问:"OpenClaw 的 Gateway 端口是多少?"
+  向量检索 → 可能返回"OpenClaw 架构介绍"(语义相关但没答案)
+  BM25    → 可能返回"端口配置:18789"(精确匹配)
+
+<span class="comment">// Hybrid Search = 向量 + BM25 的融合</span>
+final_score = α × vector_score + (1-α) × bm25_score
+  <span class="comment">// α 通常取 0.5~0.7</span>
+  <span class="comment">// 用 RRF (Reciprocal Rank Fusion) 融合两个排名列表效果更好</span>
+</pre>
+
+<h3>Rerank(重排序)</h3>
+<pre>
+<span class="comment">// 为什么需要 Rerank?</span>
+<span class="comment">// 初始检索(embedding 向量匹配)是"粗筛"--快但不够精</span>
+<span class="comment">// Rerank 是"精排"--慢但更准</span>
+
+初始检索(embedding)→ Top 20 候选
+        ↓
+Rerank 模型(cross-encoder)→ 重新打分排序
+        ↓
+取 Top 3-5 → 送给 LLM 生成
+
+<span class="comment">// 为什么 Rerank 比 embedding 更准?</span>
+Embedding(Bi-Encoder):  问题和文档分别编码,用余弦比较
+  <span class="comment">快(可以预计算),但精度有限</span>
+
+Rerank(Cross-Encoder):  问题+文档拼在一起,同时编码
+  <span class="comment">慢(不能预计算),但精度更高</span>
+  <span class="comment">因为它能看到问题和文档之间的细粒度交互</span>
+
+<span class="comment">// 常用 Rerank 模型:</span>
+<span class="comment">// Cohere Rerank, bge-reranker-v2, Jina Reranker</span>
+</pre>
+
+<h3>RAG 评估指标</h3>
+<table class="compare-table">
+<tr><th>指标</th><th>评估什么</th><th>怎么算</th></tr>
+<tr><td><strong>Recall@K</strong></td><td>检索召回率</td><td>Top-K 结果中包含正确答案的比例</td></tr>
+<tr><td><strong>Precision@K</strong></td><td>检索精确率</td><td>Top-K 结果中相关文档的比例</td></tr>
+<tr><td><strong>MRR</strong></td><td>排序质量</td><td>正确答案首次出现的排名倒数均值</td></tr>
+<tr><td><strong>Faithfulness</strong></td><td>生成忠实度</td><td>回答中的信息是否都来自检索文档(非编造)</td></tr>
+<tr><td><strong>Answer Relevance</strong></td><td>回答相关性</td><td>生成的回答是否回答了用户的问题</td></tr>
+<tr><td><strong>Context Relevance</strong></td><td>上下文相关性</td><td>检索到的文档是否和问题相关</td></tr>
+</table>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 评估工具推荐</div>
+<div class="tip-box-content">
+<strong>RAGAS</strong>(最流行的 RAG 评估框架)- 自动计算 Faithfulness、Answer Relevance、Context Relevance<br>
+<strong>LLM-as-Judge</strong> - 用 GPT-4 / Claude 对回答质量打分<br>
+<strong>人工评估</strong> - 最终还是需要人类判断,特别是领域相关的准确性
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 一个标准的 RAG 系统包含哪些模块?完整流程是什么?</strong><br><br>
+<strong>标准答案:</strong>分两个阶段--<br>
+<strong>离线阶段</strong>:1文档加载(PDF/网页/数据库)→ 2文档切分(Chunking,递归分割或语义分割)→ 3文本向量化(Embedding,如 text-embedding-3-small)→ 4向量索引(存入向量数据库如 Milvus/Pinecone/Chroma)<br>
+<strong>在线阶段</strong>:1用户提问 → 2问题向量化 → 3向量检索(Top-K 相似块)→ 4Rerank 重排序 → 5拼接 Prompt(参考文档+问题)→ 6LLM 生成带引用的回答<br><br>
+<strong>加分回答:</strong>提到 Hybrid Search(向量+BM25)、父子索引、metadata filtering(按时间/类型过滤)、评估指标(Recall@K, Faithfulness, Answer Relevance)。<br><br>
+<strong>常见踩坑:</strong>❌ 只说"检索+生成"两步--缺少 chunking、embedding、rerank 等关键环节;❌ 分不清 Bi-Encoder(embedding检索)和 Cross-Encoder(rerank)的区别。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: Chunk size 怎么选?为什么很重要?</strong><br><br>
+<strong>标准答案:</strong>Chunk size 直接影响检索质量。太小(如 100 token):检索精准但缺上下文,LLM 没有足够信息生成好的回答。太大(如 2000 token):上下文完整但检索不精准,且占用更多 context window。通常 256-512 token 是好的起点,需要根据具体数据和任务调优。<br><br>
+<strong>加分回答:</strong>提到父子索引(小块检索、返回大块),以及 overlap(chunk 之间有 10-20% 的重叠,避免关键信息被切断)。<br><br>
+<strong>常见踩坑:</strong>❌ 给一个固定数值不解释--chunk size 没有万能值,取决于文档类型和任务。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: Claude Code 的记忆架构是什么?为什么不用 RAG 检索代码而是用 grep?</strong><br><br>
+<strong>标准答案:</strong>Claude Code 的记忆分三层:1Context Window(当前对话)2CLAUDE.md 文件(项目级指令)3Memory 文件(持久化笔记)。它用 grep/ripgrep 而非 RAG 搜索代码,因为:代码搜索通常需要精确匹配(函数名、变量名),grep 在这方面比向量检索更准更快。向量检索擅长语义匹配("类似的意思"),但代码中需要的是"精确的符号匹配"。<br><br>
+<strong>加分回答:</strong>补充说"上下文≠记忆"--context window 是临时的,每次对话结束就没了;真正的记忆需要持久化到文件系统(OpenClaw 用 MEMORY.md + memory/*.md)。<br><br>
+<strong>常见踩坑:</strong>❌ "RAG 比 grep 更高级所以应该用 RAG"--选工具要看场景,精确匹配场景 grep 更优。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 6                                      -->
+<!-- ================================================================ -->
+<section id="chapter-6" class="chapter">
+<h2 class="chapter-title">06 · Planning + 评估:让 Agent 学会拆任务</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>Planning 让 Agent 把复杂目标拆成可执行的步骤。评估体系决定了你能不能知道 Agent "干得好不好"。</p>
+
+<h3>Task Decomposition 策略</h3>
+<pre>
+<span class="comment">// 三种主要的任务分解方式</span>
+
+<span class="keyword">1. Sequential(顺序分解)</span>
+   "写一篇研究报告" →
+   1 确定主题 → 2 搜集资料 → 3 列大纲 → 4 写初稿 → 5 修改润色
+
+<span class="keyword">2. Hierarchical(层级分解)</span>
+   "写一篇研究报告"
+   ├── 调研阶段
+   │   ├── 搜索论文
+   │   └── 搜索行业报告
+   ├── 写作阶段
+   │   ├── 摘要
+   │   ├── 正文(每章独立)
+   │   └── 结论
+   └── 审校阶段
+
+<span class="keyword">3. Dynamic(动态分解)</span>
+   每完成一步,根据结果决定下一步
+   <span class="comment">→ 这就是 ReAct!</span>
+</pre>
+
+<h3>动态规划实战:Agent 做竞品分析</h3>
+<p>理论看完了,来看一个完整的动态规划过程。假设用户说:<strong>"帮我做一个 AI 编程助手的竞品分析报告"</strong>。看看 Agent 是怎么一步步完成的--注意观察计划在中途是怎么变化的:</p>
+
+<pre>
+<span class="comment">// 用户指令: "帮我做一个 AI 编程助手的竞品分析报告"</span>
+
+<span class="keyword">Turn 1</span>
+🧠 思考: 需要分析主流 AI 编程助手。初步计划分析 5 个:
+        Cursor, GitHub Copilot, Windsurf, Tabnine, Kite
+        先搜集每个产品的核心信息。从 Cursor 开始。
+🔧 行动: web_search("Cursor AI IDE features pricing 2024")
+👁 观察: Cursor - AI-native IDE, 基于 VS Code fork
+        免费版 2000 次补全/月, Pro $20/月, Business $40/月
+        核心功能: Tab 补全, Chat, Composer, @引用代码库
+
+<span class="keyword">Turn 2</span>
+🧠 思考: Cursor 信息拿到了。接下来搜 GitHub Copilot。
+🔧 行动: web_search("GitHub Copilot features pricing 2024")
+👁 观察: GitHub Copilot - 微软/GitHub 出品
+        Individual $10/月, Business $19/月, Enterprise $39/月
+        核心功能: 代码补全, Chat, PR 摘要, Copilot Workspace
+
+<span class="keyword">Turn 3</span>
+🧠 思考: 两个搞定了。继续搜 Windsurf。
+🔧 行动: web_search("Windsurf AI IDE features pricing 2024")
+👁 观察: Windsurf (原 Codeium) - AI Flow 模式, 免费版不限补全
+        Pro $15/月, 核心功能: Cascade(多步编辑), Supercomplete
+
+<span class="keyword">Turn 4</span>
+🧠 思考: 接下来搜 Kite。
+🔧 行动: web_search("Kite AI coding assistant 2024")
+👁 观察: ⚠️ Kite 已于 2022 年 12 月停止运营,代码库已开源但不再维护。
+
+<span class="keyword">Turn 5 ← 计划变更!</span>
+🧠 思考: Kite 已经停运了,放在竞品报告里没有意义。
+        我需要找一个替代品--Amazon Q Developer 是一个活跃的竞品,
+        而且有 AWS 生态优势,更有分析价值。决定用它替换 Kite。
+🔧 行动: web_search("Amazon Q Developer coding assistant features pricing 2024")
+👁 观察: Amazon Q Developer (原 CodeWhisperer) - AWS 出品
+        免费版不限补全, Pro $19/月 (含 AWS 集成)
+        核心功能: 代码补全, Chat, 安全扫描, AWS 资源操作
+
+<span class="keyword">Turn 6</span>
+🧠 思考: 最后搜 Tabnine,然后就可以开始写报告了。
+🔧 行动: web_search("Tabnine AI code assistant features pricing 2024")
+👁 观察: Tabnine - 强调隐私和本地部署
+        Starter 免费, Pro $12/月, Enterprise 定制价
+        核心功能: 代码补全, 本地模型, 代码库学习, 零数据保留
+
+<span class="keyword">Turn 7</span>
+🧠 思考: 5 个竞品资料齐了(Cursor, Copilot, Windsurf, Amazon Q, Tabnine)。
+        现在整理成对比报告,按 功能/价格/优缺点 分类。
+🔧 行动: 生成竞品分析报告(表格 + 总结)
+✅ 输出: 完整的竞品分析报告
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 这就是 Dynamic Planning 的威力</div>
+<div class="tip-box-content">
+计划不是一次性制定的,而是随着执行过程中获得的新信息不断调整。Turn 5 中 Agent 发现 Kite 已停运,立刻调整计划找了替代品--这个决策不是预编程的,而是 Agent 根据观察结果自主做出的。<br><br>
+<strong>这也是 Agent 和 Workflow 的核心区别:</strong>Workflow 的路径在设计时就固定了(if Kite 停运 → ???),Agent 的路径是运行时动态决定的。你不需要提前预见所有情况,Agent 会自己应对。
+</div>
+</div>
+
+<h3>Agent 评估体系</h3>
+<table class="compare-table">
+<tr><th>评估维度</th><th>指标</th><th>怎么测</th></tr>
+<tr><td><strong>任务完成率</strong></td><td>Success Rate</td><td>在测试集上统计完成比例</td></tr>
+<tr><td><strong>规划能力</strong></td><td>Plan Quality</td><td>步骤是否合理、顺序是否正确</td></tr>
+<tr><td><strong>幻觉率</strong></td><td>Hallucination Rate</td><td>生成内容中事实错误的比例</td></tr>
+<tr><td><strong>工具使用准确性</strong></td><td>Tool Accuracy</td><td>是否选对了工具、参数是否正确</td></tr>
+<tr><td><strong>效率</strong></td><td>Steps / Tokens / Time</td><td>完成任务用了多少步/token/时间</td></tr>
+<tr><td><strong>鲁棒性</strong></td><td>Error Recovery Rate</td><td>遇到错误后能否自我修复</td></tr>
+</table>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 如何评估 Agent 的执行效果?评估体系包括哪些维度?</strong><br><br>
+<strong>标准答案:</strong>六个维度:1任务完成率(核心指标)2规划质量(步骤合理性)3幻觉率(事实准确性)4工具使用准确性 5效率(步数/token/延迟)6鲁棒性(错误恢复能力)。评估方法:准备标准测试集,包含简单/中等/复杂任务,自动化跑 benchmark。<br><br>
+<strong>加分回答:</strong>提到"用 LLM 做评估者"(LLM-as-Judge),让一个强模型评估另一个模型的输出质量。<br><br>
+<strong>常见踩坑:</strong>❌ 只说"看看效果好不好"--没有量化指标的评估不是评估。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 7                                      -->
+<!-- ================================================================ -->
+<section id="chapter-7" class="chapter">
+<h2 class="chapter-title">07 · 多 Agent 协作</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>多 Agent 系统有三种基本模式:顺序、并行、层级。框架(LangChain/LangGraph/CrewAI)各有侧重。</p>
+
+<h3>三种协作模式</h3>
+<div class="visualization">
+<div class="visualization-title">多 Agent 协作模式</div>
+<svg width="560" height="300" viewBox="0 0 560 300">
+    <text x="100" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#1890ff">顺序 (Sequential)</text>
+    <rect x="30" y="30" width="55" height="35" rx="5" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="57" y="52" text-anchor="middle" font-size="10" fill="#096dd9">A1</text>
+    <path d="M 85 47 L 100 47" stroke="#595959" stroke-width="1" marker-end="url(#arr5)"/>
+    <rect x="103" y="30" width="55" height="35" rx="5" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="130" y="52" text-anchor="middle" font-size="10" fill="#096dd9">A2</text>
+    <path d="M 158 47 L 173 47" stroke="#595959" stroke-width="1" marker-end="url(#arr5)"/>
+    <rect x="176" y="30" width="55" height="35" rx="5" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="203" y="52" text-anchor="middle" font-size="10" fill="#096dd9">A3</text>
+
+    <text x="400" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#52c41a">并行 (Parallel)</text>
+    <rect x="370" y="30" width="55" height="30" rx="5" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="397" y="50" text-anchor="middle" font-size="10" fill="#389e0d">A1</text>
+    <rect x="370" y="68" width="55" height="30" rx="5" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="397" y="88" text-anchor="middle" font-size="10" fill="#389e0d">A2</text>
+    <rect x="370" y="106" width="55" height="30" rx="5" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="397" y="126" text-anchor="middle" font-size="10" fill="#389e0d">A3</text>
+    <path d="M 425 82 L 460 82" stroke="#595959" stroke-width="1" marker-end="url(#arr5)"/>
+    <rect x="463" y="68" width="60" height="30" rx="5" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="493" y="88" text-anchor="middle" font-size="10" fill="#389e0d">汇总</text>
+
+    <text x="280" y="175" text-anchor="middle" font-size="12" font-weight="600" fill="#722ed1">层级 (Hierarchical)</text>
+    <rect x="240" y="190" width="80" height="35" rx="5" fill="#f9f0ff" stroke="#722ed1" stroke-width="2"/>
+    <text x="280" y="212" text-anchor="middle" font-size="10" fill="#531dab">Manager</text>
+    <path d="M 250 225 L 170 250" stroke="#595959" stroke-width="1" marker-end="url(#arr5)"/>
+    <path d="M 280 225 L 280 250" stroke="#595959" stroke-width="1" marker-end="url(#arr5)"/>
+    <path d="M 310 225 L 390 250" stroke="#595959" stroke-width="1" marker-end="url(#arr5)"/>
+    <rect x="130" y="252" width="70" height="30" rx="5" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="165" y="272" text-anchor="middle" font-size="10" fill="#531dab">Researcher</text>
+    <rect x="245" y="252" width="70" height="30" rx="5" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="280" y="272" text-anchor="middle" font-size="10" fill="#531dab">Coder</text>
+    <rect x="355" y="252" width="70" height="30" rx="5" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="390" y="272" text-anchor="middle" font-size="10" fill="#531dab">Reviewer</text>
+</svg>
+</div>
+
+<h3>Agent 框架对比</h3>
+<table class="compare-table">
+<tr><th>框架</th><th>核心理念</th><th>适合场景</th><th>学习曲线</th></tr>
+<tr><td><strong>LangChain</strong></td><td>Chain(链)= 把 LLM 调用串起来</td><td>简单的 RAG / 工具调用链</td><td>低</td></tr>
+<tr><td><strong>LangGraph</strong></td><td>Graph(图)= 状态机,节点是 Agent</td><td>复杂的多 Agent 工作流</td><td>中</td></tr>
+<tr><td><strong>CrewAI</strong></td><td>Crew(团队)= Agent 有角色和目标</td><td>角色扮演式多 Agent 协作</td><td>中</td></tr>
+<tr><td><strong>AutoGPT</strong></td><td>全自主 Agent</td><td>探索/研究</td><td>低(但效果不稳定)</td></tr>
+<tr><td><strong>OpenClaw</strong></td><td>Harness(驾驭)= 可靠运行的 Agent</td><td>生产级多 Agent 系统</td><td>中</td></tr>
+</table>
+
+<h3>LangChain 的 Chain 怎么理解?</h3>
+<pre>
+<span class="comment">// Chain = 一条处理管线,把多个步骤串起来</span>
+
+<span class="comment">// 最简单的 Chain:</span>
+prompt_template → LLM → output_parser
+     <span class="string">"翻译:{text}"</span>  → GPT → 提取翻译结果
+
+<span class="comment">// 复杂的 Chain(RAG):</span>
+user_query → retriever → prompt_template → LLM → output
+                ↑
+           向量数据库
+
+<span class="comment">// 类比:Chain 就像 Unix 管道</span>
+cat file | grep "error" | sort | uniq -c
+<span class="comment">// 每一步的输出是下一步的输入</span>
+</pre>
+
+<h3>Agent 间怎么传递信息?</h3>
+<p>多个 Agent 协作时,最核心的问题是:<strong>它们之间怎么交换信息?</strong>就像一个团队,光有分工不够,还得有沟通机制。业界有四种主流模式:</p>
+
+<table class="compare-table">
+<tr><th>方式</th><th>类比</th><th>优点</th><th>缺点</th><th>典型实现</th></tr>
+<tr>
+<td><strong>共享内存</strong><br>(Shared Memory)</td>
+<td>团队白板--谁都能写、谁都能看</td>
+<td>简单直接,所有人看到同一份状态</td>
+<td>并发冲突,难以追踪"谁改了什么"</td>
+<td>LangGraph (共享 State)</td>
+</tr>
+<tr>
+<td><strong>消息传递</strong><br>(Message Passing)</td>
+<td>Slack/邮件--一条条消息发送</td>
+<td>结构清晰,支持异步,可追溯</td>
+<td>需要定义消息格式,有延迟</td>
+<td>CrewAI, OpenClaw (sessions_spawn)</td>
+</tr>
+<tr>
+<td><strong>函数调用</strong><br>(Direct Invocation)</td>
+<td>经理叫下属--直接调用,等结果</td>
+<td>简单可控,调用方掌握流程</td>
+<td>紧耦合,被调用方无自主性</td>
+<td>普通函数调用 / Tool Use</td>
+</tr>
+<tr>
+<td><strong>事件驱动</strong><br>(Event-Driven)</td>
+<td>广播电台--发布消息,谁感兴趣谁听</td>
+<td>松耦合,容易扩展新 Agent</td>
+<td>调试困难,执行顺序不确定</td>
+<td>Kafka + Agent / Pub-Sub 架构</td>
+</tr>
+</table>
+
+<p>实际项目中经常<strong>混合使用</strong>。比如 OpenClaw:Manager Agent 通过 <code>sessions_spawn</code>(消息传递)分派子任务,子 Agent 之间通过共享文件系统(共享内存)交换中间产物。</p>
+
+<h3>实战案例:三 Agent 协作写竞品研报</h3>
+<p>来看一个完整的多 Agent 协作流程。目标:<strong>让三个 Agent 协作完成一份 AI 编程助手竞品研报</strong>。</p>
+
+<pre>
+<span class="comment">// 三 Agent 协作流程:Research → Writer → Review</span>
+<span class="comment">// 通信方式:消息传递(Manager 居中协调)</span>
+
+<span class="keyword">[Manager]</span> → Research Agent:
+    "搜集 Cursor, GitHub Copilot, Windsurf 的产品信息,
+     包括:功能特性、价格方案、目标用户、技术架构"
+
+<span class="keyword">[Research Agent]</span> 🧠 思考: 需要搜索三个产品的官网和评测
+<span class="keyword">[Research Agent]</span> 🔧 行动: web_search("Cursor AI IDE features pricing 2024")
+<span class="keyword">[Research Agent]</span> 👁 观察: Cursor Pro $20/month, AI-native IDE, fork of VS Code...
+<span class="keyword">[Research Agent]</span> 🔧 行动: web_search("GitHub Copilot pricing features 2024")
+<span class="keyword">[Research Agent]</span> 👁 观察: Individual $10/month, Business $19/month...
+<span class="keyword">[Research Agent]</span> 🔧 行动: web_search("Windsurf AI IDE Codeium 2024")
+<span class="keyword">[Research Agent]</span> 👁 观察: 原 Codeium,Pro $15/month, AI Flow 模式...
+<span class="keyword">[Research Agent]</span> → Manager:
+    "搜集完成,3 个竞品信息如下:
+     1 Cursor: AI-native IDE, $20/月, Tab+Chat+Composer...
+     2 Copilot: GitHub 生态, $10/月, 补全+Chat+Workspace...
+     3 Windsurf: 免费补全, $15/月, Cascade 多步编辑..."
+
+<span class="keyword">[Manager]</span> → Writer Agent:
+    "基于以下资料撰写竞品分析报告,要求包含:
+     功能对比表格、价格对比、各产品优缺点、选择建议"
+
+<span class="keyword">[Writer Agent]</span> 🧠 思考: 需要按产品分类,重点对比功能/价格/适用场景
+<span class="keyword">[Writer Agent]</span> 🔧 行动: 组织报告结构,生成 Markdown 格式报告
+<span class="keyword">[Writer Agent]</span> → Manager: "报告初稿完成(2000 字,含 3 个对比表格)"
+
+<span class="keyword">[Manager]</span> → Review Agent:
+    "请审校以下竞品分析报告,检查数据准确性和逻辑完整性"
+
+<span class="keyword">[Review Agent]</span> 🧠 思考: 逐项核查数据,检查有无遗漏
+<span class="keyword">[Review Agent]</span> → Manager:
+    "审校意见:
+     1 Windsurf 的 AI Flow 特性描述不够详细,建议补充 Cascade 工作原理
+     2 价格对比建议做成统一表格而非分散描述
+     3 缺少'免费方案对比'维度,对个人开发者很重要"
+
+<span class="keyword">[Manager]</span> → Writer Agent:
+    "请根据以下审校意见修改报告:12 3..."
+
+<span class="keyword">[Writer Agent]</span> 🔧 行动: 根据反馈修订报告
+<span class="keyword">[Writer Agent]</span> → Manager: "修订版完成"
+
+<span class="keyword">[Manager]</span> → 用户: "竞品分析报告已完成 ✅"
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 协作模式的核心原则</div>
+<div class="insight-box-content">
+注意整个过程中,Manager 是<strong>协调者而不是执行者</strong>--它只负责分派任务和传递结果。每个 Agent 专注自己的领域:Research 擅长搜索,Writer 擅长写作,Review 擅长挑错。这就是层级协作模式的优势:<strong>关注点分离(Separation of Concerns)</strong>。<br><br>
+和真实团队一样--好的管理者不是什么都自己干,而是找对的人做对的事。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 多 Agent 协作如何做?Agent workflow 和普通 workflow 有什么区别?</strong><br><br>
+<strong>标准答案:</strong>多 Agent 协作有三种模式:1顺序(流水线)2并行(同时执行后汇总)3层级(Manager 分派任务给 Worker)。Agent workflow 和普通 workflow 的区别:普通 workflow 的每个节点是确定性操作(if-else),Agent workflow 的节点是 Agent(可以自主决策),因此路径不完全预定义,具有动态性。<br><br>
+<strong>加分回答:</strong>提到 LangGraph 用状态图建模 Agent workflow,每个节点是 Agent,边是状态转移条件。OpenClaw 用 sessions_spawn 生成子 Agent,通过 Gateway 统一编排。<br><br>
+<strong>常见踩坑:</strong>❌ 只说"多个 Agent 一起工作"--要说清楚具体的协作模式和通信方式。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 8                                      -->
+<!-- ================================================================ -->
+<section id="chapter-8" class="chapter">
+<h2 class="chapter-title">08 · Harness Engineering + 幻觉</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>Harness 是"驾驭" Agent 的三大支柱--上下文工程、架构约束、熵管理。幻觉(Hallucination)是 Agent 最大的可靠性威胁。</p>
+
+<h3>三大支柱</h3>
+<pre>
+<span class="keyword">1. 上下文工程</span>(Context Engineering)
+   控制 Agent <strong>看到什么</strong>
+   → System Prompt 设计、Skills 按需加载、Memory 管理
+
+<span class="keyword">2. 架构约束</span>(Architecture Constraints)
+   控制 Agent <strong>能做什么</strong>
+   → 工具白名单、权限控制、人工确认节点
+
+<span class="keyword">3. 熵管理</span>(Entropy Management)
+   控制<strong>混乱度</strong>
+   → 日志记录、异常检测、自动熔断
+</pre>
+
+<h3>🔥 幻觉(Hallucination)详解</h3>
+<pre>
+<span class="comment">// 幻觉 = LLM 生成了看起来正确但实际错误的内容</span>
+<span class="comment">// 研究表明:领先 AI 模型在科学摘要中幻觉率高达 31%</span>
+
+<span class="keyword">三大类型(最新分类法):</span>
+1 <span class="func">事实型幻觉</span>(Factual / Knowledge-based)
+   → 事实错误:"爱因斯坦于 1950 年获诺贝尔奖"(错,是 1921)
+   → 编造不存在的日期、数字、事件
+   → 原因:训练数据缺失或矛盾
+
+2 <span class="func">逻辑型幻觉</span>(Logic-based)
+   → 推理过程看起来对但结论错
+   → 多步推理中错误累积
+   → 原因:自回归模型的"模式延续"倾向
+
+3 <span class="func">引用型幻觉</span>(Attribution / Citation-based)
+   → 引用虚构不存在的论文、链接、书籍
+   → 格式看起来非常正规(作者名、年份、期刊名),但完全是编的
+   → 原因:模型学到了"引用格式"的模式,但没有真实知识支撑
+
+<span class="keyword">根本成因(从架构角度):</span>
+1 自回归生成 - 模型预测下一个 token 时倾向于"自信补全"
+2 知识缺口 - 对长尾知识或最新信息覆盖不足
+3 模式驱动 - 生成了语法正确但事实错误的续写
+4 Context 稀释 - 长上下文中 Attention 衰减(Lost in the Middle)
+5 训练数据噪声 - 互联网数据本身包含错误信息
+
+<span class="keyword">7 层缓解策略(从轻到重):</span>
+1 <span class="func">Prompt 工程</span>     - 明确指令:"只基于给定信息回答,不确定则说不知道"
+2 <span class="func">RAG</span>             - 检索真实文档作为上下文(最有效的单一策略)
+3 <span class="func">Grounding</span>       - 要求模型引用来源,每句话标注出处
+4 <span class="func">Self-check</span>      - 生成后让模型自己验证("请检查上述回答是否有事实错误")
+5 <span class="func">Constrained 输出</span> - 结构化输出 + 限制回答范围
+6 <span class="func">外部验证</span>       - 自动化 fact-checker 验证关键事实
+7 <span class="func">Fine-tuning</span>    - 用领域专家标注的数据微调模型
+
+<span class="comment">// 实际生产中通常组合使用:RAG + Grounding + Self-check</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 什么是幻觉(Hallucination)?为什么会发生?如何减少?</strong><br><br>
+<strong>标准答案:</strong>幻觉是 LLM 生成看似正确但实际错误的内容。成因:1训练数据噪声2模型倾向于补全而非拒绝3上下文信息不足。缓解:1RAG(提供真实参考文档)2要求引用来源3Self-consistency check4降低 temperature5结构化输出约束。<br><br>
+<strong>加分回答:</strong>区分三种幻觉类型(事实型/逻辑型/引用型),并提到 RAG 中的 Faithfulness 指标--评估生成内容是否忠于检索文档。引用型幻觉尤其危险--格式正规但完全虚构,读者很难识别。<br><br>
+<strong>常见踩坑:</strong>❌ "用 RAG 就能完全消除幻觉"--不能,但能大幅减少;RAG 本身也可能检索到错误文档。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 9                                      -->
+<!-- ================================================================ -->
+<section id="chapter-9" class="chapter">
+<h2 class="chapter-title">09 · 从零手写一个 Agent + RAG</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>理论讲完,动手做。先写一个 60 行的 ReAct Agent,再写一个 30 行的 RAG Pipeline。</p>
+
+<h3>环境准备</h3>
+<pre>
+<span class="comment"># 1. 安装依赖</span>
+pip install openai numpy
+
+<span class="comment"># 2. 设置 API Key(在终端中运行)</span>
+export OPENAI_API_KEY="sk-your-key-here"
+
+<span class="comment"># 3. 或者在 Python 代码中设置</span>
+<span class="keyword">import</span> os
+os.environ[<span class="string">"OPENAI_API_KEY"</span>] = <span class="string">"sk-your-key-here"</span>
+
+<span class="comment"># 💡 没有 OpenAI Key?可以用兼容 API:</span>
+<span class="comment"># - DeepSeek: https://platform.deepseek.com (便宜,中文好)</span>
+<span class="comment"># - 硅基流动: https://siliconflow.cn (国内访问快)</span>
+<span class="comment"># 只需改 base_url 和 model 即可,代码完全相同</span>
+</pre>
+
+<h3>手写 ReAct Agent(Python)</h3>
+<pre>
+<span class="keyword">import</span> openai, json
+
+client = openai.OpenAI()
+
+<span class="comment"># ── 定义工具 ──</span>
+tools = [{
+    <span class="string">"type"</span>: <span class="string">"function"</span>,
+    <span class="string">"function"</span>: {
+        <span class="string">"name"</span>: <span class="string">"search_web"</span>,
+        <span class="string">"description"</span>: <span class="string">"搜索网页"</span>,
+        <span class="string">"parameters"</span>: {
+            <span class="string">"type"</span>: <span class="string">"object"</span>,
+            <span class="string">"properties"</span>: { <span class="string">"query"</span>: {<span class="string">"type"</span>: <span class="string">"string"</span>} },
+        }
+    }
+}]
+
+<span class="keyword">def</span> <span class="func">execute_tool</span>(name, args):
+    <span class="comment"># ⚠️ 这里用 mock 数据演示流程,实际使用需替换为真实 API(如 requests.get、MCP 工具等)</span>
+    <span class="keyword">if</span> name == <span class="string">"search_web"</span>:
+        <span class="keyword">return</span> f<span class="string">"搜索结果:{args['query']} 的相关信息..."</span>
+
+<span class="comment"># ── ReAct 主循环 ──</span>
+messages = [
+    {<span class="string">"role"</span>: <span class="string">"system"</span>, <span class="string">"content"</span>: <span class="string">"你是一个有用的助手。先思考,再行动。"</span>},
+    {<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: <span class="string">"北京明天天气怎么样?"</span>}
+]
+
+<span class="keyword">for</span> turn <span class="keyword">in</span> range(<span class="number">10</span>):  <span class="comment"># 最多 10 轮防止死循环</span>
+    resp = client.chat.completions.create(
+        model=<span class="string">"gpt-4"</span>, messages=messages, tools=tools
+    )
+    msg = resp.choices[<span class="number">0</span>].message
+    messages.append(msg)
+
+    <span class="keyword">if</span> msg.tool_calls:
+        <span class="keyword">for</span> tc <span class="keyword">in</span> msg.tool_calls:
+            result = <span class="func">execute_tool</span>(tc.function.name, json.loads(tc.function.arguments))
+            messages.append({<span class="string">"role"</span>: <span class="string">"tool"</span>, <span class="string">"tool_call_id"</span>: tc.id, <span class="string">"content"</span>: result})
+    <span class="keyword">else</span>:
+        print(<span class="string">"Agent:"</span>, msg.content)
+        <span class="keyword">break</span>
+</pre>
+
+<h3>手写 RAG Pipeline(Python)</h3>
+<pre>
+<span class="keyword">from</span> openai <span class="keyword">import</span> OpenAI
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+client = OpenAI()
+
+<span class="comment"># ── 1. 准备文档并切分 ──</span>
+documents = [
+    <span class="string">"OpenClaw 的 Gateway 默认端口是 18789"</span>,
+    <span class="string">"OpenClaw 用 WebSocket 协议通信,不是 HTTP"</span>,
+    <span class="string">"Agent 的 System Prompt 包含 Tools、Skills、Bootstrap 文件"</span>,
+    <span class="string">"Session 会在每天凌晨 4 点自动重置"</span>,
+]
+
+<span class="comment"># ── 2. 文本 → 向量 ──</span>
+<span class="keyword">def</span> <span class="func">embed</span>(texts):
+    resp = client.embeddings.create(model=<span class="string">"text-embedding-3-small"</span>, input=texts)
+    <span class="keyword">return</span> [r.embedding <span class="keyword">for</span> r <span class="keyword">in</span> resp.data]
+
+doc_vectors = <span class="func">embed</span>(documents)
+
+<span class="comment"># ── 3. 检索 ──</span>
+<span class="keyword">def</span> <span class="func">search</span>(query, top_k=<span class="number">2</span>):
+    q_vec = <span class="func">embed</span>([query])[<span class="number">0</span>]
+    scores = [np.dot(q_vec, dv) <span class="keyword">for</span> dv <span class="keyword">in</span> doc_vectors]
+    top_idx = np.argsort(scores)[-top_k:][::-<span class="number">1</span>]
+    <span class="keyword">return</span> [documents[i] <span class="keyword">for</span> i <span class="keyword">in</span> top_idx]
+
+<span class="comment"># ── 4. RAG 生成 ──</span>
+question = <span class="string">"OpenClaw 用什么协议?"</span>
+context = <span class="func">search</span>(question)
+
+answer = client.chat.completions.create(
+    model=<span class="string">"gpt-4"</span>,
+    messages=[
+        {<span class="string">"role"</span>: <span class="string">"system"</span>, <span class="string">"content"</span>: f<span class="string">"基于以下参考文档回答:\n{chr(10).join(context)}"</span>},
+        {<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: question}
+    ]
+)
+print(answer.choices[<span class="number">0</span>].message.content)
+<span class="comment"># → "OpenClaw 使用 WebSocket 协议通信"</span>
+</pre>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 10                                     -->
+<!-- ================================================================ -->
+<section id="chapter-10" class="chapter">
+<h2 class="chapter-title">10 · 生产环境:Streaming / SSE / 缓存</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>生产级 Agent 需要解决 Streaming(实时输出)和缓存(降本提速)。这一章专注工程侧的优化手段。</p>
+
+<h3>🔥 Streaming / SSE 实现</h3>
+<pre>
+<span class="comment">// SSE = Server-Sent Events(服务器推送事件)</span>
+<span class="comment">// 让用户看到 Agent 逐字输出,而不是等几十秒看到完整回答</span>
+
+<span class="comment">// 前端 JavaScript:</span>
+<span class="keyword">const</span> source = <span class="keyword">new</span> EventSource(<span class="string">"/api/chat"</span>);
+source.onmessage = (event) => {
+    <span class="keyword">const</span> data = JSON.parse(event.data);
+    <span class="keyword">if</span> (data.type === <span class="string">"text_delta"</span>) {
+        appendToChat(data.content);  <span class="comment">// 逐字追加</span>
+    } <span class="keyword">else if</span> (data.type === <span class="string">"tool_call"</span>) {
+        showToolIndicator(data.name); <span class="comment">// 显示"正在调用工具..."</span>
+    } <span class="keyword">else if</span> (data.type === <span class="string">"done"</span>) {
+        source.close();
+    }
+};
+
+<span class="comment">// 后端 Node.js:</span>
+app.get(<span class="string">"/api/chat"</span>, (req, res) => {
+    res.setHeader(<span class="string">"Content-Type"</span>, <span class="string">"text/event-stream"</span>);
+    res.setHeader(<span class="string">"Cache-Control"</span>, <span class="string">"no-cache"</span>);
+
+    <span class="keyword">const</span> stream = openai.chat.completions.create({
+        model: <span class="string">"gpt-4"</span>, messages, stream: <span class="keyword">true</span>
+    });
+
+    <span class="keyword">for await</span> (<span class="keyword">const</span> chunk <span class="keyword">of</span> stream) {
+        <span class="keyword">const</span> delta = chunk.choices[<span class="number">0</span>].delta;
+        res.write(<span class="string">`data: ${JSON.stringify(delta)}\n\n`</span>);
+    }
+    res.write(<span class="string">"data: [DONE]\n\n"</span>);
+    res.end();
+});
+</pre>
+
+<h3>LLM 缓存策略</h3>
+<pre>
+<span class="comment">// 同样的问题不用每次都调 LLM(贵!)</span>
+
+<span class="keyword">1. 精确匹配缓存</span>
+   cache_key = hash(system_prompt + messages)
+   <span class="comment">完全相同的输入 → 直接返回缓存</span>
+
+<span class="keyword">2. 语义缓存</span>
+   query_embedding = embed(user_question)
+   <span class="comment">如果向量库中有相似度 > 0.95 的已有问答 → 返回缓存</span>
+
+<span class="keyword">3. Prompt Cache</span>(OpenAI/Anthropic 原生支持)
+   <span class="comment">相同的 system prompt 前缀 → 自动缓存,后续请求更便宜</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 如何实现 SSE 推送?Agent 工具调用时 SSE 事件结构包含哪些字段?</strong><br><br>
+<strong>标准答案:</strong>SSE 通过设置 Content-Type: text/event-stream,后端逐步推送 data: {json}\n\n 格式的事件。Agent 工具调用时的事件结构通常包含:1type(text_delta / tool_call_start / tool_call_done / done)2content(文本增量)3tool_name / tool_args(工具名和参数)4tool_result(工具返回)。<br><br>
+<strong>加分回答:</strong>提到 OpenClaw 的三层流式事件:lifecycle(start/end/error)、assistant(文本增量)、tool(工具状态),以及 Block Streaming 机制(不是 token 级推送,而是按段落/块推送)。<br><br>
+<strong>常见踩坑:</strong>❌ 把 SSE 和 WebSocket 搞混--SSE 是单向的(服务端→客户端),WebSocket 是双向的。
+</div>
+</div>
+
+<p>工程层面的问题解决了。下一章我们看看模型本身是怎么训练和优化的--这决定了 Agent 的"智商上限"。</p>
+
+</div>
+</section>
+
+<section id="chapter-10b" class="chapter">
+<h2 class="chapter-title">10b · 模型训练与对齐:SFT / DPO / GRPO</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>回顾 0D 的三阶段训练框架(Pre-training → SFT → RLHF),这里我们深入看具体训练算法的差异。理解这些对选择和评估模型很有帮助。</p>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 回顾与衔接</div>
+<div class="insight-box-content">
+我们在 0D 章从概念层面理解了三阶段训练,0D 的 RL 基础模块讲了 PPO 的直觉。这一章从算法对比角度深入--SFT、RLHF(PPO)、DPO、GRPO 各自怎么工作,什么场景用什么。
+</div>
+</div>
+
+<h3>训练基础:SFT / RLHF / DPO / GRPO</h3>
+<pre>
+<span class="comment">// 面试中经常问训练流程,不需要太深但要清楚区别</span>
+
+<span class="keyword">SFT</span>(Supervised Fine-Tuning,监督微调)
+  数据:(instruction, response) 对
+  方法:标准交叉熵损失,教模型"照着好答案学"
+  <span class="comment">类比:老师给标准答案,学生照着抄</span>
+
+<span class="keyword">RLHF</span>(Reinforcement Learning from Human Feedback)
+  Step 1: 训练一个 Reward Model(人类偏好打分器)
+  Step 2: 用 PPO 算法优化 LLM,最大化 Reward
+  <span class="comment">类比:先教裁判什么是好答案,再让学生根据裁判反馈改进</span>
+
+<span class="keyword">DPO</span>(Direct Preference Optimization)
+  数据:(prompt, good_response, bad_response) 三元组
+  方法:直接优化模型偏好,<strong>不需要 Reward Model</strong>
+  <span class="comment">类比:直接告诉学生"A比B好",不需要裁判</span>
+  优点:比 RLHF 简单很多,训练更稳定
+
+<span class="keyword">GRPO</span>(Group Relative Policy Optimization)
+  DeepSeek 提出,用于训练 DeepSeek-R1。核心创新:
+  1 <strong>不需要 Reward Model</strong>--用可编程的奖励函数(如代码能不能跑通、数学答案对不对)
+  2 <strong>组内相对排名</strong>--对同一个 prompt 生成一组回答,
+     组内排名高的奖励、排名低的惩罚,不需要绝对分数
+  3 <strong>训练流程</strong>(DeepSeek-R1):
+     冷启动 RL(纯 GRPO,让模型自发学会思维链)
+     → 收集 RL 产出的好样本做 SFT(固化格式)
+     → 再做一轮 GRPO(进一步优化)
+  <span class="comment">类比:让一组学生各自做题,对答案后在组内排名,
+     排名前几的奖励、排名后几的惩罚--不需要外部打分员</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: PPO 和 DPO 在大模型对齐中的主要区别是什么?</strong><br><br>
+<strong>标准答案:</strong>PPO 需要先训练一个 Reward Model,再用强化学习优化策略,流程复杂(2 阶段)。DPO 直接从人类偏好数据(good/bad 对比)优化模型,不需要 Reward Model(1 阶段),训练更简单稳定。DPO 的 loss 本质是让模型对好答案的概率增大,对差答案的概率减小。<br><br>
+<strong>加分回答:</strong>提到 GRPO(DeepSeek 提出),是 PPO 的简化版--不需要 Reward Model,用组内样本排名替代。<br><br>
+<strong>常见踩坑:</strong>❌ 说不出 DPO 的具体优势在哪--核心是"去掉了 Reward Model 这个中间环节"。
+</div>
+</div>
+
+<h3>算法对比一览</h3>
+
+<table class="compare-table">
+<tr><th>算法</th><th>需要 Reward Model?</th><th>需要人类标注?</th><th>复杂度</th><th>典型场景</th></tr>
+<tr><td>SFT</td><td>❌</td><td>✅ (问答对)</td><td>低</td><td>基础能力对齐</td></tr>
+<tr><td>RLHF (PPO)</td><td>✅</td><td>✅ (偏好对比)</td><td>高</td><td>ChatGPT、早期 Claude</td></tr>
+<tr><td>DPO</td><td>❌</td><td>✅ (偏好对比)</td><td>中</td><td>Llama 2-Chat、Zephyr</td></tr>
+<tr><td>GRPO</td><td>❌</td><td>❌ (可编程奖励)</td><td>中</td><td>DeepSeek-R1、数学/代码</td></tr>
+</table>
+
+</div>
+</section>
+
+
+
+
+<div style="display:flex;justify-content:space-between;margin:64px 0 32px;padding:24px 0;border-top:2px solid #e8e8e8;">
+    <div><a href="agent-dev-v3-p0.html" style="color:#1890ff;text-decoration:none;">← Part 0: AI 基础</a></div>
+    <div><a href="agent-dev-v3-hw.html" style="color:#1890ff;text-decoration:none;">🔨 Agent Hello World →</a></div>
+</div>
+
+
+</main>
+</div>
+<script>
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const id = entry.target.id;
+            const link = document.querySelector(`a[href="$#${id}"]`);
+            if (link) link.classList.add('active');
+        }
+    });
+}, { rootMargin: '-20% 0px -80% 0px' });
+document.querySelectorAll('.chapter').forEach(ch => observer.observe(ch));
+</script>
+</body>
+</html>

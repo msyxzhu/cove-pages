@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 2: 工程基础 - Agent 开发原理</title>
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.8; color: #333; background-color: #fafafa; }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; border-right: 1px solid #e8e8e8; padding: 32px 24px; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1890ff; }
+        .nav-list { list-style: none; }
+        .nav-item { margin-bottom: 6px; }
+        .nav-link { display: block; padding: 8px 14px; color: #595959; text-decoration: none; border-radius: 6px; transition: all 0.2s ease; font-size: 13.5px; }
+        .nav-link:hover { background-color: #f0f7ff; color: #1890ff; }
+        .nav-link.active { background-color: #e6f4ff; color: #1890ff; font-weight: 500; }
+        .nav-number { color: #8c8c8c; margin-right: 8px; }
+        .nav-part { font-size: 11px; font-weight: 600; color: #8c8c8c; text-transform: uppercase; letter-spacing: 1px; margin-top: 16px; margin-bottom: 8px; padding: 0 14px; }
+        .main-content { flex: 1; margin-left: 300px; padding: 48px 64px; max-width: 920px; }
+        .chapter { margin-bottom: 72px; scroll-margin-top: 24px; }
+        .chapter-title { font-size: 28px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8; }
+        .chapter-content { font-size: 16px; color: #333; }
+        .chapter-content h3 { font-size: 18px; font-weight: 500; color: #262626; margin: 28px 0 12px; }
+        .chapter-content p { margin-bottom: 16px; }
+        .chapter-content ul, .chapter-content ol { margin: 16px 0; padding-left: 24px; }
+        .chapter-content li { margin-bottom: 8px; }
+        .chapter-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; font-size: 14px; color: #d4380d; }
+        .chapter-content pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13.5px; line-height: 1.6; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; }
+        .chapter-content pre .comment { color: #6a9955; }
+        .chapter-content pre .keyword { color: #569cd6; }
+        .chapter-content pre .string { color: #ce9178; }
+        .chapter-content pre .func { color: #dcdcaa; }
+        .chapter-content pre .type { color: #4ec9b0; }
+        .chapter-content pre .number { color: #b5cea8; }
+        .visualization { margin: 32px 0; padding: 24px; background-color: #fff; border-radius: 8px; border: 1px solid #e8e8e8; text-align: center; }
+        .visualization-title { font-size: 14px; color: #8c8c8c; margin-bottom: 16px; }
+        .tip-box { margin: 24px 0; padding: 16px 20px; background-color: #fffbe6; border-left: 4px solid #faad14; border-radius: 4px; }
+        .tip-box-title { font-weight: 500; color: #d48806; margin-bottom: 8px; }
+        .tip-box-content { color: #595959; font-size: 14px; }
+        .insight-box { margin: 24px 0; padding: 16px 20px; background-color: #f0f7ff; border-left: 4px solid #1890ff; border-radius: 4px; }
+        .insight-box-title { font-weight: 500; color: #096dd9; margin-bottom: 8px; }
+        .insight-box-content { color: #595959; font-size: 14px; }
+        .danger-box { margin: 24px 0; padding: 16px 20px; background-color: #fff2f0; border-left: 4px solid #ff4d4f; border-radius: 4px; }
+        .danger-box-title { font-weight: 500; color: #cf1322; margin-bottom: 8px; }
+        .danger-box-content { color: #595959; font-size: 14px; }
+        .interview-box { margin: 24px 0; padding: 16px 20px; background-color: #f0fff0; border-left: 4px solid #52c41a; border-radius: 4px; }
+        .interview-box-title { font-weight: 500; color: #389e0d; margin-bottom: 8px; }
+        .interview-box-content { color: #595959; font-size: 14px; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        .compare-table th { background: #fafafa; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e8e8e8; color: #262626; font-weight: 500; }
+        .compare-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+        .compare-table tr:hover { background: #fafafa; }
+        .part-divider { margin: 80px 0 40px; padding: 20px 0; border-top: 3px solid #1890ff; }
+        .part-title { font-size: 22px; font-weight: 600; color: #1890ff; margin-bottom: 8px; }
+        .part-subtitle { font-size: 14px; color: #8c8c8c; }
+        .references { margin-top: 64px; padding-top: 32px; border-top: 2px solid #e8e8e8; }
+        .references-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+        .references-list { list-style: none; }
+        .references-list li { margin-bottom: 8px; color: #595959; }
+        .references-list a { color: #1890ff; text-decoration: none; }
+        .references-list a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .sidebar { position: relative; width: 100%; height: auto; } .main-content { margin-left: 0; padding: 24px; } .container { flex-direction: column; } .compare-table { display: block; overflow-x: auto; white-space: nowrap; } pre { overflow-x: auto; max-width: 100vw; } }
+    </style>
+
+    <style>
+        .topnav { background:#fff; border-bottom:1px solid #e8e8e8; padding:0 24px; display:flex; gap:0; position:fixed; top:0; left:0; right:0; z-index:100; height:44px; align-items:center; }
+        .topnav a { padding:10px 16px; color:#595959; text-decoration:none; font-size:13px; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; }
+        .topnav a:hover { color:#1890ff; background:#f0f7ff; }
+        .topnav a.topnav-active { color:#1890ff; font-weight:600; border-bottom-color:#1890ff; }
+        .sidebar { top:44px !important; height:calc(100vh - 44px) !important; }
+        .main-content { padding-top:92px !important; }
+        @media (max-width: 768px) {
+            .topnav { overflow-x:auto; }
+            .topnav a { padding:8px 10px; font-size:12px; }
+            .sidebar { top:0 !important; height:auto !important; }
+            .main-content { padding-top:24px !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="topnav">
+    <a href="agent-dev-v3.html">🗺️ 总览</a>
+<a href="agent-dev-v3-p0.html">Part 0: AI 基础</a>
+<a href="agent-dev-v3-p1.html">Part 1: Agent 原理</a>
+<a href="agent-dev-v3-hw.html">🔨 Hello World</a>
+<a href="agent-dev-v3-p2.html" class="topnav-active">Part 2: 工程</a>
+<a href="agent-dev-v3-p34.html">Part 3-4: OpenClaw</a>
+</div>
+<div class="container">
+<nav class="sidebar">
+    <h1 class="sidebar-title">📚 Agent 开发原理<br><small style="font-size:12px;color:#8c8c8c;">Part 2 · 工程基础</small></h1>
+    <ul class="nav-list">
+        
+        <li class="nav-item"><a href="#chapter-11" class="nav-link active"><span class="nav-number">11</span>LLM API 实战</a></li>
+        <li class="nav-item"><a href="#chapter-12" class="nav-link"><span class="nav-number">12</span>Attention + Context</a></li>
+        <li class="nav-item"><a href="#chapter-13" class="nav-link"><span class="nav-number">13</span>Session 管理</a></li>
+    
+    </ul>
+</nav>
+<main class="main-content">
+
+<!-- ════════════════ Part 2 ════════════════ -->
+<div class="part-divider">
+    <div class="part-title">Part 2: 工程基础</div>
+    <div class="part-subtitle">从"懂原理"到"懂实现"</div>
+</div>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 11                                     -->
+<!-- ================================================================ -->
+<section id="chapter-11" class="chapter">
+<h2 class="chapter-title">11 · LLM API 实战</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>LLM 的核心 API 就一个--发送 messages 数组,接收 completion。掌握 streaming、function calling、token 计费就够了。</p>
+
+<h3>Messages 数组结构</h3>
+<pre>
+<span class="comment">// 这是 LLM API 最核心的数据结构</span>
+{
+  <span class="string">"model"</span>: <span class="string">"gpt-4"</span>,
+  <span class="string">"messages"</span>: [
+    { <span class="string">"role"</span>: <span class="string">"system"</span>,    <span class="string">"content"</span>: <span class="string">"你是一个助手"</span> },   <span class="comment">// 系统指令</span>
+    { <span class="string">"role"</span>: <span class="string">"user"</span>,      <span class="string">"content"</span>: <span class="string">"你好"</span> },          <span class="comment">// 用户消息</span>
+    { <span class="string">"role"</span>: <span class="string">"assistant"</span>, <span class="string">"content"</span>: <span class="string">"你好!有什么帮助?"</span> }, <span class="comment">// AI 历史回复</span>
+    { <span class="string">"role"</span>: <span class="string">"user"</span>,      <span class="string">"content"</span>: <span class="string">"今天天气?"</span> }       <span class="comment">// 当前问题</span>
+  ],
+  <span class="string">"temperature"</span>: <span class="number">0.7</span>,     <span class="comment">// 随机性(0=确定性,1=创造性)</span>
+  <span class="string">"max_tokens"</span>: <span class="number">1000</span>,      <span class="comment">// 最大输出长度</span>
+  <span class="string">"stream"</span>: <span class="keyword">true</span>           <span class="comment">// 是否流式输出</span>
+}
+</pre>
+
+<h3>Token 与计费</h3>
+<pre>
+<span class="comment">// Token ≈ 3/4 个英文单词 ≈ 1-2 个中文字</span>
+
+"Hello world"          → 2 tokens
+"人工智能"              → 2-3 tokens
+一页 A4 文字 (中文)     ≈ 400-600 tokens
+
+<span class="comment">// 计费 = 输入 token × 输入价 + 输出 token × 输出价</span>
+<span class="comment">// GPT-4 大约:输入 $30/M tokens, 输出 $60/M tokens</span>
+<span class="comment">// Claude Opus:输入 $15/M, 输出 $75/M</span>
+</pre>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 12                                     -->
+<!-- ================================================================ -->
+<section id="chapter-12" class="chapter">
+<h2 class="chapter-title">12 · Attention 机制 + Context Window</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>Attention 的基础原理在 0C 章讲过了。这一章聚焦工程实战:KV Cache 为什么吃显存、Context Window 满了怎么办、以及为什么重要信息不能放在中间。</p>
+
+<div class="insight-box">
+<div class="insight-box-title">📌 回顾</div>
+<div class="insight-box-content">
+我们在 <a href="#chapter-0c">Chapter 0C</a> 已经从直觉层面理解了 Attention(Q/K/V 图书馆类比)和 Transformer 架构。如果你对 Q·K^T/√d → softmax → ×V 这个流程还不熟悉,建议先回顾 0C。<br><br>
+这一章从<strong>工程和面试</strong>角度深入--KV Cache 优化、Context Window 管理策略、以及 Lost in the Middle 现象。
+</div>
+</div>
+
+<h3>KV Cache(键值缓存)--为什么长对话吃显存?</h3>
+
+<p>先看一个问题:当模型生成第 100 个 token 时,它需要对前 99 个 token 都算一遍 Attention。生成第 101 个 token 时,又要对前 100 个 token 算一遍。这里有大量<strong>重复计算</strong>--前 99 个 token 的 K 和 V 向量,在生成第 100 和第 101 个 token 时完全一样,为什么要算两次?</p>
+
+<pre>
+<span class="comment">// 没有 KV Cache:每生成一个新 token,重新计算所有 K/V</span>
+
+生成 token 1:  计算 K1, V1
+生成 token 2:  计算 K1, V1, K2, V2           <span class="comment">← K1V1 重复算了!</span>
+生成 token 3:  计算 K1, V1, K2, V2, K3, V3   <span class="comment">← K1V1, K2V2 重复算了!</span>
+...
+生成 token N:  计算 K1..Kn, V1..Vn            <span class="comment">← O(N2) 的重复计算</span>
+
+<span class="comment">// 有 KV Cache:只算新 token 的 K/V,旧的从缓存读</span>
+
+生成 token 1:  计算 K1, V1 → <span class="keyword">存入缓存</span>
+生成 token 2:  <span class="keyword">读缓存</span> K1, V1 + 计算 K2, V2 → <span class="keyword">存入缓存</span>
+生成 token 3:  <span class="keyword">读缓存</span> K1..2, V1..2 + 计算 K3, V3 → <span class="keyword">存入缓存</span>
+...
+生成 token N:  <span class="keyword">读缓存</span> K1..n-1, V1..n-1 + 计算 Kn, Vn  <span class="comment">← O(N) 新计算</span>
+</pre>
+
+<p><strong>类比:</strong>想象一个法庭书记员。没有 KV Cache 就像每次有人发言,书记员都要从头把整个庭审记录重新读一遍再记新内容。有了 KV Cache,书记员保持着自己的笔记,每次只需要在笔记末尾追加新内容。</p>
+
+<div class="danger-box">
+<div class="danger-box-title">⚠️ KV Cache 的代价:显存</div>
+<div class="danger-box-content">
+KV Cache 用<strong>空间换时间</strong>。每个 token 需要缓存所有层、所有 head 的 K 和 V 向量。<br><br>
+粗算:一个 7B 模型,32 层 × 32 heads × 128 维 × 2(K+V)× 2 字节(FP16)= <strong>每个 token 约 0.5 MB</strong><br>
+一个 128K context window 的对话 → KV Cache 约 <strong>64 GB 显存</strong>!<br><br>
+这就是为什么你和 AI 聊天聊久了会看到"上下文已满"--很多时候不是模型"忘了",而是 <strong>KV Cache 的显存用完了</strong>。
+</div>
+</div>
+
+<h3>Context Window 管理策略</h3>
+
+<p>Context Window(上下文窗口)是模型一次能处理的最大 token 数。GPT-4o 是 128K,Claude 是 200K。听起来很大,但实际上要精打细算:</p>
+
+<pre>
+<span class="comment">// Context Window 的预算分配(Budget Allocation)</span>
+
+┌──────────────────────────────────────────────────┐
+│                 128K Context Window               │
+├────────────┬───────────┬──────────────┬───────────┤
+│ System     │ Tools /   │ Conversation │ Current   │
+│ Prompt     │ Skills    │ History      │ Query     │
+│ ~20%       │ ~15%      │ ~50%         │ ~15%      │
+│ (25K)      │ (19K)     │ (64K)        │ (19K)     │
+├────────────┴───────────┴──────────────┴───────────┤
+│ <span class="comment">System Prompt: 角色定义、规则、SOUL.md 等</span>          │
+│ <span class="comment">Tools/Skills: 工具定义、技能文件内容</span>              │
+│ <span class="comment">History: 之前的对话消息</span>                          │
+│ <span class="comment">Current: 用户当前的问题 + 本轮生成的回答</span>          │
+└──────────────────────────────────────────────────┘
+</pre>
+
+<p>当 Context Window 快满了,怎么办?四种策略:</p>
+
+<table class="compare-table">
+<tr><th>策略</th><th>做法</th><th>优点</th><th>缺点</th><th>适用场景</th></tr>
+<tr>
+<td><strong>截断</strong><br>(Truncation)</td>
+<td>丢弃最旧的消息</td>
+<td>实现简单,零延迟</td>
+<td>可能丢失关键上下文</td>
+<td>闲聊、低风险对话</td>
+</tr>
+<tr>
+<td><strong>摘要</strong><br>(Summarization)</td>
+<td>用 LLM 把旧对话压缩成摘要</td>
+<td>保留关键信息,压缩率高</td>
+<td>摘要可能遗漏细节,有额外 API 调用成本</td>
+<td>长期项目、多轮任务</td>
+</tr>
+<tr>
+<td><strong>滑动窗口</strong><br>(Sliding Window)</td>
+<td>只保留最近 N 条消息</td>
+<td>行为可预测,实现简单</td>
+<td>N 之前的信息全部丢失</td>
+<td>客服对话、短任务</td>
+</tr>
+<tr>
+<td><strong>选择性保留</strong><br>(Selective Retention)</td>
+<td>保留重要消息(工具结果、关键决策),丢弃闲聊</td>
+<td>在有限空间内最大化信息密度</td>
+<td>需要判断"什么是重要的"</td>
+<td>Agent 任务、编程辅助</td>
+</tr>
+</table>
+
+<pre>
+<span class="comment">// OpenClaw 的 Context Engine 工作原理(简化版)</span>
+
+<span class="keyword">function</span> <span class="func">assemble</span>(msgs, budget) {
+  <span class="keyword">const</span> system = msgs.filter(m =&gt; m.role === <span class="string">'system'</span>)  <span class="comment">// 永远保留</span>
+  <span class="keyword">const</span> recent = msgs.slice(-<span class="number">10</span>)                        <span class="comment">// 最近 10 条必须保留</span>
+  <span class="keyword">let</span> remaining = budget - tokenCount(system) - tokenCount(recent)
+
+  <span class="comment">// 中间的消息按重要性排序</span>
+  <span class="keyword">const</span> middle = msgs.slice(system.length, -<span class="number">10</span>)
+    .map(m =&gt; ({ ...m, score: <span class="func">importance</span>(m) }))
+    .sort((a, b) =&gt; b.score - a.score)
+
+  <span class="comment">// 贪心装入:优先保留重要的消息</span>
+  <span class="keyword">const</span> selected = []
+  <span class="keyword">for</span> (<span class="keyword">const</span> m <span class="keyword">of</span> middle) {
+    <span class="keyword">if</span> (tokenCount(m) &lt;= remaining) {
+      selected.push(m)
+      remaining -= tokenCount(m)
+    }
+  }
+
+  <span class="comment">// 按原始顺序重新排列,保持对话连贯性</span>
+  <span class="keyword">return</span> [...system, ...selected.sort(byIndex), ...recent]
+}
+
+<span class="comment">// importance() 的评分规则:</span>
+<span class="comment">//   tool_result(工具调用结果)→ 高分(包含事实数据)</span>
+<span class="comment">//   user 消息带代码/文件 → 高分(可能是关键上下文)</span>
+<span class="comment">//   assistant 的短回答 → 低分("好的"、"明白了")</span>
+<span class="comment">//   user 的闲聊 → 低分("谢谢"、"嗯")</span>
+</pre>
+
+<h3>Lost in the Middle(中间丢失效应)</h3>
+
+<p>2023 年,斯坦福的 Liu et al. 发表了一篇重要论文 <em>"Lost in the Middle: How Language Models Use Long Contexts"</em>,揭示了一个关键现象:模型对上下文中<strong>不同位置</strong>的信息,关注度差异巨大。</p>
+
+<pre>
+<span class="comment">// Lost in the Middle:注意力权重在不同位置的分布</span>
+
+位置:  [开头] ────────── [中间] ────────── [结尾]
+权重:  ████              ██                ████████
+
+<span class="comment">开头(system prompt)→ 权重高(位置编码优势)</span>
+<span class="comment">中间(旧的对话历史)→ 权重低(最容易被"遗忘")</span>
+<span class="comment">结尾(最近的消息)  → 权重高(近因效应)</span>
+
+<span class="comment">// 这就是为什么多轮对话越长,Agent 越容易"忘记"中间说过的话</span>
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 工程实践建议</div>
+<div class="tip-box-content">
+<strong>1. 重要信息放两头:</strong>System Prompt(开头)放角色定义和核心规则,最近的消息(结尾)放当前任务上下文。<strong>不要</strong>把关键指令埋在长对话的中间。<br><br>
+<strong>2. RAG 检索结果要排序:</strong>如果你检索了 5 篇相关文档,把最相关的放在<strong>第一个</strong>,而不是随机排列。模型会更关注第一篇和最后一篇,中间的容易被忽略。这就是为什么 RAG 需要 Reranker(重排序器)。<br><br>
+<strong>3. Compaction(压缩)优于 Truncation(截断):</strong>与其直接丢弃中间的消息,不如把它们压缩成摘要放在开头位置。OpenClaw 的做法是:当 context 使用超过 80%,自动触发 compaction,把旧对话压缩为一段总结。
+</div>
+</div>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: Attention 本质是什么?从向量空间变换角度解释。</strong><br><br>
+<strong>标准答案:</strong>Attention 本质是一个<strong>加权信息聚合</strong>机制。每个 token 通过 Q/K/V 三个线性变换映射到不同的向量空间:Q(查询)代表"我在找什么",K(键)代表"我有什么",V(值)代表"我的内容"。通过 Q·K^T 计算相关度,softmax 归一化后加权求和 V,得到融合了全局信息的表示。数学上:Attention(Q,K,V) = softmax(QK^T/√d_k)V。<br><br>
+<strong>加分回答:</strong>提到 Multi-Head Attention(多个 head 关注不同方面,如语法/语义/指代),√d_k 缩放防止梯度消失,以及 KV Cache 如何优化推理速度。<br><br>
+<strong>常见踩坑:</strong>❌ 只说"Attention 让模型关注重要的部分"--太模糊,要说出 Q/K/V 的计算过程和 KV Cache 的工程意义。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    CHAPTER 13                                     -->
+<!-- ================================================================ -->
+<section id="chapter-13" class="chapter">
+<h2 class="chapter-title">13 · Session 管理</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>Session 管理解决"谁在和谁说话"、"对话历史存在哪"、"什么时候开始新对话"。</p>
+
+<h3>Session 生命周期</h3>
+<pre>
+<span class="comment">// OpenClaw 的 Session 管理</span>
+
+<span class="keyword">创建</span>  → 用户第一次发消息时自动创建
+        Session Key = agent:&lt;agentId&gt;:&lt;mainKey&gt;
+        <span class="comment">例如: agent:sage:main</span>
+
+<span class="keyword">使用</span>  → 后续消息追加到同一个 Session
+        存储格式:JSONL (每行一条消息的 JSON)
+        路径:~/.openclaw/agents/&lt;id&gt;/sessions/&lt;sessionId&gt;.jsonl
+
+<span class="keyword">重置</span>  → 每天凌晨 4:00(默认)自动重置
+        或手动发 /new 或 /reset
+        <span class="comment">重置 = 新建 sessionId,旧的归档</span>
+
+<span class="keyword">维护</span>  → 定期清理:pruneAfter=30d, maxEntries=500
+</pre>
+
+<h3>Queue 模式</h3>
+<pre>
+<span class="comment">// Agent 在处理消息时,新消息进来怎么办?</span>
+
+<span class="keyword">collect</span>(默认)
+  <span class="comment">把新消息攒起来,等当前任务结束后一起处理</span>
+
+<span class="keyword">steer</span>
+  <span class="comment">把新消息注入当前运行中的 Agent(下一个 tool 边界生效)</span>
+
+<span class="keyword">followup</span>
+  <span class="comment">等当前任务结束后,作为新的一轮处理</span>
+</pre>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 多轮对话的存储、记忆解决方案?</strong><br><br>
+<strong>标准答案:</strong>短期记忆存在 context window 里(messages 数组),长期记忆持久化到文件/数据库。具体实现:1JSONL 文件存储完整对话历史2context window 满时用 compaction 压缩旧消息为摘要3重要信息主动写入 Memory 文件。OpenClaw 的做法:session transcript 用 JSONL,长期记忆用 MEMORY.md + memory/YYYY-MM-DD.md。<br><br>
+<strong>加分回答:</strong>提到 dmScope 配置(main/per-peer/per-channel-peer)来隔离不同用户的会话上下文,避免信息泄露。<br><br>
+<strong>常见踩坑:</strong>❌ "把所有历史都放进 context window"--会爆,必须有压缩/截断策略。
+</div>
+</div>
+
+</div>
+</section>
+
+
+
+
+<div style="display:flex;justify-content:space-between;margin:64px 0 32px;padding:24px 0;border-top:2px solid #e8e8e8;">
+    <div><a href="agent-dev-v3-hw.html" style="color:#1890ff;text-decoration:none;">← 🔨 Agent Hello World</a></div>
+    <div><a href="agent-dev-v3-p34.html" style="color:#1890ff;text-decoration:none;">Part 3-4: OpenClaw + 源码 →</a></div>
+</div>
+
+
+</main>
+</div>
+<script>
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const id = entry.target.id;
+            const link = document.querySelector(`a[href="$#${id}"]`);
+            if (link) link.classList.add('active');
+        }
+    });
+}, { rootMargin: '-20% 0px -80% 0px' });
+document.querySelectorAll('.chapter').forEach(ch => observer.observe(ch));
+</script>
+</body>
+</html>

@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 0: AI 基础 - Agent 开发原理</title>
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.8; color: #333; background-color: #fafafa; }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; border-right: 1px solid #e8e8e8; padding: 32px 24px; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1890ff; }
+        .nav-list { list-style: none; }
+        .nav-item { margin-bottom: 6px; }
+        .nav-link { display: block; padding: 8px 14px; color: #595959; text-decoration: none; border-radius: 6px; transition: all 0.2s ease; font-size: 13.5px; }
+        .nav-link:hover { background-color: #f0f7ff; color: #1890ff; }
+        .nav-link.active { background-color: #e6f4ff; color: #1890ff; font-weight: 500; }
+        .nav-number { color: #8c8c8c; margin-right: 8px; }
+        .nav-part { font-size: 11px; font-weight: 600; color: #8c8c8c; text-transform: uppercase; letter-spacing: 1px; margin-top: 16px; margin-bottom: 8px; padding: 0 14px; }
+        .main-content { flex: 1; margin-left: 300px; padding: 48px 64px; max-width: 920px; }
+        .chapter { margin-bottom: 72px; scroll-margin-top: 24px; }
+        .chapter-title { font-size: 28px; font-weight: 600; color: #1a1a1a; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #e8e8e8; }
+        .chapter-content { font-size: 16px; color: #333; }
+        .chapter-content h3 { font-size: 18px; font-weight: 500; color: #262626; margin: 28px 0 12px; }
+        .chapter-content p { margin-bottom: 16px; }
+        .chapter-content ul, .chapter-content ol { margin: 16px 0; padding-left: 24px; }
+        .chapter-content li { margin-bottom: 8px; }
+        .chapter-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; font-size: 14px; color: #d4380d; }
+        .chapter-content pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13.5px; line-height: 1.6; font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace; }
+        .chapter-content pre .comment { color: #6a9955; }
+        .chapter-content pre .keyword { color: #569cd6; }
+        .chapter-content pre .string { color: #ce9178; }
+        .chapter-content pre .func { color: #dcdcaa; }
+        .chapter-content pre .type { color: #4ec9b0; }
+        .chapter-content pre .number { color: #b5cea8; }
+        .visualization { margin: 32px 0; padding: 24px; background-color: #fff; border-radius: 8px; border: 1px solid #e8e8e8; text-align: center; }
+        .visualization-title { font-size: 14px; color: #8c8c8c; margin-bottom: 16px; }
+        .tip-box { margin: 24px 0; padding: 16px 20px; background-color: #fffbe6; border-left: 4px solid #faad14; border-radius: 4px; }
+        .tip-box-title { font-weight: 500; color: #d48806; margin-bottom: 8px; }
+        .tip-box-content { color: #595959; font-size: 14px; }
+        .insight-box { margin: 24px 0; padding: 16px 20px; background-color: #f0f7ff; border-left: 4px solid #1890ff; border-radius: 4px; }
+        .insight-box-title { font-weight: 500; color: #096dd9; margin-bottom: 8px; }
+        .insight-box-content { color: #595959; font-size: 14px; }
+        .danger-box { margin: 24px 0; padding: 16px 20px; background-color: #fff2f0; border-left: 4px solid #ff4d4f; border-radius: 4px; }
+        .danger-box-title { font-weight: 500; color: #cf1322; margin-bottom: 8px; }
+        .danger-box-content { color: #595959; font-size: 14px; }
+        .interview-box { margin: 24px 0; padding: 16px 20px; background-color: #f0fff0; border-left: 4px solid #52c41a; border-radius: 4px; }
+        .interview-box-title { font-weight: 500; color: #389e0d; margin-bottom: 8px; }
+        .interview-box-content { color: #595959; font-size: 14px; }
+        .compare-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        .compare-table th { background: #fafafa; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e8e8e8; color: #262626; font-weight: 500; }
+        .compare-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+        .compare-table tr:hover { background: #fafafa; }
+        .part-divider { margin: 80px 0 40px; padding: 20px 0; border-top: 3px solid #1890ff; }
+        .part-title { font-size: 22px; font-weight: 600; color: #1890ff; margin-bottom: 8px; }
+        .part-subtitle { font-size: 14px; color: #8c8c8c; }
+        .references { margin-top: 64px; padding-top: 32px; border-top: 2px solid #e8e8e8; }
+        .references-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+        .references-list { list-style: none; }
+        .references-list li { margin-bottom: 8px; color: #595959; }
+        .references-list a { color: #1890ff; text-decoration: none; }
+        .references-list a:hover { text-decoration: underline; }
+        @media (max-width: 768px) { .sidebar { position: relative; width: 100%; height: auto; } .main-content { margin-left: 0; padding: 24px; } .container { flex-direction: column; } .compare-table { display: block; overflow-x: auto; white-space: nowrap; } pre { overflow-x: auto; max-width: 100vw; } }
+    </style>
+
+    <style>
+        .topnav { background:#fff; border-bottom:1px solid #e8e8e8; padding:0 24px; display:flex; gap:0; position:fixed; top:0; left:0; right:0; z-index:100; height:44px; align-items:center; }
+        .topnav a { padding:10px 16px; color:#595959; text-decoration:none; font-size:13px; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; }
+        .topnav a:hover { color:#1890ff; background:#f0f7ff; }
+        .topnav a.topnav-active { color:#1890ff; font-weight:600; border-bottom-color:#1890ff; }
+        .sidebar { top:44px !important; height:calc(100vh - 44px) !important; }
+        .main-content { padding-top:92px !important; }
+        @media (max-width: 768px) {
+            .topnav { overflow-x:auto; }
+            .topnav a { padding:8px 10px; font-size:12px; }
+            .sidebar { top:0 !important; height:auto !important; }
+            .main-content { padding-top:24px !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="topnav">
+    <a href="agent-dev-v3.html">🗺️ 总览</a>
+<a href="agent-dev-v3-p0.html" class="topnav-active">Part 0: AI 基础</a>
+<a href="agent-dev-v3-p1.html">Part 1: Agent 原理</a>
+<a href="agent-dev-v3-hw.html">🔨 Hello World</a>
+<a href="agent-dev-v3-p2.html">Part 2: 工程</a>
+<a href="agent-dev-v3-p34.html">Part 3-4: OpenClaw</a>
+</div>
+<div class="container">
+<nav class="sidebar">
+    <h1 class="sidebar-title">📚 Agent 开发原理<br><small style="font-size:12px;color:#8c8c8c;">Part 0 · AI 基础</small></h1>
+    <ul class="nav-list">
+        
+        <li class="nav-item"><a href="#chapter-0a" class="nav-link active"><span class="nav-number">0A</span>神经网络</a></li>
+        <li class="nav-item"><a href="#chapter-0b" class="nav-link"><span class="nav-number">0B</span>语言数字化</a></li>
+        <li class="nav-item"><a href="#chapter-0c" class="nav-link"><span class="nav-number">0C</span>Attention</a></li>
+        <li class="nav-item"><a href="#chapter-0d" class="nav-link"><span class="nav-number">0D</span>LLM 的诞生</a></li>
+    
+    </ul>
+</nav>
+<main class="main-content">
+
+<!-- ================================================================ -->
+<!--                    PART 0: AI 基础                                -->
+<!-- ================================================================ -->
+<div class="part-divider">
+    <div class="part-title">Part 0: AI 基础</div>
+    <div class="part-subtitle">在学 Agent 之前,先搞懂支撑它的底层技术</div>
+</div>
+
+<!-- Chapter 0A -->
+<section id="chapter-0a" class="chapter">
+<h2 class="chapter-title">0A · 从人脑到人工神经网络</h2>
+<div class="chapter-content">
+
+<p><strong>TL;DR:</strong>神经网络(Neural Network)是一种模仿大脑工作方式的计算模型。它由大量简单的"神经元"组成,通过调整连接权重来学习。训练 = 给它看大量例子,让它自己找到规律。</p>
+
+<h3>故事:让机器"看懂"手写数字</h3>
+<p>1986 年,邮局面临一个问题:每天有几百万封信,需要人工辨认手写的邮政编码。一个数字"7",有人写得像"1",有人画一横穿过去,有人写得歪歪扭扭。能不能让机器来做这件事?</p>
+<p>传统程序员会尝试写规则:<em>"如果有一条竖线和一条横线在顶部交叉,那就是 7"</em>。但人类手写的变化太多了,规则写不完。</p>
+<p>这时候有人想到:<strong>别告诉机器规则,让机器自己从例子中学</strong>。给它几万张手写数字图片,每张标注正确答案,让它自己找到"7 长什么样"的规律。这就是神经网络的核心思想。</p>
+
+<h3>直觉:一群投票者</h3>
+<p>想象一个由 100 个人组成的评审团,要判断一张手写图片是不是数字"7":</p>
+<ul>
+<li>每个评审员负责看图片的不同特征(有的看顶部横线,有的看右侧竖线,有的看整体形状)</li>
+<li>每个评审员投票:"我觉得是 7"或"我觉得不是 7"</li>
+<li>但不是一人一票--<strong>有些评审员更靠谱,他们的票权重更大</strong></li>
+<li>最终按加权投票结果做决定</li>
+</ul>
+<p>训练的过程就是:<strong>不断调整每个评审员的权重</strong>。如果系统判断错了,那些投错票的评审员权重降低,投对的升高。重复几百万次后,这个评审团就变得非常准确了。</p>
+
+<div class="visualization">
+<div class="visualization-title">图 0A-1:简单的神经网络结构</div>
+<svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" style="max-width:560px">
+    <defs>
+        <marker id="arr0a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#8c8c8c"/></marker>
+    </defs>
+    <!-- Input layer -->
+    <text x="80" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#1890ff">输入层</text>
+    <text x="80" y="36" text-anchor="middle" font-size="10" fill="#8c8c8c">(像素值)</text>
+    <circle cx="80" cy="70" r="22" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="80" y="75" text-anchor="middle" font-size="11" fill="#1890ff">x1</text>
+    <circle cx="80" cy="140" r="22" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="80" y="145" text-anchor="middle" font-size="11" fill="#1890ff">x2</text>
+    <circle cx="80" cy="210" r="22" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="80" y="215" text-anchor="middle" font-size="11" fill="#1890ff">x3</text>
+    <text x="80" y="255" text-anchor="middle" font-size="11" fill="#8c8c8c">⋮</text>
+
+    <!-- Hidden layer -->
+    <text x="300" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#52c41a">隐藏层</text>
+    <text x="300" y="36" text-anchor="middle" font-size="10" fill="#8c8c8c">(特征提取)</text>
+    <circle cx="300" cy="80" r="22" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="300" y="85" text-anchor="middle" font-size="11" fill="#389e0d">h1</text>
+    <circle cx="300" cy="150" r="22" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="300" y="155" text-anchor="middle" font-size="11" fill="#389e0d">h2</text>
+    <circle cx="300" cy="220" r="22" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="300" y="225" text-anchor="middle" font-size="11" fill="#389e0d">h3</text>
+
+    <!-- Output layer -->
+    <text x="520" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#fa8c16">输出层</text>
+    <text x="520" y="36" text-anchor="middle" font-size="10" fill="#8c8c8c">(判断结果)</text>
+    <circle cx="520" cy="150" r="28" fill="#fff7e6" stroke="#fa8c16" stroke-width="2"/>
+    <text x="520" y="148" text-anchor="middle" font-size="11" fill="#d46b08">是 7?</text>
+    <text x="520" y="163" text-anchor="middle" font-size="10" fill="#d46b08">92%</text>
+
+    <!-- Connections input→hidden -->
+    <line x1="102" y1="70" x2="278" y2="80" stroke="#bbb" stroke-width="1" marker-end="url(#arr0a)"/>
+    <line x1="102" y1="70" x2="278" y2="150" stroke="#bbb" stroke-width="0.6"/>
+    <line x1="102" y1="70" x2="278" y2="220" stroke="#bbb" stroke-width="0.4"/>
+    <line x1="102" y1="140" x2="278" y2="80" stroke="#bbb" stroke-width="0.5"/>
+    <line x1="102" y1="140" x2="278" y2="150" stroke="#bbb" stroke-width="1.2" marker-end="url(#arr0a)"/>
+    <line x1="102" y1="140" x2="278" y2="220" stroke="#bbb" stroke-width="0.7"/>
+    <line x1="102" y1="210" x2="278" y2="80" stroke="#bbb" stroke-width="0.4"/>
+    <line x1="102" y1="210" x2="278" y2="150" stroke="#bbb" stroke-width="0.6"/>
+    <line x1="102" y1="210" x2="278" y2="220" stroke="#bbb" stroke-width="1" marker-end="url(#arr0a)"/>
+
+    <!-- Connections hidden→output -->
+    <line x1="322" y1="80" x2="493" y2="145" stroke="#fa8c16" stroke-width="1.5" marker-end="url(#arr0a)"/>
+    <line x1="322" y1="150" x2="493" y2="150" stroke="#fa8c16" stroke-width="2" marker-end="url(#arr0a)"/>
+    <line x1="322" y1="220" x2="493" y2="155" stroke="#fa8c16" stroke-width="0.8" marker-end="url(#arr0a)"/>
+
+    <!-- Weight labels -->
+    <text x="185" y="65" font-size="10" fill="#1890ff" transform="rotate(-3,185,65)">w=0.8</text>
+    <text x="185" y="148" font-size="10" fill="#1890ff" transform="rotate(0,185,148)">w=1.2</text>
+    <text x="185" y="218" font-size="10" fill="#1890ff" transform="rotate(3,185,218)">w=0.9</text>
+    <text x="410" y="140" font-size="10" fill="#fa8c16">w=1.5</text>
+</svg>
+</div>
+
+<h3>训练:不断试错的过程</h3>
+<p>神经网络的训练分两步,像考试和订正的循环:</p>
+<ol>
+<li><strong>前向传播(Forward Pass)</strong>- "做题":数据从输入层流向输出层,每一层把输入乘以权重(Weight)再加上偏置(Bias),最终得到一个预测结果。</li>
+<li><strong>反向传播(Backpropagation)</strong>- "对答案 + 订正":把预测结果和正确答案对比,计算差距(Loss),然后<strong>从后往前</strong>调整每一层的权重,让下次预测更准。</li>
+</ol>
+<p>这两步不断重复。一个训练可能要循环几百万次,每次微调一点点权重。最终,神经网络从一个"瞎猜"的状态变成一个"很准"的状态。</p>
+
+<div class="visualization">
+<div class="visualization-title">图 0A-2:训练 = 不断缩小预测与真相的差距</div>
+<svg viewBox="0 0 550 180" xmlns="http://www.w3.org/2000/svg" style="max-width:520px">
+    <!-- Forward -->
+    <rect x="20" y="50" width="110" height="55" rx="8" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="75" y="72" text-anchor="middle" font-size="12" font-weight="500" fill="#096dd9">前向传播</text>
+    <text x="75" y="90" text-anchor="middle" font-size="10" fill="#8c8c8c">"做题"</text>
+    <!-- Loss -->
+    <rect x="170" y="50" width="110" height="55" rx="8" fill="#fff2f0" stroke="#ff4d4f" stroke-width="1.5"/>
+    <text x="225" y="72" text-anchor="middle" font-size="12" font-weight="500" fill="#cf1322">计算 Loss</text>
+    <text x="225" y="90" text-anchor="middle" font-size="10" fill="#8c8c8c">"对答案"</text>
+    <!-- Backward -->
+    <rect x="320" y="50" width="110" height="55" rx="8" fill="#f6ffed" stroke="#52c41a" stroke-width="1.5"/>
+    <text x="375" y="72" text-anchor="middle" font-size="12" font-weight="500" fill="#389e0d">反向传播</text>
+    <text x="375" y="90" text-anchor="middle" font-size="10" fill="#8c8c8c">"订正错误"</text>
+    <!-- Update -->
+    <rect x="460" y="50" width="80" height="55" rx="8" fill="#f9f0ff" stroke="#722ed1" stroke-width="1.5"/>
+    <text x="500" y="72" text-anchor="middle" font-size="12" font-weight="500" fill="#722ed1">更新</text>
+    <text x="500" y="90" text-anchor="middle" font-size="10" fill="#8c8c8c">权重</text>
+    <!-- Arrows -->
+    <line x1="130" y1="77" x2="168" y2="77" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0a)"/>
+    <line x1="280" y1="77" x2="318" y2="77" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0a)"/>
+    <line x1="430" y1="77" x2="458" y2="77" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0a)"/>
+    <!-- Loop arrow -->
+    <path d="M 500 107 C 500 150 75 150 75 107" fill="none" stroke="#faad14" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr0a)"/>
+    <text x="280" y="155" text-anchor="middle" font-size="11" fill="#d48806">重复几百万次 🔁</text>
+</svg>
+</div>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 关键类比</div>
+<div class="tip-box-content">
+训练神经网络就像教一个婴儿认动物:你拿着图片说"这是猫"、"这是狗",重复几千次后,婴儿不是记住了每张具体的图,而是学会了"猫的特征是什么"这个<strong>模式(Pattern)</strong>。神经网络也一样--它学到的是数据中的模式,不是数据本身。
+</div>
+</div>
+
+<div class="danger-box">
+<div class="danger-box-title">⚠️ 常见误区</div>
+<div class="danger-box-content"><strong>"神经网络就像人脑一样思考"</strong> - 不对。虽然受大脑启发,但它的工作方式其实就是大量的加法和乘法运算。它不"理解"任何东西,只是找到了输入和输出之间的统计规律。这个区别在理解 LLM 时非常重要。</div>
+</div>
+
+<h3>深入:损失函数与梯度下降--机器怎么"调整"权重?</h3>
+
+<p>前面我们反复说"不断调整权重让预测更准"--但机器<strong>到底怎么知道</strong>该把哪个权重调大、哪个调小?这就是训练的核心机制。</p>
+
+<h4>损失函数(Loss Function)--给"错误"打分</h4>
+
+<p>训练的第一步是量化"模型有多差"。<strong>损失函数</strong>就是这个度量工具:它计算模型预测结果和真实答案之间的差距,输出一个数字。</p>
+
+<p>类比:考试分数的"反面"。考试分数越高越好,而损失值<strong>越低越好</strong>--损失为 0 意味着完美预测。</p>
+
+<p>常见的损失函数:</p>
+<ul>
+<li><strong>均方误差(MSE)</strong>:预测值和真实值差的平方再平均,常用于回归任务(预测数字)</li>
+<li><strong>交叉熵损失(Cross-Entropy Loss)</strong>:衡量两个概率分布的差异,常用于分类任务。<em>先记住这个名字--后面 0D 章讲 SFT 训练 LLM 时,用的就是交叉熵损失。</em></li>
+</ul>
+
+<pre>
+<span class="comment">// 一个直觉例子</span>
+模型预测:"这张图是猫的概率 = 0.3"
+真实答案:"这张图是猫"(概率 = 1.0)
+
+损失 = 差距很大 → 损失值高 → 需要调整权重!
+
+<span class="comment">// 训练若干轮后...</span>
+模型预测:"这张图是猫的概率 = 0.95"
+真实答案:"这张图是猫"(概率 = 1.0)
+
+损失 = 差距很小 → 损失值低 → 快学会了!
+</pre>
+
+<h4>梯度下降(Gradient Descent)--蒙眼下山</h4>
+
+<p>知道了"有多差"(损失值),下一步是"怎么变好"。这就是<strong>梯度下降</strong>。</p>
+
+<p><strong>经典类比:蒙眼登山者。</strong>想象你站在一座山上,周围浓雾弥漫,完全看不见山谷在哪。但你能做一件事--<strong>感受脚下的坡度</strong>。你伸脚探一探,找到最陡的下坡方向,迈出一步。重复这个过程,你最终会走到山谷(最低点 = 最小损失)。</p>
+
+<ul>
+<li><strong>梯度(Gradient)</strong>= 脚下坡度的方向。数学上是损失函数对每个权重的偏导数,告诉你"这个权重增大会让损失变大还是变小"</li>
+<li><strong>每一步</strong>= 一次参数更新。沿着梯度反方向调整所有权重</li>
+<li><strong>步长 = 学习率(Learning Rate)</strong>= 每一步迈多大</li>
+</ul>
+
+<h4>学习率(Learning Rate)--步子不能太大也不能太小</h4>
+
+<div class="visualization">
+<pre style="font-size:14px;line-height:1.4;">
+学习率太大:                  学习率太小:                  学习率刚好:
+
+  \  ╱ \  ╱                     \                           \
+   \/   \/                       \                           \
+   来回蹦跳!                      \.                          \
+   永远到不了底                      \.                         ·
+                                    \.....                    到达谷底 ✓
+                                   太慢了!
+
+损失值 ↑                        损失值 ↑                     损失值 ↑
+      |\ /\ /\                       |\                          |\
+      | V  V                          | \                         | \
+      |________→ 步数                  |  · · · · ·→ 步数           |   ·___→ 步数
+</pre>
+</div>
+
+<p>实践中,学习率通常从一个较小的值开始(比如 0.001),还会用各种"调度策略"--比如先大后小(warmup + decay),让训练前期快速进步、后期精细调整。</p>
+
+<h4>完整训练循环</h4>
+
+<div class="visualization">
+<pre style="font-size:14px;line-height:1.4;">
+  ┌──────────────────────────────────────────────────┐
+  │              神经网络训练循环                        │
+  │                                                  │
+  │  1 前向传播(Forward Pass)                        │
+  │     输入数据 → 经过所有层 → 得到预测结果               │
+  │                    ↓                              │
+  │  2 计算损失(Loss)                                │
+  │     预测结果 vs 真实答案 → 损失值                     │
+  │                    ↓                              │
+  │  3 反向传播(Backpropagation)                     │
+  │     从输出层往回算,计算每个权重的梯度                  │
+  │                    ↓                              │
+  │  4 更新权重(Gradient Descent)                    │
+  │     权重 = 权重 - 学习率 × 梯度                     │
+  │                    ↓                              │
+  │            回到 1,重复...                         │
+  └──────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 一句话总结训练</div>
+<div class="insight-box-content">
+前向传播 = 做题,损失函数 = 打分,梯度下降 = 看错题本找方向,反向传播 = 按方向改答案。<strong>这四步循环就是神经网络训练的全部。</strong>
+</div>
+</div>
+
+<h4>监督学习 vs 自监督学习</h4>
+
+<p>训练需要数据,但数据的"答案"从哪来?这取决于学习方式:</p>
+
+<ul>
+<li><strong>监督学习(Supervised Learning)</strong>:人工标注了答案。比如给每张图片标了"这是猫""这是狗",模型对照答案学习。传统机器学习和后面的 SFT(有监督微调)用的就是这种。</li>
+<li><strong>自监督学习(Self-supervised Learning)</strong>:数据<strong>自己生成标签</strong>,不需要人工标注。比如"遮住句子中的一个词让模型猜"(BERT 的做法),或者"给前半句预测后半句"(GPT 的做法)。</li>
+</ul>
+
+<p>这个区别很重要--后面 0D 章你会看到:<strong>Pre-training 用的是自监督学习</strong>(从海量文本自动生成训练数据),而 <strong>SFT 用的是监督学习</strong>(需要人工编写的高质量问答对)。</p>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 为什么这些基础很重要</div>
+<div class="tip-box-content">
+理解了损失函数和梯度下降,后面 0D 章讲 SFT 用"交叉熵损失"、RLHF 用"PPO 优化"时就不会懵了。这些不是新概念--只是同样的训练循环在不同场景下的应用。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- Chapter 0B -->
+<section id="chapter-0b" class="chapter">
+<h2 class="chapter-title">0B · 语言的数字化--Tokenization 与 Embedding</h2>
+<div class="chapter-content">
+
+<p><em>上一章我们学了神经网络--一种能从数据中学习的"大脑"。但这个大脑有个限制:它只能处理数字。文字、语言,对它来说就像天书。那怎么办呢?</em></p>
+
+<p><strong>TL;DR:</strong>Tokenization(分词)把文本拆成小块(Token),Embedding(嵌入)把每个 Token 变成一组数字(向量)。意思相近的词,向量也相近。这是让机器"读懂"语言的第一步。</p>
+
+<h3>故事:机器怎么"读"一句话?</h3>
+<p>假设你要教一个只懂数学的外星人理解中文。你不能直接把汉字给它--它看不懂。你需要先把文字翻译成数字。</p>
+<p>这个"翻译"分两步:</p>
+
+<h3>第一步:Tokenization(分词)--把文本拆成积木块</h3>
+<p>就像把一段文字拆成乐高积木。不是按字拆,也不一定按词拆,而是按"子词(subword)"拆--一种介于字和词之间的单位:</p>
+<pre>
+<span class="comment">// Tokenization 示例(GPT 系列使用 BPE 算法)</span>
+
+"unhappiness" → ["un", "happi", "ness"]     <span class="comment">← 3 个 token</span>
+"ChatGPT"     → ["Chat", "G", "PT"]         <span class="comment">← 3 个 token</span>
+"你好世界"     → ["你好", "世界"]              <span class="comment">← 2 个 token</span>
+"我喜欢吃火锅" → ["我", "喜欢", "吃", "火锅"]  <span class="comment">← 4 个 token</span>
+
+<span class="comment">// 常见模型的词汇表大小:</span>
+<span class="comment">// GPT-4:  ~100,000 个 token</span>
+<span class="comment">// Claude:  ~100,000 个 token</span>
+<span class="comment">// Llama:   ~32,000 个 token</span>
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 为什么不按字/词拆?</div>
+<div class="insight-box-content">
+按字拆:序列太长,计算成本高。按词拆:词汇表太大(英语有几十万个词),而且遇到新词就不认识了。<strong>子词(subword)是最佳平衡</strong>--词汇表大小适中,几乎能覆盖所有可能的文本组合。比如 "unhappiness" 从来没出现在训练数据中也没关系,因为 "un"、"happi"、"ness" 都见过。
+</div>
+</div>
+
+<h3>BPE 是怎么决定"切在哪"的?</h3>
+
+<p>上面展示了切分结果,但你可能好奇:<strong>机器怎么知道 "unhappiness" 应该切成 "un" + "happi" + "ness" 而不是 "unh" + "app" + "iness"?</strong></p>
+
+<p>答案是 <strong>BPE(Byte Pair Encoding,字节对编码)</strong>算法。它的思路出奇地简单:</p>
+
+<pre>
+<span class="comment">// BPE 训练过程(简化版,3 步看懂)</span>
+
+<span class="keyword">初始状态:</span>从单个字符开始
+  词汇表 = [a, b, c, d, e, ..., z, 空格, ...]
+  "low"   → [l, o, w]
+  "lower" → [l, o, w, e, r]
+  "newest" → [n, e, w, e, s, t]
+
+<span class="keyword">第 1 轮:</span>找到出现最频繁的相邻字符对
+  统计:(l,o) 出现 2 次,(o,w) 出现 2 次,(e,w) 出现 1 次...
+  合并最频繁的 → (l,o) 合并为 "lo"
+  词汇表 += [lo]
+  "low"   → [lo, w]
+  "lower" → [lo, w, e, r]
+
+<span class="keyword">第 2 轮:</span>继续找最频繁的对
+  统计:(lo,w) 出现 2 次 → 合并为 "low"
+  词汇表 += [low]
+  "low"   → [low]
+  "lower" → [low, e, r]
+
+<span class="keyword">第 3 轮:</span>继续...
+  统计:(e,r) → 合并为 "er"
+  词汇表 += [er]
+  "lower" → [low, er]
+
+<span class="comment">// 重复几万轮,直到词汇表达到目标大小(如 100,000)</span>
+<span class="comment">// 常见的完整词会被合并成一个 token</span>
+<span class="comment">// 不常见的词会保留为子词片段</span>
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 BPE 的直觉</div>
+<div class="tip-box-content">
+BPE 本质上是一个<strong>"频率驱动的合并"</strong>过程:经常一起出现的字符组合会被合并成一个 token。所以常见词("the"、"是")通常是一个 token,而罕见词("pneumonoultramicroscopicsilicovolcanoconiosis")会被拆成很多小片段。<br><br>
+<strong>面试加分点:</strong>BPE 的变体包括 WordPiece(BERT 用)和 Unigram(T5/LLaMA 用)。核心思想类似,只是合并/拆分的策略略有不同。
+</div>
+</div>
+
+<h3>第二步:Embedding(嵌入)--给每个 Token 一个 GPS 坐标</h3>
+<p>Tokenization 把文字变成了编号(Token ID),但编号本身没有含义--"猫"是 15234,"狗"是 8821,这两个数字的大小关系毫无意义。</p>
+<p><strong>但首先,什么是"向量"(Vector)?</strong>向量就是一组有序的数字。你每天都在用向量--GPS 坐标 [纬度, 经度] 就是一个 2 维向量,RGB 颜色 [255, 128, 0] 就是一个 3 维向量。Embedding 就是给每个词一个"几百维的 GPS 坐标",只不过维度多到人类无法直观想象。</p>
+<p>Embedding 的作用是:<strong>把每个 Token 映射到一个高维空间中的坐标点</strong>。在这个空间里,意思相近的词距离近,意思不同的词距离远。</p>
+
+<div class="visualization">
+<div class="visualization-title">图 0B-1:词向量空间(2D 简化版)</div>
+<svg viewBox="0 0 500 350" xmlns="http://www.w3.org/2000/svg" style="max-width:480px">
+    <!-- Axes -->
+    <line x1="60" y1="310" x2="480" y2="310" stroke="#d9d9d9" stroke-width="1"/>
+    <line x1="60" y1="310" x2="60" y2="20" stroke="#d9d9d9" stroke-width="1"/>
+    <!-- Grid -->
+    <line x1="60" y1="200" x2="480" y2="200" stroke="#f0f0f0" stroke-width="0.5"/>
+    <line x1="60" y1="100" x2="480" y2="100" stroke="#f0f0f0" stroke-width="0.5"/>
+    <line x1="200" y1="310" x2="200" y2="20" stroke="#f0f0f0" stroke-width="0.5"/>
+    <line x1="350" y1="310" x2="350" y2="20" stroke="#f0f0f0" stroke-width="0.5"/>
+
+    <!-- Animals cluster -->
+    <ellipse cx="140" cy="80" rx="80" ry="55" fill="#1890ff" fill-opacity="0.08" stroke="#1890ff" stroke-width="1" stroke-dasharray="4,2"/>
+    <circle cx="110" cy="65" r="5" fill="#1890ff"/>
+    <text x="120" y="60" font-size="12" fill="#1890ff">猫</text>
+    <circle cx="155" cy="80" r="5" fill="#1890ff"/>
+    <text x="165" y="75" font-size="12" fill="#1890ff">狗</text>
+    <circle cx="125" cy="100" r="5" fill="#1890ff"/>
+    <text x="135" y="95" font-size="12" fill="#1890ff">兔子</text>
+    <text x="140" y="130" text-anchor="middle" font-size="10" fill="#8c8c8c">动物区域</text>
+
+    <!-- Royalty cluster -->
+    <ellipse cx="380" cy="100" rx="80" ry="60" fill="#eb2f96" fill-opacity="0.08" stroke="#eb2f96" stroke-width="1" stroke-dasharray="4,2"/>
+    <circle cx="350" cy="80" r="5" fill="#eb2f96"/>
+    <text x="360" y="75" font-size="12" fill="#eb2f96">国王</text>
+    <circle cx="400" cy="95" r="5" fill="#eb2f96"/>
+    <text x="410" y="90" font-size="12" fill="#eb2f96">王后</text>
+    <circle cx="365" cy="115" r="5" fill="#eb2f96"/>
+    <text x="375" y="110" font-size="12" fill="#eb2f96">王子</text>
+    <text x="380" y="150" text-anchor="middle" font-size="10" fill="#8c8c8c">皇室区域</text>
+
+    <!-- Food cluster -->
+    <ellipse cx="350" cy="260" rx="90" ry="45" fill="#52c41a" fill-opacity="0.08" stroke="#52c41a" stroke-width="1" stroke-dasharray="4,2"/>
+    <circle cx="320" cy="250" r="5" fill="#52c41a"/>
+    <text x="330" y="245" font-size="12" fill="#52c41a">苹果</text>
+    <circle cx="370" cy="265" r="5" fill="#52c41a"/>
+    <text x="380" y="260" font-size="12" fill="#52c41a">香蕉</text>
+    <circle cx="340" cy="280" r="5" fill="#52c41a"/>
+    <text x="350" y="275" font-size="12" fill="#52c41a">橘子</text>
+    <text x="350" y="300" text-anchor="middle" font-size="10" fill="#8c8c8c">水果区域</text>
+
+    <!-- Famous arrow: King - Man + Woman ≈ Queen -->
+    <defs><marker id="arr0b" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#fa8c16"/></marker></defs>
+    <line x1="355" y1="80" x2="395" y2="90" stroke="#fa8c16" stroke-width="2" stroke-dasharray="4,2" marker-end="url(#arr0b)"/>
+    <text x="430" y="60" font-size="10" fill="#fa8c16" font-weight="500">国王 - 男 + 女 ≈ 王后</text>
+</svg>
+</div>
+
+<p>最著名的 Embedding 发现:<strong>国王 - 男人 + 女人 ≈ 女王</strong>。这说明 Embedding 空间真的捕捉到了语义关系!向量的方向代表了"性别"、"皇室"等抽象概念。</p>
+
+<pre>
+<span class="comment">// 实际的 Embedding 维度:</span>
+<span class="comment">// GPT-2:    768 维</span>
+<span class="comment">// GPT-3:    12288 维</span>
+<span class="comment">// GPT-4:    未公开,推测 ~12288 维</span>
+
+<span class="comment">// "猫" 的 embedding 可能是这样的(简化到5维):</span>
+猫 = [0.23, -0.51, 0.87, 0.12, -0.34]
+狗 = [0.25, -0.48, 0.82, 0.15, -0.31]  <span class="comment">← 和"猫"很近!</span>
+桌子 = [-0.71, 0.44, -0.12, 0.89, 0.56]  <span class="comment">← 和"猫"很远</span>
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">🧩 和 Agent 的关系</div>
+<div class="tip-box-content">
+以后学到 RAG(检索增强生成)时会发现,Embedding 是 RAG 的核心技术。Agent 要从大量文档中找到和用户问题最相关的片段,就是把问题和文档都变成 Embedding 向量,然后找距离最近的。
+</div>
+</div>
+
+<div class="danger-box">
+<div class="danger-box-title">⚠️ Token ≠ 词</div>
+<div class="danger-box-content">初学者最常犯的错:以为一个 Token 就是一个词。实际上一个英文词平均 ≈ 1.3 个 Token,一个中文字 ≈ 1.5-2 个 Token。当你看到 "Context Window: 128K tokens" 时,这不是 128K 个词--中文大约相当于 6-8 万字。理解这个换算关系在估算 API 成本和上下文管理时非常重要。</div>
+</div>
+
+</div>
+</section>
+
+<!-- Chapter 0C -->
+<section id="chapter-0c" class="chapter">
+<h2 class="chapter-title">0C · Attention 机制--Transformer 的灵魂</h2>
+<div class="chapter-content">
+
+<p><em>上一章我们把文字变成了数字向量。现在每个词都有了一个"坐标"。但有个问题:这些坐标是静态的--"bank"无论出现在"river bank"(河岸)还是"bank account"(银行账户)里,坐标都一样。我们需要一种方式让每个词能"看看周围的词"来理解自己的含义。</em></p>
+
+<p><strong>TL;DR:</strong>Attention(注意力机制)让模型在处理每个词时能"关注"到句子中所有其他词,从而理解上下文。它是 Transformer 架构的核心,也是 LLM 能"理解"语言的根本原因。</p>
+
+<h3>故事:从"排队"到"并行"的革命</h3>
+<p>在 Transformer 之前(2017 年以前),处理语言的主流模型是 RNN(循环神经网络,Recurrent Neural Network)。RNN 的工作方式就像<strong>排队过安检</strong>:</p>
+<ul>
+<li>每个词必须一个一个通过模型</li>
+<li>第 100 个词必须等前面 99 个词都处理完才能开始</li>
+<li>而且到第 100 个词的时候,第 1 个词的信息已经衰减得很弱了(梯度消失,Vanishing Gradient)</li>
+</ul>
+<p>这就像传话游戏--100 个人传一句话,到最后一个人时内容已经面目全非。</p>
+<p><strong>2017 年,Google Brain 团队发表了一篇改变一切的论文:《Attention is All You Need》</strong>(Vaswani et al.)。</p>
+<p>他们提出的 Transformer 架构用一种全新的方式处理语言--不再排队,而是<strong>同时开多个安检通道</strong>。每个词可以直接"看到"句子中的所有其他词,不需要等前面的词处理完。</p>
+
+<div class="visualization">
+<div class="visualization-title">图 0C-1:RNN(排队) vs Transformer(并行)</div>
+<svg viewBox="0 0 620 220" xmlns="http://www.w3.org/2000/svg" style="max-width:580px">
+    <defs><marker id="arr0c" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#595959"/></marker></defs>
+    <!-- RNN side -->
+    <rect x="10" y="10" width="280" height="200" rx="10" fill="#fff2f0" stroke="#ff4d4f" stroke-width="1"/>
+    <text x="150" y="35" text-anchor="middle" font-size="14" font-weight="600" fill="#cf1322">RNN:排队过安检 🐌</text>
+    <rect x="30" y="60" width="50" height="30" rx="5" fill="#ff4d4f" fill-opacity="0.15" stroke="#ff4d4f" stroke-width="1"/>
+    <text x="55" y="80" text-anchor="middle" font-size="11" fill="#cf1322">我</text>
+    <rect x="100" y="60" width="50" height="30" rx="5" fill="#ff4d4f" fill-opacity="0.15" stroke="#ff4d4f" stroke-width="1"/>
+    <text x="125" y="80" text-anchor="middle" font-size="11" fill="#cf1322">喜欢</text>
+    <rect x="170" y="60" width="50" height="30" rx="5" fill="#ff4d4f" fill-opacity="0.15" stroke="#ff4d4f" stroke-width="1"/>
+    <text x="195" y="80" text-anchor="middle" font-size="11" fill="#cf1322">吃</text>
+    <rect x="240" y="60" width="50" height="30" rx="5" fill="#ff4d4f" fill-opacity="0.15" stroke="#ff4d4f" stroke-width="1"/>
+    <text x="265" y="80" text-anchor="middle" font-size="11" fill="#cf1322">火锅</text>
+    <line x1="80" y1="75" x2="98" y2="75" stroke="#cf1322" stroke-width="1.5" marker-end="url(#arr0c)"/>
+    <line x1="150" y1="75" x2="168" y2="75" stroke="#cf1322" stroke-width="1.5" marker-end="url(#arr0c)"/>
+    <line x1="220" y1="75" x2="238" y2="75" stroke="#cf1322" stroke-width="1.5" marker-end="url(#arr0c)"/>
+    <text x="150" y="120" text-anchor="middle" font-size="11" fill="#595959">⏱ 必须按顺序处理</text>
+    <text x="150" y="140" text-anchor="middle" font-size="11" fill="#595959">❌ 第1个词的信息到第100个词时已衰减</text>
+    <text x="150" y="160" text-anchor="middle" font-size="11" fill="#cf1322">❌ 无法并行 → 训练很慢</text>
+
+    <!-- Transformer side -->
+    <rect x="320" y="10" width="290" height="200" rx="10" fill="#f0f7ff" stroke="#1890ff" stroke-width="1"/>
+    <text x="465" y="35" text-anchor="middle" font-size="14" font-weight="600" fill="#096dd9">Transformer:全部同时处理 ⚡</text>
+    <rect x="340" y="60" width="50" height="30" rx="5" fill="#1890ff" fill-opacity="0.15" stroke="#1890ff" stroke-width="1"/>
+    <text x="365" y="80" text-anchor="middle" font-size="11" fill="#096dd9">我</text>
+    <rect x="405" y="60" width="50" height="30" rx="5" fill="#1890ff" fill-opacity="0.15" stroke="#1890ff" stroke-width="1"/>
+    <text x="430" y="80" text-anchor="middle" font-size="11" fill="#096dd9">喜欢</text>
+    <rect x="470" y="60" width="50" height="30" rx="5" fill="#1890ff" fill-opacity="0.15" stroke="#1890ff" stroke-width="1"/>
+    <text x="495" y="80" text-anchor="middle" font-size="11" fill="#096dd9">吃</text>
+    <rect x="535" y="60" width="50" height="30" rx="5" fill="#1890ff" fill-opacity="0.15" stroke="#1890ff" stroke-width="1"/>
+    <text x="560" y="80" text-anchor="middle" font-size="11" fill="#096dd9">火锅</text>
+    <!-- Cross connections -->
+    <line x1="365" y1="90" x2="430" y2="90" stroke="#1890ff" stroke-width="0.5" opacity="0.3"/>
+    <line x1="365" y1="90" x2="495" y2="90" stroke="#1890ff" stroke-width="0.5" opacity="0.3"/>
+    <line x1="365" y1="90" x2="560" y2="90" stroke="#1890ff" stroke-width="0.5" opacity="0.3"/>
+    <line x1="430" y1="90" x2="365" y2="90" stroke="#1890ff" stroke-width="0.5" opacity="0.3"/>
+    <line x1="430" y1="90" x2="495" y2="90" stroke="#1890ff" stroke-width="0.5" opacity="0.3"/>
+    <line x1="430" y1="90" x2="560" y2="90" stroke="#1890ff" stroke-width="0.5" opacity="0.3"/>
+    <text x="465" y="120" text-anchor="middle" font-size="11" fill="#595959">⚡ 所有词同时处理</text>
+    <text x="465" y="140" text-anchor="middle" font-size="11" fill="#595959">✅ 每个词都能直接"看到"所有其他词</text>
+    <text x="465" y="160" text-anchor="middle" font-size="11" fill="#096dd9">✅ 高度并行 → 训练很快</text>
+</svg>
+</div>
+
+<h3>Attention 的直觉:教室里的学生</h3>
+<p>想象一个教室里有一排学生,每人手里举着一个词牌:</p>
+<p style="font-size:18px; text-align:center; letter-spacing:4px; margin:16px 0;"><strong>「 他 走进 了 那家 银行 存了 一笔 钱 」</strong></p>
+<p>当模型处理"银行"这个词时,它需要理解这里的"银行"是金融机构还是河岸。怎么判断?<strong>看周围的词</strong>。"存了"、"钱"这些词强烈暗示这是金融机构。Attention 就是这个"看周围"的机制--它让每个词都能查看句子中的所有其他词,并决定应该<strong>特别关注</strong>哪些词。</p>
+
+<h3>Q / K / V 三兄弟--用图书馆来理解</h3>
+<p>Attention 的核心是三个向量:<strong>Query(查询)</strong>、<strong>Key(键)</strong>、<strong>Value(值)</strong>。这三个概念可以用图书馆来理解:</p>
+
+<table class="compare-table">
+<tr><th>概念</th><th>图书馆类比</th><th>实际含义</th></tr>
+<tr><td><strong>Query (Q)</strong></td><td>你走进图书馆,说"我要找关于 AI Agent 的书"</td><td>当前词在"寻找"什么信息</td></tr>
+<tr><td><strong>Key (K)</strong></td><td>每本书封面上的标签/关键词</td><td>每个词"提供"什么信息</td></tr>
+<tr><td><strong>Value (V)</strong></td><td>每本书的实际内容</td><td>每个词的实际语义信息</td></tr>
+</table>
+
+<p>Attention 的计算过程:</p>
+<ol>
+<li>拿你的搜索需求(Q)和每本书的标签(K)对比 → 得到"相关度分数"</li>
+<li>用 softmax 把分数变成概率 → 加起来 = 100%</li>
+<li>按概率从每本书(V)中提取内容 → 最相关的书贡献最多</li>
+</ol>
+
+<pre>
+<span class="comment">// Attention 的数学(不用怕,就是三步):</span>
+
+<span class="keyword">Step 1:</span> 相关度 = Q × K^T / √d    <span class="comment">← Q 和每个 K 做点积,除以缩放因子</span>
+<span class="keyword">Step 2:</span> 权重 = softmax(相关度)     <span class="comment">← 变成概率分布 [0.05, 0.60, 0.30, 0.05]</span>
+<span class="keyword">Step 3:</span> 输出 = 权重 × V            <span class="comment">← 按权重加权求和所有 V</span>
+
+<span class="comment">// 一行公式:</span>
+<span class="keyword">Attention(Q, K, V) = softmax(QK^T / √d_k) × V</span>
+</pre>
+
+<h3>Multi-Head Attention:不只一个人搜索</h3>
+<p>一个人搜图书馆可能只关注一个角度。但如果同时派 8 个人去搜--一个关注语法关系,一个关注语义相似性,一个关注指代关系,一个关注情感色彩......最后把 8 个人的搜索结果合并起来,理解就更全面了。这就是 <strong>Multi-Head Attention</strong>(多头注意力)。</p>
+
+<div class="visualization">
+<div class="visualization-title">图 0C-2:Attention 权重可视化--"银行"关注了哪些词</div>
+<svg viewBox="0 0 500 160" xmlns="http://www.w3.org/2000/svg" style="max-width:480px">
+    <!-- Words -->
+    <text x="40" y="30" font-size="14" fill="#595959">他</text>
+    <text x="90" y="30" font-size="14" fill="#595959">走进</text>
+    <text x="150" y="30" font-size="14" fill="#595959">了</text>
+    <text x="195" y="30" font-size="14" fill="#595959">那家</text>
+    <text x="255" y="30" font-size="14" font-weight="700" fill="#1890ff">银行</text>
+    <text x="315" y="30" font-size="14" fill="#595959">存了</text>
+    <text x="375" y="30" font-size="14" fill="#595959">一笔</text>
+    <text x="430" y="30" font-size="14" fill="#595959">钱</text>
+
+    <!-- Attention bars from "银行" -->
+    <rect x="35" y="45" width="25" height="10" rx="2" fill="#1890ff" opacity="0.1"/>
+    <text x="75" y="55" font-size="9" fill="#8c8c8c">0.03</text>
+
+    <rect x="85" y="45" width="25" height="10" rx="2" fill="#1890ff" opacity="0.15"/>
+    <text x="125" y="55" font-size="9" fill="#8c8c8c">0.05</text>
+
+    <rect x="145" y="45" width="25" height="10" rx="2" fill="#1890ff" opacity="0.08"/>
+    <text x="180" y="55" font-size="9" fill="#8c8c8c">0.02</text>
+
+    <rect x="190" y="45" width="25" height="12" rx="2" fill="#1890ff" opacity="0.2"/>
+    <text x="228" y="55" font-size="9" fill="#8c8c8c">0.08</text>
+
+    <rect x="250" y="45" width="30" height="15" rx="2" fill="#1890ff" opacity="0.3"/>
+    <text x="290" y="55" font-size="9" fill="#8c8c8c">0.12</text>
+
+    <rect x="310" y="45" width="30" height="30" rx="2" fill="#1890ff" opacity="0.7"/>
+    <text x="350" y="62" font-size="9" fill="#096dd9" font-weight="600">0.35</text>
+
+    <rect x="370" y="45" width="25" height="15" rx="2" fill="#1890ff" opacity="0.3"/>
+    <text x="405" y="55" font-size="9" fill="#8c8c8c">0.10</text>
+
+    <rect x="425" y="45" width="25" height="25" rx="2" fill="#1890ff" opacity="0.6"/>
+    <text x="460" y="60" font-size="9" fill="#096dd9" font-weight="600">0.25</text>
+
+    <text x="250" y="100" text-anchor="middle" font-size="11" fill="#595959">↑ "银行"最关注"存了"和"钱"--所以它理解这是金融机构</text>
+
+    <!-- Connection lines -->
+    <line x1="270" y1="35" x2="325" y2="45" stroke="#1890ff" stroke-width="2.5" opacity="0.7"/>
+    <line x1="270" y1="35" x2="440" y2="45" stroke="#1890ff" stroke-width="2" opacity="0.6"/>
+    <line x1="270" y1="35" x2="200" y2="45" stroke="#1890ff" stroke-width="1" opacity="0.2"/>
+</svg>
+</div>
+
+<h3>Transformer 的完整架构(简化版)</h3>
+<p>Transformer 内部其实就是把以上的 Attention 操作堆叠很多层(GPT-3 有 96 层),每层都做:</p>
+<ol>
+<li><strong>Multi-Head Self-Attention</strong> - 每个词看看其他所有词</li>
+<li><strong>Feed-Forward Network</strong> - 对每个词的信息做进一步加工</li>
+<li><strong>Layer Normalization + Residual Connection</strong> - 稳定训练过程</li>
+</ol>
+
+<div class="visualization">
+<div class="visualization-title">图 0C-3:Transformer 层结构(简化)</div>
+<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="max-width:380px">
+    <defs><marker id="arr0c2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#595959"/></marker></defs>
+    <!-- Input -->
+    <rect x="120" y="260" width="160" height="30" rx="6" fill="#e6f4ff" stroke="#1890ff" stroke-width="1.5"/>
+    <text x="200" y="280" text-anchor="middle" font-size="12" fill="#096dd9">Token Embeddings</text>
+    <!-- Arrow up -->
+    <line x1="200" y1="258" x2="200" y2="230" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0c2)"/>
+    <!-- Attention block -->
+    <rect x="100" y="190" width="200" height="38" rx="6" fill="#f9f0ff" stroke="#722ed1" stroke-width="2"/>
+    <text x="200" y="214" text-anchor="middle" font-size="12" font-weight="600" fill="#531dab">Multi-Head Attention</text>
+    <!-- Arrow up -->
+    <line x1="200" y1="188" x2="200" y2="168" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0c2)"/>
+    <!-- Add & Norm -->
+    <rect x="130" y="140" width="140" height="26" rx="6" fill="#fffbe6" stroke="#faad14" stroke-width="1"/>
+    <text x="200" y="157" text-anchor="middle" font-size="10" fill="#d48806">Add & LayerNorm</text>
+    <!-- Arrow up -->
+    <line x1="200" y1="138" x2="200" y2="118" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0c2)"/>
+    <!-- FFN block -->
+    <rect x="100" y="80" width="200" height="38" rx="6" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="200" y="104" text-anchor="middle" font-size="12" font-weight="600" fill="#389e0d">Feed-Forward Network</text>
+    <!-- Arrow up -->
+    <line x1="200" y1="78" x2="200" y2="58" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0c2)"/>
+    <!-- Add & Norm -->
+    <rect x="130" y="30" width="140" height="26" rx="6" fill="#fffbe6" stroke="#faad14" stroke-width="1"/>
+    <text x="200" y="47" text-anchor="middle" font-size="10" fill="#d48806">Add & LayerNorm</text>
+    <!-- Output -->
+    <line x1="200" y1="28" x2="200" y2="12" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0c2)"/>
+    <text x="200" y="8" text-anchor="middle" font-size="10" fill="#8c8c8c">→ 下一层 或 输出</text>
+    <!-- Repeat label -->
+    <text x="340" y="160" font-size="11" fill="#8c8c8c" transform="rotate(90,340,160)">× 96 层 (GPT-3)</text>
+    <!-- Residual connections -->
+    <path d="M 98 209 L 70 209 L 70 153 L 128 153" fill="none" stroke="#faad14" stroke-width="1" stroke-dasharray="3,2"/>
+    <path d="M 98 99 L 70 99 L 70 43 L 128 43" fill="none" stroke="#faad14" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="52" y="183" font-size="9" fill="#d48806" transform="rotate(-90,52,183)">残差连接</text>
+</svg>
+</div>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 为什么叫 "Attention is All You Need"?</div>
+<div class="insight-box-content">
+论文标题的意思是:以前大家以为处理语言必须用循环(RNN)或卷积(CNN),但实际上<strong>只靠 Attention 就够了</strong>。Transformer 完全抛弃了循环和卷积结构,仅用 Attention 就达到了更好的效果。这在当时是一个非常大胆的主张,但事实证明他们是对的--现在几乎所有主流 LLM 都基于 Transformer。
+</div>
+</div>
+
+<div class="danger-box">
+<div class="danger-box-title">⚠️ 常见误区</div>
+<div class="danger-box-content"><strong>"Attention 就是让模型'注意'重要的词"</strong> - 这个说法太模糊了。精确地说,Attention 是一个<strong>加权信息聚合</strong>机制:通过 Q·K 计算相关度,softmax 归一化成权重,再用权重对 V 做加权求和。记住三个具体步骤,而不是一个模糊的"注意"概念。</div>
+</div>
+
+<h3>位置编码(Position Encoding)--让 Transformer 知道词序</h3>
+
+<p>你可能注意到了一个问题:Transformer 用 Attention 让所有词<strong>同时</strong>互相关注--但它怎么知道词的<strong>顺序</strong>呢?</p>
+
+<p>想想看:"我爱你"和"你爱我",如果只看词的集合 {我, 爱, 你},它们完全一样!但意思完全不同。<strong>没有位置信息,Transformer 就是个"词袋模型"</strong>--它不知道谁在前谁在后。</p>
+
+<p><strong>类比:剧场的座位号。</strong>没有座位号,观众只是一群人;有了座位号,每个人都有确定的位置。位置编码就是给每个 token 加上它的"座位号"。</p>
+
+<div class="visualization">
+<pre style="font-size:14px;line-height:1.4;">
+  没有位置编码:                      有位置编码:
+
+  [我] [爱] [你]                     [我+pos1] [爱+pos2] [你+pos3]
+  [你] [爱] [我]                     [你+pos1] [爱+pos2] [我+pos3]
+       ↓                                    ↓
+  Transformer 看起来一样!            Transformer 能区分了!
+</pre>
+</div>
+
+<p>具体做法:在 token 经过 Embedding 变成向量后,<strong>加上一个等长的位置向量</strong>,再送入 Transformer。</p>
+
+<h4>位置编码的演进</h4>
+
+<p><strong>原始 Transformer(2017)</strong>使用<strong>正弦余弦编码(Sinusoidal Encoding)</strong>--用固定的数学公式生成位置向量。简单但有效,不需要学习。</p>
+
+<p>现代 LLM 用更先进的方案:</p>
+
+<ul>
+<li><strong>RoPE(Rotary Position Embedding,旋转位置编码)</strong>--LLaMA、Qwen、Mistral 等主流开源模型都在用。核心思想:通过<strong>旋转</strong>向量来编码<strong>相对位置</strong>。两个词的相对距离直接体现在它们向量的旋转角度差上。好处:天然支持外推到更长的序列。</li>
+<li><strong>ALiBi(Attention with Linear Biases)</strong>--不修改 Embedding,而是直接在 Attention 分数上加一个<strong>距离惩罚</strong>:两个词距离越远,Attention 分数越低。简单粗暴但有效。</li>
+</ul>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 为什么位置编码很重要</div>
+<div class="tip-box-content">
+位置编码直接影响模型能处理多长的上下文。当模型需要处理超出训练长度的文本时(比如 4K 训练但推理时用 128K),位置编码的外推能力就是关键瓶颈。后面 Chapter 12 讲 "Lost in the Middle" 现象时会再回来讨论。
+</div>
+</div>
+
+<h3>Transformer 的三种变体--Encoder、Decoder 和它们的组合</h3>
+
+<p>原始的 Transformer 论文("Attention Is All You Need")其实包含两个部分:<strong>Encoder(编码器)</strong>负责"读懂"输入,<strong>Decoder(解码器)</strong>负责"生成"输出。但后来的研究发现,你不一定两个都要!</p>
+
+<h4>三种架构</h4>
+
+<p><strong>1 Encoder-only(BERT 系列)-- 阅读理解考试</strong></p>
+<p>只用 Encoder。特点:每个词能同时看到<strong>前后所有词</strong>(双向注意力)。训练方式:"完形填空"--随机遮住一些词,让模型猜。</p>
+<p>擅长:<strong>理解</strong>文本。用于文本分类、情感分析、命名实体识别(NER)、语义搜索。</p>
+<p>类比:做阅读理解题--先看完全文,再回答问题。</p>
+
+<p><strong>2 Decoder-only(GPT 系列)-- 即兴演讲</strong></p>
+<p>只用 Decoder。特点:每个词只能看到<strong>前面的词</strong>(因果注意力 / 自回归)。训练方式:"接龙"--给前面的词,预测下一个词。</p>
+<p>擅长:<strong>生成</strong>文本。这就是当今所有主流 LLM 的架构--GPT-4、Claude、LLaMA、Qwen、Gemini 全部是 Decoder-only。</p>
+<p>类比:即兴演讲--你只能基于已经说过的话继续说,不能偷看后面的稿子。</p>
+
+<p><strong>3 Encoder-Decoder(T5、BART)-- 同声翻译</strong></p>
+<p>两个都用。Encoder 读完整个输入,Decoder 基于 Encoder 的理解逐步生成输出。</p>
+<p>擅长:输入和输出格式不同的任务--翻译、摘要、问答。</p>
+<p>类比:翻译--先读完整段原文(Encoder),再逐句翻译出来(Decoder)。</p>
+
+<table class="compare-table">
+<tr><th>架构</th><th>代表模型</th><th>注意力方向</th><th>训练方式</th><th>擅长</th></tr>
+<tr><td>Encoder-only</td><td>BERT, RoBERTa</td><td>双向(看所有词)</td><td>遮词填空 (MLM)</td><td>理解、分类、搜索</td></tr>
+<tr><td>Decoder-only</td><td>GPT, Claude, LLaMA</td><td>单向(只看前文)</td><td>预测下一个词 (CLM)</td><td>文本生成</td></tr>
+<tr><td>Encoder-Decoder</td><td>T5, BART, mBART</td><td>Encoder 双向 + Decoder 单向</td><td>序列到序列</td><td>翻译、摘要</td></tr>
+</table>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 关键洞察</div>
+<div class="insight-box-content">
+GPT、Claude 都是 <strong>Decoder-only</strong> 架构--这就是为什么它们以"预测下一个 token"的方式工作,也只能看到当前位置之前的上下文。下一章 0D 讲 LLM 训练时,"预测下一个 token"这个训练目标就是从 Decoder-only 架构直接决定的。理解了架构,训练方式就不奇怪了。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- Chapter 0D -->
+<section id="chapter-0d" class="chapter">
+<h2 class="chapter-title">0D · LLM 的诞生--从 Transformer 到 ChatGPT</h2>
+<div class="chapter-content">
+
+<p><em>上一章我们理解了 Transformer--一种能同时处理所有词、让每个词"看到"所有其他词的架构。现在一个自然的问题出现了:如果把这个架构做到非常非常大,会发生什么?</em></p>
+
+<p><strong>TL;DR:</strong>LLM(大语言模型,Large Language Model)就是一个巨大的 Transformer。它通过三个阶段训练而成:1Pre-training 在海量文本上学语言模式,2SFT 用示范对话教它如何有用地回答,3RLHF 用人类偏好让回答更好。这三步合在一起,就把一个"自动补全器"变成了 ChatGPT。</p>
+
+<h3>故事:从自动补全到智能对话</h3>
+<p>你手机的输入法有"预测下一个词"的功能--你打"今天天气",它会建议"很好"或"不错"。<strong>LLM 本质上就是一个极其高级的"预测下一个词"系统</strong>。</p>
+<p>区别在于规模:</p>
+<table class="compare-table">
+<tr><th></th><th>手机输入法</th><th>GPT-4</th></tr>
+<tr><td>参数量</td><td>~几百万</td><td>~1.8 万亿(估计)</td></tr>
+<tr><td>训练数据</td><td>几 GB 文本</td><td>~13 万亿 tokens</td></tr>
+<tr><td>能力</td><td>简单的词语接龙</td><td>推理、翻译、写代码、数学...</td></tr>
+</table>
+<p>当"预测下一个词"的能力强到一定程度时,<strong>涌现(Emergence)</strong>发生了--模型突然展现出训练时没有明确教过的能力,比如逻辑推理、多步数学、代码理解。这就像一个读了所有书的人,不仅能背书,还能举一反三。</p>
+
+<h3>三阶段训练流水线</h3>
+
+<div class="visualization">
+<div class="visualization-title">图 0D-1:LLM 的三阶段训练流程</div>
+<svg viewBox="0 0 650 200" xmlns="http://www.w3.org/2000/svg" style="max-width:620px">
+    <defs><marker id="arr0d" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#595959"/></marker></defs>
+    <!-- Stage 1 -->
+    <rect x="10" y="30" width="190" height="150" rx="10" fill="#e6f4ff" stroke="#1890ff" stroke-width="2"/>
+    <text x="105" y="55" text-anchor="middle" font-size="14" font-weight="600" fill="#096dd9">1 Pre-training</text>
+    <text x="105" y="75" text-anchor="middle" font-size="11" fill="#595959">预训练</text>
+    <text x="25" y="100" font-size="11" fill="#333">📚 互联网海量文本</text>
+    <text x="25" y="118" font-size="11" fill="#333">🎯 目标:预测下一个 token</text>
+    <text x="25" y="136" font-size="11" fill="#333">⏱ 数周~数月训练</text>
+    <text x="25" y="154" font-size="11" fill="#333">💰 $几百万~几千万</text>
+    <text x="25" y="172" font-size="10" fill="#8c8c8c">产出:基础模型("博览群书的学者")</text>
+
+    <!-- Arrow -->
+    <line x1="202" y1="105" x2="228" y2="105" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0d)"/>
+
+    <!-- Stage 2 -->
+    <rect x="230" y="30" width="190" height="150" rx="10" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+    <text x="325" y="55" text-anchor="middle" font-size="14" font-weight="600" fill="#389e0d">2 SFT</text>
+    <text x="325" y="75" text-anchor="middle" font-size="11" fill="#595959">有监督微调</text>
+    <text x="245" y="100" font-size="11" fill="#333">👨‍🏫 人工编写示范对话</text>
+    <text x="245" y="118" font-size="11" fill="#333">🎯 目标:学会"好好回答"</text>
+    <text x="245" y="136" font-size="11" fill="#333">📝 几万条高质量示范</text>
+    <text x="245" y="154" font-size="11" fill="#333">💰 $几万~几十万</text>
+    <text x="245" y="172" font-size="10" fill="#8c8c8c">产出:会对话的模型("岗前培训")</text>
+
+    <!-- Arrow -->
+    <line x1="422" y1="105" x2="448" y2="105" stroke="#595959" stroke-width="1.5" marker-end="url(#arr0d)"/>
+
+    <!-- Stage 3 -->
+    <rect x="450" y="30" width="190" height="150" rx="10" fill="#f9f0ff" stroke="#722ed1" stroke-width="2"/>
+    <text x="545" y="55" text-anchor="middle" font-size="14" font-weight="600" fill="#722ed1">3 RLHF</text>
+    <text x="545" y="75" text-anchor="middle" font-size="11" fill="#595959">人类反馈强化学习</text>
+    <text x="465" y="100" font-size="11" fill="#333">👥 人类标注员评判回答</text>
+    <text x="465" y="118" font-size="11" fill="#333">🎯 "哪个回答更好?"</text>
+    <text x="465" y="136" font-size="11" fill="#333">🤖 训练奖励模型打分</text>
+    <text x="465" y="154" font-size="11" fill="#333">🔄 用 RL 优化 LLM</text>
+    <text x="465" y="172" font-size="10" fill="#8c8c8c">产出:ChatGPT("反复打磨")</text>
+</svg>
+</div>
+
+<p><strong>1 Pre-training(预训练)--读遍互联网</strong></p>
+<p>把几乎整个互联网的文本(书、维基百科、新闻、代码、论坛...)喂给模型。训练目标极其简单:<strong>给你一段话的前半句,预测下一个 token</strong>。比如给 "今天天气" 预测 "很好"。就这一个目标,通过万亿级 token 的训练,模型学到了语法、常识、推理、甚至世界知识。</p>
+<p>类比:这就像让一个人<strong>读完全世界所有的书</strong>。读完之后他什么都知道一点,但你问他问题时,他可能会说一段维基百科式的干巴巴文字,而不是友好地和你对话。</p>
+
+<p><strong>2 SFT(有监督微调,Supervised Fine-Tuning)--岗前培训</strong></p>
+<p>人工编写几万条"用户问→标准回答"的示范对话,教模型怎么好好回答。</p>
+<pre>
+<span class="comment">// SFT 训练数据示例:</span>
+User: "帮我解释什么是量子计算"
+Assistant: "量子计算是一种利用量子力学原理来处理信息的计算方式。
+与传统计算机使用比特(0或1)不同,量子计算机使用量子比特
+(qubit),它可以同时处于0和1的叠加态..."
+</pre>
+<p>类比:博览群书的学者完成了<strong>岗前培训</strong>--他现在知道面对用户提问时应该友好、准确、有结构地回答。</p>
+
+<p><strong>3 RLHF(人类反馈强化学习,Reinforcement Learning from Human Feedback)--用户打分优化</strong></p>
+<p>让模型对同一个问题生成多个回答,然后让人类标注员选"哪个更好"。关键的创新在于:<strong>人类不需要给每个回答打具体分数,只需要做比较判断</strong>(A比B好?还是B比A好?)。</p>
+<p>这些比较数据被用来训练一个"奖励模型(Reward Model)"--它学会了自动给回答打分。然后用强化学习让 LLM 的回答朝着高分方向优化。</p>
+<p>类比:餐厅大厨根据食客反馈不断调整菜品--"这道菜咸了点"、"那道菜的酱汁很棒"--慢慢地菜品越来越好吃。</p>
+
+<h3>🔑 理解 RLHF 需要的最小 RL 知识</h3>
+
+<p>RLHF 里的 "RL" 是<strong>强化学习(Reinforcement Learning)</strong>。一句话解释:一个智能体(Agent)通过<strong>试错</strong>来学习--做动作、拿反馈、调策略。</p>
+
+<h4>RL 的核心循环</h4>
+
+<div class="visualization">
+<pre style="font-size:14px;line-height:1.4;">
+          ┌─────────────────────────────────────┐
+          │         强化学习循环                   │
+          │                                     │
+          │   状态 (State)                       │
+          │       ↓                             │
+          │   智能体选择 动作 (Action)              │
+          │       ↓                             │
+          │   环境给出 奖励 (Reward)               │
+          │       ↓                             │
+          │   更新 策略 (Policy)                  │
+          │       ↓                             │
+          │   进入新状态,重复...                   │
+          └─────────────────────────────────────┘
+</pre>
+</div>
+
+<p><strong>类比:训狗。</strong>狗做了一个动作(action),你说"好孩子!"或者"不行!"(reward),狗调整行为(policy update)。你不需要给狗看说明书--它<strong>从反馈中学习</strong>。</p>
+
+<h4>映射到 LLM</h4>
+
+<p>在 RLHF 中,RL 的每个概念都有对应:</p>
+
+<table class="compare-table">
+<tr><th>RL 概念</th><th>LLM 中的对应</th><th>具体是什么</th></tr>
+<tr><td>状态 (State)</td><td>上下文</td><td>用户的 prompt + 已生成的 token</td></tr>
+<tr><td>动作 (Action)</td><td>生成 token</td><td>从词表中选择下一个 token</td></tr>
+<tr><td>奖励 (Reward)</td><td>Reward Model 打分</td><td>对整段回复的质量评分</td></tr>
+<tr><td>策略 (Policy)</td><td>LLM 本身</td><td>模型参数决定了它生成什么 token</td></tr>
+</table>
+
+<h4>PPO(Proximal Policy Optimization)--小步快跑</h4>
+
+<p>PPO 是 RLHF 中最常用的 RL 算法。你不需要理解它的数学--只需知道核心思想:<strong>每次更新都不要太激进</strong>。</p>
+
+<p>类比:调整菜谱。如果你一次改了盐、糖、酱油、醋四种调料,菜变难吃了你都不知道是哪个改坏的。PPO 的做法是<strong>每次只微调一点</strong>,确保新的策略不会偏离旧策略太远。这样既能稳步改进,又不会"忘掉"之前学到的东西。</p>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 连接后续章节</div>
+<div class="tip-box-content">
+后面 Chapter 10 会讲 <strong>DPO</strong> 和 <strong>GRPO</strong>,它们是 PPO 的简化替代方案--不需要单独训练 Reward Model,直接从人类偏好数据学习。到时候你已经有 RL 基础了,会容易理解得多。
+</div>
+</div>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 关键洞察</div>
+<div class="insight-box-content">
+Pre-training 决定了模型"知道什么"(知识上限),SFT 教它"怎么说"(输出格式),RLHF 让它"说得好"(输出质量)。三步缺一不可--只有 pre-training 的模型像一个博览群书但不会说人话的怪人;加了 SFT 后能正常对话但可能不够好;加了 RLHF 后才变成你见到的 ChatGPT。
+</div>
+</div>
+
+<h3>关键里程碑时间线</h3>
+<table class="compare-table">
+<tr><th>年份</th><th>事件</th><th>意义</th></tr>
+<tr><td>2017</td><td>Transformer 论文发表</td><td>架构基础确立</td></tr>
+<tr><td>2018</td><td>GPT-1 (1.17亿参数)</td><td>首次证明预训练+微调的范式</td></tr>
+<tr><td>2019</td><td>GPT-2 (15亿参数)</td><td>展示了语言生成能力,OpenAI 一度"不敢"发布</td></tr>
+<tr><td>2020</td><td>GPT-3 (1750亿参数)</td><td>涌现能力,Few-shot Learning</td></tr>
+<tr><td>2022.3</td><td>InstructGPT (RLHF)</td><td>首次大规模应用 RLHF</td></tr>
+<tr><td>2022.11</td><td>ChatGPT</td><td>引爆全球--2个月1亿用户</td></tr>
+<tr><td>2023.3</td><td>GPT-4</td><td>多模态,推理能力飞跃</td></tr>
+<tr><td>2024</td><td>Claude 3.5, Gemini 2</td><td>多家竞争,能力持续提升</td></tr>
+<tr><td>2025.1</td><td>DeepSeek-R1 / V3</td><td>开源推理模型,GRPO 训练,性能媲美 GPT-4</td></tr>
+<tr><td>2025</td><td>Claude 4, GPT-o3, Gemini 2.5</td><td>Reasoning Models 成主流,Agentic Coding 爆发</td></tr>
+</table>
+
+<div class="tip-box">
+<div class="tip-box-title">🧩 衔接下一章</div>
+<div class="tip-box-content">
+现在你理解了 LLM 是什么:一个超大的 Transformer,经过三阶段训练,能理解和生成人类语言。但正如我们前面说的--它很聪明,但被"关在房间里"。下一章(Chapter 01)我们就要把它<strong>从房间里放出来</strong>,给它装上工具和循环,把它变成一个 Agent。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    PART 1 Divider                                 -->
+<!-- ================================================================ -->
+
+
+
+<div style="display:flex;justify-content:space-between;margin:64px 0 32px;padding:24px 0;border-top:2px solid #e8e8e8;">
+    <div><a href="agent-dev-v3.html" style="color:#1890ff;text-decoration:none;">← 🗺️ 总览</a></div>
+    <div><a href="agent-dev-v3-p1.html" style="color:#1890ff;text-decoration:none;">Part 1: Agent 原理 →</a></div>
+</div>
+
+
+</main>
+</div>
+<script>
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const id = entry.target.id;
+            const link = document.querySelector(`a[href="$#${id}"]`);
+            if (link) link.classList.add('active');
+        }
+    });
+}, { rootMargin: '-20% 0px -80% 0px' });
+document.querySelectorAll('.chapter').forEach(ch => observer.observe(ch));
+</script>
+</body>
+</html>
