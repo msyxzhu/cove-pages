@@ -91,7 +91,7 @@
 <nav class="sidebar">
     <h1 class="sidebar-title">📚 Agent 开发原理<br><small style="font-size:12px;color:#8c8c8c;">Part 1 · Agent 原理</small></h1>
     <ul class="nav-list">
-        
+
         <li class="nav-item"><a href="#chapter-1" class="nav-link active"><span class="nav-number">01</span>LLM → Agent</a></li>
         <li class="nav-item"><a href="#chapter-2" class="nav-link"><span class="nav-number">02</span>ReAct 循环</a></li>
         <li class="nav-item"><a href="#chapter-3" class="nav-link"><span class="nav-number">03</span>Tool / MCP / Skill</a></li>
@@ -103,7 +103,7 @@
         <li class="nav-item"><a href="#chapter-9" class="nav-link"><span class="nav-number">09</span>手写 Agent + RAG</a></li>
         <li class="nav-item"><a href="#chapter-10" class="nav-link"><span class="nav-number">10</span>生产 + SSE + 缓存</a></li>
         <li class="nav-item"><a href="#chapter-10b" class="nav-link"><span class="nav-number">10b</span>训练与对齐</a></li>
-    
+
     </ul>
 </nav>
 <main class="main-content">
@@ -405,7 +405,7 @@ agent.resume(checkpoint)  <span class="comment">→ 从"竞品D"继续,不用从
 <h2 class="chapter-title">03 · Tool Use / MCP / Skill:给 Agent 接入世界的三种方式</h2>
 <div class="chapter-content">
 
-<p><strong>TL;DR:</strong>LLM 不能执行工具--它只是"说"想调用什么。真正执行的是外部系统。Tool Calling 是基础协议,MCP 是工具连接标准,Skill 是行为指令标准,A2A 是 Agent 间通信标准,ACP 是 Agent 间任务委派标准。</p>
+<p><strong>TL;DR:</strong>LLM 不能执行工具--它只是"说"想调用什么。真正执行的是外部系统。Tool Calling 是基础协议,MCP 是工具连接标准,Skill 是行为指令标准,A2A 是 Agent 间通信标准,ACP 是 OpenClaw 的 Agent 间任务委派方案。</p>
 
 <h3>直觉:LLM 是老板,Tool 是员工</h3>
 <pre>
@@ -492,7 +492,7 @@ agent.resume(checkpoint)  <span class="comment">→ 从"竞品D"继续,不用从
 </div>
 
 <table class="compare-table">
-<tr><th>维度</th><th>MCP</th><th>Agent Skill</th><th>A2A</th><th>ACP</th></tr>
+<tr><th>维度</th><th>MCP</th><th>Agent Skill</th><th>A2A</th><th>ACP <small style="color:#8c8c8c;">(OpenClaw 平台特定)</small></th></tr>
 <tr><td><strong>全称</strong></td><td>Model Context Protocol</td><td>Agent Skills</td><td>Agent-to-Agent Protocol</td><td>Agent Communication Protocol</td></tr>
 <tr><td><strong>解决什么问题</strong></td><td>Agent 怎么连接工具和数据</td><td>Agent 怎么知道"该怎么做"</td><td>Agent 之间怎么发现和通信</td><td>Agent 怎么把任务<strong>委派</strong>给另一个 Agent</td></tr>
 <tr><td><strong>核心模型</strong></td><td>Host → Client → Server</td><td>SKILL.md 文件 + 按需加载</td><td>Agent Card + Task 生命周期</td><td>Parent Session → Child Session(任务委派+结果回传)</td></tr>
@@ -503,7 +503,7 @@ agent.resume(checkpoint)  <span class="comment">→ 从"竞品D"继续,不用从
 
 <h3>ACP 是什么?</h3>
 
-<p><strong>ACP(Agent Communication Protocol,Agent 通信协议)</strong>是 OpenClaw 提出的标准,解决一个具体问题:<strong>一个 Agent 怎么把任务交给另一个 Agent 执行,然后拿回结果?</strong></p>
+<p><strong>ACP（Agent Communication Protocol，Agent 通信协议）</strong>是 OpenClaw 的 Agent 间任务编排方案（平台特定实现，不是行业通用标准）,解决一个具体问题:<strong>一个 Agent 怎么把任务交给另一个 Agent 执行,然后拿回结果？</strong></p>
 
 <p>举个真实例子--你在飞书群里跟 Cove(OpenClaw 的主 Agent)说:</p>
 
