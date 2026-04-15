@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Part 1.5: Agent Hello World - Agent 开发原理</title>
-        <style>
+    <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.8; color: #333; background-color: #fafafa; }
         .container { display: flex; min-height: 100vh; }
@@ -54,16 +54,7 @@
         .part-divider { margin: 80px 0 40px; padding: 20px 0; border-top: 3px solid #1890ff; }
         .part-title { font-size: 22px; font-weight: 600; color: #1890ff; margin-bottom: 8px; }
         .part-subtitle { font-size: 14px; color: #8c8c8c; }
-        .references { margin-top: 64px; padding-top: 32px; border-top: 2px solid #e8e8e8; }
-        .references-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
-        .references-list { list-style: none; }
-        .references-list li { margin-bottom: 8px; color: #595959; }
-        .references-list a { color: #1890ff; text-decoration: none; }
-        .references-list a:hover { text-decoration: underline; }
         @media (max-width: 768px) { .sidebar { position: relative; width: 100%; height: auto; } .main-content { margin-left: 0; padding: 24px; } .container { flex-direction: column; } .compare-table { display: block; overflow-x: auto; white-space: nowrap; } pre { overflow-x: auto; max-width: 100vw; } }
-    </style>
-
-    <style>
         .topnav { background:#fff; border-bottom:1px solid #e8e8e8; padding:0 24px; display:flex; gap:0; position:fixed; top:0; left:0; right:0; z-index:100; height:44px; align-items:center; }
         .topnav a { padding:10px 16px; color:#595959; text-decoration:none; font-size:13px; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; }
         .topnav a:hover { color:#1890ff; background:#f0f7ff; }
@@ -81,17 +72,16 @@
 <body>
 <div class="topnav">
     <a href="agent-dev-v3.html">🗺️ 总览</a>
-<a href="agent-dev-v3-p0.html">Part 0: AI 基础</a>
-<a href="agent-dev-v3-p1.html">Part 1: Agent 原理</a>
-<a href="agent-dev-v3-hw.html" class="topnav-active">🔨 Hello World</a>
-<a href="agent-dev-v3-p2.html">Part 2: 工程</a>
-<a href="agent-dev-v3-p34.html">Part 3-4: OpenClaw</a>
+    <a href="agent-dev-v3-p0.html">Part 0: AI 基础</a>
+    <a href="agent-dev-v3-p1.html">Part 1: Agent 原理</a>
+    <a href="agent-dev-v3-hw.html" class="topnav-active">🔨 Hello World</a>
+    <a href="agent-dev-v3-p2.html">Part 2: 工程</a>
+    <a href="agent-dev-v3-p34.html">Part 3-4: OpenClaw</a>
 </div>
 <div class="container">
 <nav class="sidebar">
     <h1 class="sidebar-title">📚 Agent 开发原理<br><small style="font-size:12px;color:#8c8c8c;">Part 1.5 · Hello World</small></h1>
     <ul class="nav-list">
-        
         <li class="nav-item"><a href="#hw-intro" class="nav-link active"><span class="nav-number">🔨</span>为什么要动手</a></li>
         <li class="nav-item"><a href="#hw-arch" class="nav-link"><span class="nav-number">📐</span>架构设计</a></li>
         <li class="nav-item"><a href="#hw-types" class="nav-link"><span class="nav-number">1</span>types.py</a></li>
@@ -100,28 +90,813 @@
         <li class="nav-item"><a href="#hw-engine" class="nav-link"><span class="nav-number">4</span>engine.py</a></li>
         <li class="nav-item"><a href="#hw-main" class="nav-link"><span class="nav-number">5</span>main.py</a></li>
         <li class="nav-item"><a href="#hw-run" class="nav-link"><span class="nav-number">▶</span>跑起来！</a></li>
+        <li class="nav-item"><a href="#hw-break" class="nav-link"><span class="nav-number">💥</span>故意搞坏它</a></li>
         <li class="nav-item"><a href="#hw-reflect" class="nav-link"><span class="nav-number">💡</span>回顾 + 下一步</a></li>
-    
     </ul>
 </nav>
 <main class="main-content">
 
-
+<!-- ================================================================ -->
+<!--                    INTRO                                          -->
+<!-- ================================================================ -->
 <section id="hw-intro" class="chapter">
 <h2 class="chapter-title">🔨 Agent Hello World：从零搭一个能跑的 Agent Runtime</h2>
 <div class="chapter-content">
-<p><strong>🚧 这一章正在编写中...</strong></p>
-<p>目标：用 ~200 行 Python 搭一个完整可运行的 mini Agent Runtime，包含 ReAct 循环、统一 LLM 接口、工具注册、状态机、循环检测和可观测性。</p>
+
+<p><strong>TL;DR：</strong>用 ~200 行 Python，从零搭一个完整可运行的 mini Agent。不是调 API 的脚本——是一个真正的 Runtime，有 ReAct 循环、工具注册、状态机、循环检测和可观测性。</p>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 这一章的目标</div>
+<div class="insight-box-content">
+Part 1 教了你 Agent 是什么（理论），这一章让你<strong>亲手搭一个</strong>（实践）。<br><br>
+读完这一章，你会有一个能在终端里跑的 Agent——它能接收你的问题，自己决定调什么工具，观察结果，再决定下一步，直到给你一个最终回答。<br><br>
+更重要的是：你会理解<strong>"一个 Agent Runtime 到底需要什么"</strong>。这样后面读 OpenClaw 源码时，每个模块你都知道它在干什么。
+</div>
+</div>
+
+<h3>Ch09 vs 本章：有什么区别？</h3>
+
+<table class="compare-table">
+<tr><th>维度</th><th>Ch09 手写 Agent（60 行）</th><th>本章 Agent Hello World（~200 行）</th></tr>
+<tr><td><strong>本质</strong></td><td>调 API 的脚本</td><td>一个真正的 Runtime</td></tr>
+<tr><td><strong>结构</strong></td><td>单文件，一个 for 循环</td><td>5 个模块，职责分离</td></tr>
+<tr><td><strong>工具</strong></td><td>mock 数据</td><td>真实可用（天气 API、计算器、时间）</td></tr>
+<tr><td><strong>状态机</strong></td><td>❌ 没有</td><td>✅ idle → running → done / error</td></tr>
+<tr><td><strong>循环检测</strong></td><td>❌ 只有 max_turns</td><td>✅ 检测重复工具调用</td></tr>
+<tr><td><strong>可观测性</strong></td><td>❌ 黑盒</td><td>✅ 每轮打印 思考/行动/观察</td></tr>
+<tr><td><strong>教学目的</strong></td><td>"验证你学到的理论"</td><td>"理解一个 Runtime 需要什么"</td></tr>
+</table>
+
+<div class="tip-box">
+<div class="tip-box-title">⏱ 预计时间</div>
+<div class="tip-box-content">跟着做：30-45 分钟。只读不做：15 分钟。建议动手——看十遍不如跑一遍。</div>
+</div>
+
 </div>
 </section>
 
+<!-- ================================================================ -->
+<!--                    ARCHITECTURE                                   -->
+<!-- ================================================================ -->
+<section id="hw-arch" class="chapter">
+<h2 class="chapter-title">📐 架构设计：5 个文件，各司其职</h2>
+<div class="chapter-content">
 
+<p>在写代码之前，先想清楚要什么。一个最小 Agent Runtime 需要 5 个模块：</p>
 
+<div class="visualization">
+<pre style="font-size:13px; line-height:1.5; text-align:left;">
+mini-agent/
+├── types.py    ← 数据结构定义（Message、ToolCall、ToolResult）
+├── llm.py      ← 统一 LLM 接口（对接 OpenAI/DeepSeek/硅基流动）
+├── tools.py    ← 工具注册表 + 3 个真实工具
+├── engine.py   ← ReAct 主循环 + 状态机 + 循环检测（核心！）
+└── main.py     ← 入口，终端交互
+</pre>
+</div>
+
+<p>为什么分 5 个文件而不是写一个？因为这正好映射了 Agent 的核心架构：</p>
+
+<div class="visualization">
+<pre style="font-size:13px; line-height:1.5; text-align:left;">
+types.py  →  Ch03 的消息协议（tool_calls 后面必须跟 tool_result）
+llm.py    →  Ch11 的 LLM API 调用（统一接口，可换模型）
+tools.py  →  Ch03 的 Tool Use（注册 + 执行 + JSON Schema）
+engine.py →  Ch02 的 ReAct 循环 + Ch01 的 LAMP 四组件
+main.py   →  用户交互入口
+</pre>
+</div>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 设计原则</div>
+<div class="insight-box-content">
+<strong>关注点分离（Separation of Concerns）</strong>——每个文件只做一件事。这样你换模型只改 <code>llm.py</code>，加工具只改 <code>tools.py</code>，调循环策略只改 <code>engine.py</code>。<br><br>
+这不是过度设计——这是 Agent 系统的最小正确结构。后面你读 OpenClaw 源码会发现，它的模块划分和这个一模一样，只是每个模块复杂 100 倍。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    STEP 0: SETUP                                  -->
+<!-- ================================================================ -->
+<section id="hw-setup" class="chapter">
+<h2 class="chapter-title">Step 0 · 环境准备（2 分钟）</h2>
+<div class="chapter-content">
+
+<pre>
+<span class="comment"># 创建项目目录</span>
+mkdir mini-agent
+<span class="keyword">cd</span> mini-agent
+
+<span class="comment"># 安装唯一依赖（只需要 openai SDK）</span>
+pip install openai
+
+<span class="comment"># 设置 API Key（三选一）</span>
+
+<span class="comment"># 方案 A: OpenAI（需要国际信用卡）</span>
+export OPENAI_API_KEY=<span class="string">"sk-your-key"</span>
+export OPENAI_BASE_URL=<span class="string">"https://api.openai.com/v1"</span>
+export OPENAI_MODEL=<span class="string">"gpt-4o-mini"</span>
+
+<span class="comment"># 方案 B: DeepSeek（便宜，中文好，推荐！）</span>
+export OPENAI_API_KEY=<span class="string">"sk-your-deepseek-key"</span>
+export OPENAI_BASE_URL=<span class="string">"https://api.deepseek.com"</span>
+export OPENAI_MODEL=<span class="string">"deepseek-chat"</span>
+
+<span class="comment"># 方案 C: 硅基流动（国内访问快）</span>
+export OPENAI_API_KEY=<span class="string">"sk-your-siliconflow-key"</span>
+export OPENAI_BASE_URL=<span class="string">"https://api.siliconflow.cn/v1"</span>
+export OPENAI_MODEL=<span class="string">"Qwen/Qwen2.5-7B-Instruct"</span>
+</pre>
+
+<div class="tip-box">
+<div class="tip-box-title">💡 为什么用 openai SDK？</div>
+<div class="tip-box-content">几乎所有 LLM 提供商都兼容 OpenAI 的 API 格式（这已经成了事实标准）。用一个 SDK 就能对接所有模型。这正是 <code>llm.py</code> 要做的事——统一接口，底层切换。</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    STEP 1: TYPES                                  -->
+<!-- ================================================================ -->
+<section id="hw-types" class="chapter">
+<h2 class="chapter-title">Step 1 · types.py — 数据结构</h2>
+<div class="chapter-content">
+
+<p>先定义 Agent 内部流转的数据结构。就三个东西：消息（Message）、工具调用（ToolCall）、工具结果（ToolResult）。</p>
+
+<pre>
+<span class="comment"># types.py — Agent 的数据类型定义</span>
+<span class="keyword">from</span> dataclasses <span class="keyword">import</span> dataclass, field
+<span class="keyword">from</span> typing <span class="keyword">import</span> Any
+<span class="keyword">from</span> enum <span class="keyword">import</span> Enum
+
+<span class="comment"># ── Agent 状态机 ──</span>
+<span class="keyword">class</span> <span class="type">AgentState</span>(Enum):
+    IDLE    = <span class="string">"idle"</span>      <span class="comment"># 等待任务</span>
+    RUNNING = <span class="string">"running"</span>   <span class="comment"># 正在执行 ReAct 循环</span>
+    DONE    = <span class="string">"done"</span>      <span class="comment"># 任务完成</span>
+    ERROR   = <span class="string">"error"</span>     <span class="comment"># 出错了</span>
+
+<span class="comment"># ── 工具调用请求（LLM 输出的）──</span>
+@dataclass
+<span class="keyword">class</span> <span class="type">ToolCall</span>:
+    id: str             <span class="comment"># 调用 ID（用于匹配结果）</span>
+    name: str           <span class="comment"># 工具名</span>
+    arguments: dict     <span class="comment"># 参数</span>
+
+<span class="comment"># ── 工具执行结果 ──</span>
+@dataclass
+<span class="keyword">class</span> <span class="type">ToolResult</span>:
+    tool_call_id: str   <span class="comment"># 对应哪个 ToolCall</span>
+    content: str        <span class="comment"># 执行结果（文本）</span>
+    success: bool = <span class="keyword">True</span>
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 为什么需要 tool_call_id？</div>
+<div class="insight-box-content">
+LLM 可能一次输出多个工具调用（并行调用）。<code>tool_call_id</code> 用来匹配"这个结果是哪个调用的"。<br><br>
+<strong>协议约束：</strong>在 OpenAI 的消息格式中，每个 <code>tool_calls</code> 后面<strong>必须</strong>紧跟对应的 <code>tool</code> 消息。顺序错了模型会报错。这个约束在 Ch03 讲过——现在你在代码里亲眼看到了。
+</div>
+</div>
+
+<p><strong>状态机为什么重要？</strong>没有状态机，你的 Agent 就是一个 while True 循环——不知道自己在干什么、什么时候该停。状态机让 Agent 的行为可预测、可监控：</p>
+
+<div class="visualization">
+<pre style="font-size:13px; line-height:1.5; text-align:left;">
+  ┌──────┐    run()     ┌─────────┐
+  │ IDLE │ ──────────→  │ RUNNING │
+  └──────┘              └────┬────┘
+                             │
+                    ┌────────┴────────┐
+                    │                 │
+              正常完成            出错/超限
+                    │                 │
+               ┌────▼───┐       ┌────▼────┐
+               │  DONE  │       │  ERROR  │
+               └────────┘       └─────────┘
+</pre>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    STEP 2: LLM                                    -->
+<!-- ================================================================ -->
+<section id="hw-llm" class="chapter">
+<h2 class="chapter-title">Step 2 · llm.py — 统一 LLM 接口</h2>
+<div class="chapter-content">
+
+<p>把 LLM 调用封装成一个函数。关键：<strong>传入工具列表，如果 LLM 决定调工具就返回 tool_calls，否则返回文本。</strong></p>
+
+<pre>
+<span class="comment"># llm.py — 统一 LLM 调用接口</span>
+<span class="keyword">import</span> os, json
+<span class="keyword">from</span> openai <span class="keyword">import</span> OpenAI
+<span class="keyword">from</span> types_ <span class="keyword">import</span> ToolCall  <span class="comment"># 注意：文件名 types.py 和标准库冲突，</span>
+                              <span class="comment"># 实际项目中建议命名为 types_.py 或放在包里</span>
+
+<span class="comment"># ── 初始化客户端（从环境变量读配置）──</span>
+client = OpenAI(
+    api_key=os.getenv(<span class="string">"OPENAI_API_KEY"</span>),
+    base_url=os.getenv(<span class="string">"OPENAI_BASE_URL"</span>, <span class="string">"https://api.openai.com/v1"</span>),
+)
+MODEL = os.getenv(<span class="string">"OPENAI_MODEL"</span>, <span class="string">"gpt-4o-mini"</span>)
+
+<span class="keyword">def</span> <span class="func">chat</span>(messages: list, tools: list | <span class="keyword">None</span> = <span class="keyword">None</span>) -> dict:
+    <span class="string">"""
+    调用 LLM，返回标准化的结果。
+    
+    Returns:
+        {
+            "content": str | None,      # 文本回复
+            "tool_calls": [ToolCall] | None,  # 工具调用请求
+            "raw_message": object       # 原始消息（用于追加到历史）
+        }
+    """</span>
+    kwargs = {<span class="string">"model"</span>: MODEL, <span class="string">"messages"</span>: messages}
+    <span class="keyword">if</span> tools:
+        kwargs[<span class="string">"tools"</span>] = tools
+
+    resp = client.chat.completions.create(**kwargs)
+    msg = resp.choices[<span class="number">0</span>].message
+
+    <span class="comment"># 解析工具调用</span>
+    parsed_calls = <span class="keyword">None</span>
+    <span class="keyword">if</span> msg.tool_calls:
+        parsed_calls = [
+            ToolCall(
+                id=tc.id,
+                name=tc.function.name,
+                arguments=json.loads(tc.function.arguments),
+            )
+            <span class="keyword">for</span> tc <span class="keyword">in</span> msg.tool_calls
+        ]
+
+    <span class="keyword">return</span> {
+        <span class="string">"content"</span>: msg.content,
+        <span class="string">"tool_calls"</span>: parsed_calls,
+        <span class="string">"raw_message"</span>: msg,  <span class="comment"># 保留原始对象，追加到 messages 时用</span>
+    }
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 为什么要封装这一层？</div>
+<div class="insight-box-content">
+<strong>换模型只改一行。</strong>改个环境变量就能从 GPT-4o 切到 DeepSeek。<code>engine.py</code> 完全不用动——它只依赖 <code>chat()</code> 的返回格式，不关心底层用什么模型。<br><br>
+这就是 Ch03 讲的"统一接口"思想。OpenClaw 的 <code>llm.ts</code> 做的也是同样的事情，只不过它还处理了 streaming、重试、token 计费等生产级需求。
+</div>
+</div>
+
+<div class="danger-box">
+<div class="danger-box-title">⚠️ types.py 命名冲突</div>
+<div class="danger-box-content">
+Python 标准库有一个 <code>types</code> 模块。如果你的文件叫 <code>types.py</code>，import 会冲突。两种解决方案：<br>
+1. 把文件命名为 <code>types_.py</code>（简单粗暴）<br>
+2. 把所有文件放在一个包（package）里，用相对导入<br><br>
+本教程用方案 1，代码里 <code>from types_ import ToolCall</code>。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    STEP 3: TOOLS                                  -->
+<!-- ================================================================ -->
+<section id="hw-tools" class="chapter">
+<h2 class="chapter-title">Step 3 · tools.py — 工具注册表</h2>
+<div class="chapter-content">
+
+<p>三个真实工具——不是 mock，是<strong>真的能跑</strong>的：</p>
+
+<pre>
+<span class="comment"># tools.py — 工具注册表 + 3 个真实工具</span>
+<span class="keyword">import</span> json, math, datetime, urllib.request
+
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="comment"># 工具 1: 天气查询（wttr.in 免费 API，无需 key）</span>
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="keyword">def</span> <span class="func">get_weather</span>(city: str) -> str:
+    <span class="string">"""查询指定城市的实时天气"""</span>
+    <span class="keyword">try</span>:
+        url = f<span class="string">"https://wttr.in/{city}?format=%C+%t+%h+%w&lang=zh"</span>
+        req = urllib.request.Request(url, headers={<span class="string">"User-Agent"</span>: <span class="string">"mini-agent/1.0"</span>})
+        <span class="keyword">with</span> urllib.request.urlopen(req, timeout=<span class="number">5</span>) <span class="keyword">as</span> resp:
+            <span class="keyword">return</span> f<span class="string">"{city} 天气: {resp.read().decode().strip()}"</span>
+    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:
+        <span class="keyword">return</span> f<span class="string">"天气查询失败: {e}"</span>
+
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="comment"># 工具 2: 计算器（支持四则运算和常用数学函数）</span>
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="keyword">def</span> <span class="func">calculate</span>(expression: str) -> str:
+    <span class="string">"""计算数学表达式，支持 +, -, *, /, **, sqrt, sin, cos, log"""</span>
+    <span class="keyword">try</span>:
+        <span class="comment"># 只允许安全的数学操作</span>
+        allowed = {<span class="string">"sqrt"</span>: math.sqrt, <span class="string">"sin"</span>: math.sin, <span class="string">"cos"</span>: math.cos,
+                   <span class="string">"log"</span>: math.log, <span class="string">"abs"</span>: abs, <span class="string">"pi"</span>: math.pi, <span class="string">"e"</span>: math.e}
+        result = eval(expression, {<span class="string">"__builtins__"</span>: {}}, allowed)
+        <span class="keyword">return</span> f<span class="string">"{expression} = {result}"</span>
+    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:
+        <span class="keyword">return</span> f<span class="string">"计算错误: {e}"</span>
+
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="comment"># 工具 3: 当前时间</span>
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="keyword">def</span> <span class="func">get_current_time</span>() -> str:
+    <span class="string">"""获取当前日期和时间"""</span>
+    now = datetime.datetime.now()
+    <span class="keyword">return</span> f<span class="string">"当前时间: {now.strftime('%Y-%m-%d %H:%M:%S')} ({now.strftime('%A')})"</span>
+
+<span class="comment"># ══════════════════════════════════════════</span>
+<span class="comment"># 工具注册表 — 核心！</span>
+<span class="comment"># ══════════════════════════════════════════</span>
+TOOL_REGISTRY = {
+    <span class="string">"get_weather"</span>: get_weather,
+    <span class="string">"calculate"</span>: calculate,
+    <span class="string">"get_current_time"</span>: get_current_time,
+}
+
+<span class="comment"># OpenAI Function Calling 格式的工具描述（JSON Schema）</span>
+TOOL_SCHEMAS = [
+    {
+        <span class="string">"type"</span>: <span class="string">"function"</span>,
+        <span class="string">"function"</span>: {
+            <span class="string">"name"</span>: <span class="string">"get_weather"</span>,
+            <span class="string">"description"</span>: <span class="string">"查询指定城市的实时天气信息，包括温度、湿度、风力"</span>,
+            <span class="string">"parameters"</span>: {
+                <span class="string">"type"</span>: <span class="string">"object"</span>,
+                <span class="string">"properties"</span>: {
+                    <span class="string">"city"</span>: {
+                        <span class="string">"type"</span>: <span class="string">"string"</span>,
+                        <span class="string">"description"</span>: <span class="string">"城市名称，如 Beijing、Shanghai、Tokyo"</span>
+                    }
+                },
+                <span class="string">"required"</span>: [<span class="string">"city"</span>]
+            }
+        }
+    },
+    {
+        <span class="string">"type"</span>: <span class="string">"function"</span>,
+        <span class="string">"function"</span>: {
+            <span class="string">"name"</span>: <span class="string">"calculate"</span>,
+            <span class="string">"description"</span>: <span class="string">"计算数学表达式。支持四则运算(+,-,*,/)、幂运算(**)、以及 sqrt/sin/cos/log 等函数。例如: '2**10' 或 'sqrt(144)'"</span>,
+            <span class="string">"parameters"</span>: {
+                <span class="string">"type"</span>: <span class="string">"object"</span>,
+                <span class="string">"properties"</span>: {
+                    <span class="string">"expression"</span>: {
+                        <span class="string">"type"</span>: <span class="string">"string"</span>,
+                        <span class="string">"description"</span>: <span class="string">"要计算的数学表达式"</span>
+                    }
+                },
+                <span class="string">"required"</span>: [<span class="string">"expression"</span>]
+            }
+        }
+    },
+    {
+        <span class="string">"type"</span>: <span class="string">"function"</span>,
+        <span class="string">"function"</span>: {
+            <span class="string">"name"</span>: <span class="string">"get_current_time"</span>,
+            <span class="string">"description"</span>: <span class="string">"获取当前的日期、时间和星期几"</span>,
+            <span class="string">"parameters"</span>: {
+                <span class="string">"type"</span>: <span class="string">"object"</span>,
+                <span class="string">"properties"</span>: {}
+            }
+        }
+    },
+]
+
+<span class="keyword">def</span> <span class="func">execute_tool</span>(name: str, arguments: dict) -> str:
+    <span class="string">"""执行工具并返回结果"""</span>
+    func = TOOL_REGISTRY.get(name)
+    <span class="keyword">if not</span> func:
+        <span class="keyword">return</span> f<span class="string">"错误: 未知工具 '{name}'"</span>
+    <span class="keyword">try</span>:
+        <span class="keyword">return</span> func(**arguments)
+    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:
+        <span class="keyword">return</span> f<span class="string">"工具执行失败: {e}"</span>
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 注册表模式（Registry Pattern）</div>
+<div class="insight-box-content">
+<code>TOOL_REGISTRY</code> 是一个 <strong>名称 → 函数</strong> 的字典。要加新工具？只需要：1）写一个函数，2）加到 <code>TOOL_REGISTRY</code>，3）加一个 schema 到 <code>TOOL_SCHEMAS</code>。<code>engine.py</code> 完全不用改。<br><br>
+这就是 Ch03 讲的"工具注册"——MCP 做的也是同样的事情，只不过通过 JSON-RPC 协议远程注册，而不是 Python 字典。
+</div>
+</div>
+
+<div class="tip-box">
+<div class="tip-box-title">🔧 工具描述的重要性</div>
+<div class="tip-box-content">
+看 <code>TOOL_SCHEMAS</code> 里的 <code>description</code> 字段——写得越清楚，LLM 越能准确判断什么时候该调什么工具。<br><br>
+<strong>一个真实的坑：</strong>如果你把 <code>calculate</code> 的描述写成"计算"两个字，LLM 可能在不该调计算器的时候调它。描述里写清<strong>输入格式</strong>（"例如: '2**10'"）和<strong>能力边界</strong>（"支持四则运算和 sqrt/sin/cos/log"），LLM 的工具选择准确率会显著提高。<br><br>
+这就是团队 review 中提到的"工具描述强化"——在生产 Agent 中，优化工具描述的投入产出比往往高于改 System Prompt。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    STEP 4: ENGINE                                 -->
+<!-- ================================================================ -->
+<section id="hw-engine" class="chapter">
+<h2 class="chapter-title">Step 4 · engine.py — ReAct 引擎（核心！）</h2>
+<div class="chapter-content">
+
+<p>这是整个 Agent 的心脏。它做的事情就是 Ch02 讲的 <strong>ReAct 循环</strong>：思考 → 行动 → 观察 → 思考 → ...直到完成。</p>
+
+<pre>
+<span class="comment"># engine.py — ReAct 引擎：Agent 的心脏</span>
+<span class="keyword">import</span> time
+<span class="keyword">from</span> types_ <span class="keyword">import</span> AgentState, ToolCall
+<span class="keyword">from</span> llm <span class="keyword">import</span> chat
+<span class="keyword">from</span> tools <span class="keyword">import</span> TOOL_SCHEMAS, execute_tool
+
+<span class="comment"># ── 配置 ──</span>
+MAX_TURNS = <span class="number">10</span>          <span class="comment"># 最多 10 轮（Ch02: 防无限循环）</span>
+MAX_REPEAT = <span class="number">3</span>          <span class="comment"># 同一工具+参数连续重复 3 次则终止</span>
+SYSTEM_PROMPT = <span class="string">"""你是一个有用的 AI 助手。
+你可以使用工具来获取信息。先思考用户需要什么，再决定是否调用工具。
+如果你已经有足够的信息来回答，就直接回答，不要多余地调用工具。"""</span>
+
+<span class="keyword">class</span> <span class="type">Agent</span>:
+    <span class="keyword">def</span> <span class="func">__init__</span>(self):
+        self.state = AgentState.IDLE
+        self.messages = [{<span class="string">"role"</span>: <span class="string">"system"</span>, <span class="string">"content"</span>: SYSTEM_PROMPT}]
+        self.turn = <span class="number">0</span>
+        self.recent_calls = []  <span class="comment"># 用于循环检测</span>
+
+    <span class="keyword">def</span> <span class="func">run</span>(self, user_input: str) -> str:
+        <span class="string">"""
+        运行一次完整的 ReAct 循环。
+        输入: 用户的问题
+        输出: Agent 的最终回答
+        """</span>
+        self.state = AgentState.RUNNING
+        self.messages.append({<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: user_input})
+        self.turn = <span class="number">0</span>
+        self.recent_calls = []
+
+        <span class="keyword">try</span>:
+            <span class="keyword">while</span> self.state == AgentState.RUNNING:
+                self.turn += <span class="number">1</span>
+
+                <span class="comment"># ── 安全检查 ──</span>
+                <span class="keyword">if</span> self.turn > MAX_TURNS:
+                    <span class="func">self._log</span>(<span class="string">"⚠️"</span>, f<span class="string">"达到最大轮次 ({MAX_TURNS})，强制终止"</span>)
+                    self.state = AgentState.ERROR
+                    <span class="keyword">return</span> <span class="string">"抱歉，我在这个问题上花了太多步骤。请换个方式提问。"</span>
+
+                <span class="comment"># ── Step 1: 调用 LLM（思考）──</span>
+                <span class="func">self._log</span>(<span class="string">"🧠"</span>, <span class="string">"思考中..."</span>)
+                result = chat(self.messages, tools=TOOL_SCHEMAS)
+
+                <span class="comment"># ── Step 2: 判断 LLM 的决定 ──</span>
+                <span class="keyword">if</span> result[<span class="string">"tool_calls"</span>]:
+                    <span class="comment"># LLM 决定调工具 → 行动</span>
+                    self._handle_tool_calls(result)
+                <span class="keyword">else</span>:
+                    <span class="comment"># LLM 给出最终回答 → 完成</span>
+                    answer = result[<span class="string">"content"</span>] <span class="keyword">or</span> <span class="string">"(空回复)"</span>
+                    self.messages.append({<span class="string">"role"</span>: <span class="string">"assistant"</span>, <span class="string">"content"</span>: answer})
+                    <span class="func">self._log</span>(<span class="string">"✅"</span>, f<span class="string">"最终回答: {answer[:100]}..."</span> <span class="keyword">if</span> len(answer) > <span class="number">100</span> <span class="keyword">else</span> f<span class="string">"最终回答: {answer}"</span>)
+                    self.state = AgentState.DONE
+                    <span class="keyword">return</span> answer
+
+        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:
+            self.state = AgentState.ERROR
+            <span class="func">self._log</span>(<span class="string">"❌"</span>, f<span class="string">"出错: {e}"</span>)
+            <span class="keyword">return</span> f<span class="string">"Agent 出错了: {e}"</span>
+
+    <span class="keyword">def</span> <span class="func">_handle_tool_calls</span>(self, result: dict):
+        <span class="string">"""处理 LLM 返回的工具调用请求"""</span>
+        <span class="comment"># 先把 LLM 的原始消息追加到历史（包含 tool_calls）</span>
+        self.messages.append(result[<span class="string">"raw_message"</span>])
+
+        <span class="keyword">for</span> tc <span class="keyword">in</span> result[<span class="string">"tool_calls"</span>]:
+            <span class="comment"># ── 循环检测 ──</span>
+            call_sig = f<span class="string">"{tc.name}:{tc.arguments}"</span>
+            self.recent_calls.append(call_sig)
+            <span class="keyword">if</span> self.recent_calls[-MAX_REPEAT:] == [call_sig] * MAX_REPEAT:
+                <span class="func">self._log</span>(<span class="string">"🔄"</span>, f<span class="string">"检测到重复调用 {tc.name}，终止循环"</span>)
+                self.state = AgentState.ERROR
+                <span class="comment"># 仍需返回 tool result，否则消息格式会坏</span>
+                self.messages.append({
+                    <span class="string">"role"</span>: <span class="string">"tool"</span>, <span class="string">"tool_call_id"</span>: tc.id,
+                    <span class="string">"content"</span>: <span class="string">"[循环检测] 工具调用被终止"</span>
+                })
+                <span class="keyword">return</span>
+
+            <span class="comment"># ── 执行工具 ──</span>
+            <span class="func">self._log</span>(<span class="string">"🔧"</span>, f<span class="string">"调用工具: {tc.name}({tc.arguments})"</span>)
+            tool_result = execute_tool(tc.name, tc.arguments)
+            <span class="func">self._log</span>(<span class="string">"👁"</span>, f<span class="string">"观察: {tool_result[:100]}"</span>)
+
+            <span class="comment"># ⚡ 关键：tool 消息必须紧跟在 tool_calls 后面</span>
+            self.messages.append({
+                <span class="string">"role"</span>: <span class="string">"tool"</span>,
+                <span class="string">"tool_call_id"</span>: tc.id,
+                <span class="string">"content"</span>: tool_result,
+            })
+
+    <span class="keyword">def</span> <span class="func">_log</span>(self, emoji: str, message: str):
+        <span class="string">"""可观测性：打印每一步的状态"""</span>
+        print(f<span class="string">"  Turn {self.turn} {emoji} {message}"</span>)
+</pre>
+
+<p>这段代码虽然只有 ~80 行，但它包含了 <strong>Agent 引擎的所有核心机制</strong>。让我们逐个对照前面学过的概念：</p>
+
+<table class="compare-table">
+<tr><th>代码中的机制</th><th>对应章节</th><th>作用</th></tr>
+<tr><td><code>while self.state == RUNNING</code></td><td>Ch02 ReAct 循环</td><td>持续循环直到完成</td></tr>
+<tr><td><code>chat(messages, tools)</code></td><td>Ch03 Tool Calling</td><td>LLM 决定调不调工具</td></tr>
+<tr><td><code>MAX_TURNS = 10</code></td><td>Ch02 防无限循环</td><td>安全上限</td></tr>
+<tr><td><code>recent_calls + MAX_REPEAT</code></td><td>Ch02 循环检测</td><td>检测重复工具调用</td></tr>
+<tr><td><code>AgentState 枚举</code></td><td>Ch01 LAMP 组件</td><td>状态机让行为可预测</td></tr>
+<tr><td><code>_log() 方法</code></td><td>Ch08 可观测性</td><td>每轮打印思考/行动/观察</td></tr>
+<tr><td><code>messages 数组</code></td><td>Ch05 短期记忆</td><td>对话历史就是工作记忆</td></tr>
+<tr><td><code>SYSTEM_PROMPT</code></td><td>Ch04 System Prompt</td><td>定义 Agent 的行为规则</td></tr>
+</table>
+
+<div class="danger-box">
+<div class="danger-box-title">⚠️ 最容易写错的地方</div>
+<div class="danger-box-content">
+<strong>消息顺序。</strong>当 LLM 返回 <code>tool_calls</code> 时，你必须：<br>
+1. 先把包含 <code>tool_calls</code> 的 assistant 消息追加到 <code>messages</code><br>
+2. 再追加每个 <code>tool</code> 消息（<code>tool_call_id</code> 必须匹配）<br><br>
+顺序搞反或者漏了 <code>tool_call_id</code>，API 会直接报错。这个约束是 Ch03 讲的"协议约束"的活生生例子。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    STEP 5: MAIN                                   -->
+<!-- ================================================================ -->
+<section id="hw-main" class="chapter">
+<h2 class="chapter-title">Step 5 · main.py — 入口</h2>
+<div class="chapter-content">
+
+<pre>
+<span class="comment"># main.py — 终端交互入口</span>
+<span class="keyword">from</span> engine <span class="keyword">import</span> Agent
+
+<span class="keyword">def</span> <span class="func">main</span>():
+    print(<span class="string">"🤖 Mini Agent 已启动！(输入 'quit' 退出)"</span>)
+    print(<span class="string">"   试试: '北京天气怎么样' 或 '2的10次方是多少' 或 '现在几点'"</span>)
+    print()
+
+    agent = Agent()
+
+    <span class="keyword">while</span> <span class="keyword">True</span>:
+        user_input = input(<span class="string">"你: "</span>).strip()
+        <span class="keyword">if not</span> user_input:
+            <span class="keyword">continue</span>
+        <span class="keyword">if</span> user_input.lower() <span class="keyword">in</span> (<span class="string">"quit"</span>, <span class="string">"exit"</span>, <span class="string">"q"</span>):
+            print(<span class="string">"👋 再见!"</span>)
+            <span class="keyword">break</span>
+
+        print()
+        answer = agent.run(user_input)
+        print(f<span class="string">"\n🤖 Agent: {answer}\n"</span>)
+
+<span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:
+    main()
+</pre>
+
+<p>就这么简单。<code>main.py</code> 只做一件事：读用户输入 → 交给 Agent → 打印结果。所有逻辑都在 <code>engine.py</code> 里。</p>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    RUN IT!                                        -->
+<!-- ================================================================ -->
+<section id="hw-run" class="chapter">
+<h2 class="chapter-title">▶ 跑起来！</h2>
+<div class="chapter-content">
+
+<pre>
+<span class="comment"># 确保你设好了环境变量，然后：</span>
+python main.py
+</pre>
+
+<h3>实际运行效果</h3>
+
+<pre>
+🤖 Mini Agent 已启动！(输入 'quit' 退出)
+   试试: '北京天气怎么样' 或 '2的10次方是多少' 或 '现在几点'
+
+你: 北京天气怎么样？今天适合运动吗？
+
+  Turn 1 🧠 思考中...
+  Turn 1 🔧 调用工具: get_weather({'city': 'Beijing'})
+  Turn 1 👁 观察: Beijing 天气: 晴 +22°C 45% 微风
+
+  Turn 2 🧠 思考中...
+  Turn 2 ✅ 最终回答: 北京今天天气不错！晴天，22°C，湿度45%，微风。
+              非常适合户外运动，温度舒适，建议穿轻便运动服。
+              不过记得带瓶水，运动后及时补充水分。
+
+🤖 Agent: 北京今天天气不错！晴天，22°C，湿度45%，微风...
+</pre>
+
+<p>看到了吗？Agent 的 ReAct 循环清清楚楚：</p>
+<ol>
+<li><strong>Turn 1 🧠 思考</strong>：用户问天气 → 需要查天气</li>
+<li><strong>Turn 1 🔧 行动</strong>：调用 <code>get_weather</code></li>
+<li><strong>Turn 1 👁 观察</strong>：拿到结果</li>
+<li><strong>Turn 2 🧠 思考</strong>：信息够了，可以回答</li>
+<li><strong>Turn 2 ✅ 完成</strong>：生成最终回答</li>
+</ol>
+
+<h3>试试更复杂的</h3>
+
+<pre>
+你: 帮我算一下，如果北京今天22度，那华氏温度是多少？
+
+  Turn 1 🧠 思考中...
+  Turn 1 🔧 调用工具: calculate({'expression': '22 * 9/5 + 32'})
+  Turn 1 👁 观察: 22 * 9/5 + 32 = 71.6
+
+  Turn 2 🧠 思考中...
+  Turn 2 ✅ 最终回答: 22°C 换算成华氏温度是 71.6°F。
+
+你: 现在几点了？
+
+  Turn 1 🧠 思考中...
+  Turn 1 🔧 调用工具: get_current_time({})
+  Turn 1 👁 观察: 当前时间: 2026-04-15 21:30:45 (Tuesday)
+
+  Turn 2 🧠 思考中...
+  Turn 2 ✅ 最终回答: 现在是 2026年4月15日 周二 21:30。
+</pre>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 注意观察</div>
+<div class="insight-box-content">
+Agent 会<strong>自己决定</strong>调什么工具。你问天气它调 <code>get_weather</code>，问计算它调 <code>calculate</code>，问时间它调 <code>get_current_time</code>。你没有写任何 if-else——LLM 读了工具描述后自己判断的。这就是 Ch01 说的"目标驱动执行"。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    BREAK IT                                       -->
+<!-- ================================================================ -->
+<section id="hw-break" class="chapter">
+<h2 class="chapter-title">💥 故意搞坏它——理解 Agent 的边界</h2>
+<div class="chapter-content">
+
+<p>跑通了很开心，但更重要的是理解它什么时候会坏。试试这些：</p>
+
+<h3>实验 1：触发循环检测</h3>
+<pre>
+你: 帮我查一下火星的天气
+
+  Turn 1 🧠 思考中...
+  Turn 1 🔧 调用工具: get_weather({'city': 'Mars'})
+  Turn 1 👁 观察: 天气查询失败: HTTP Error 404
+
+  Turn 2 🧠 思考中...
+  Turn 2 🔧 调用工具: get_weather({'city': 'Mars'})
+  Turn 2 👁 观察: 天气查询失败: HTTP Error 404
+
+  Turn 3 🧠 思考中...
+  Turn 3 🔄 检测到重复调用 get_weather，终止循环
+</pre>
+<p>循环检测生效了！如果没有这个机制，Agent 会一直重试到 <code>MAX_TURNS</code>，浪费 10 次 API 调用。</p>
+
+<h3>实验 2：去掉 System Prompt</h3>
+<p>把 <code>engine.py</code> 里的 <code>SYSTEM_PROMPT</code> 改成空字符串 <code>""</code>，再问同样的问题。你会发现：</p>
+<ul>
+<li>Agent 可能在不需要工具的时候也调工具</li>
+<li>回答风格变得不稳定</li>
+<li>有时候直接输出英文</li>
+</ul>
+<p>这就是 Ch04 说的——System Prompt 定义了 Agent 的"灵魂"。没有它，Agent 就是一个没有方向的高智商。</p>
+
+<h3>实验 3：删掉工具描述里的 description</h3>
+<p>把 <code>TOOL_SCHEMAS</code> 里某个工具的 <code>description</code> 改成空字符串。你会发现 LLM 选错工具的概率大幅上升——问天气却调了计算器。</p>
+<p>这验证了我们在 Step 3 说的：<strong>工具描述是工具选择准确率的最大杠杆</strong>。</p>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试高频题</div>
+<div class="interview-box-content">
+<strong>Q: 你在实际项目中，Agent 出现过什么问题？怎么解决的？</strong><br><br>
+<strong>标准答案：</strong>最常见的三个问题：1）<strong>无限循环</strong>——Agent 反复调用同一个失败的工具。解决：设 max_turns + 循环检测（连续 N 次相同调用则终止）。2）<strong>工具选择错误</strong>——LLM 选错工具或传错参数。解决：优化工具描述（加必填字段说明、示例值、能力边界），比改 System Prompt 有效。3）<strong>消息格式错误</strong>——tool_calls 后面没跟 tool result，或者 tool_call_id 不匹配，导致 API 报错。解决：严格按协议约束编码，tool result 必须紧跟 tool_calls 且 ID 匹配。<br><br>
+<strong>加分：</strong>这些问题我在自己搭的 mini Agent Runtime 里全都亲手复现过。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ================================================================ -->
+<!--                    REFLECT                                        -->
+<!-- ================================================================ -->
+<section id="hw-reflect" class="chapter">
+<h2 class="chapter-title">💡 回顾 + 下一步</h2>
+<div class="chapter-content">
+
+<h3>你刚刚搭了什么？</h3>
+
+<p>5 个文件，~200 行 Python，一个<strong>完整的 Agent Runtime</strong>：</p>
+
+<div class="visualization">
+<pre style="font-size:13px; line-height:1.5; text-align:left;">
+┌─────────────────────────────────────────────────────────┐
+│                    你搭的 Mini Agent                      │
+│                                                           │
+│  main.py ─→ engine.py ─→ llm.py ─→ OpenAI/DeepSeek API  │
+│                 │                                         │
+│                 ├─→ tools.py ─→ 天气/计算器/时间           │
+│                 │                                         │
+│                 └─→ types_.py (数据结构 + 状态机)          │
+│                                                           │
+│  ✅ ReAct 循环    ✅ 工具注册    ✅ 状态机                  │
+│  ✅ 循环检测      ✅ 可观测性    ✅ 错误处理                │
+└─────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>对照 Part 1 学到的概念</h3>
+
+<table class="compare-table">
+<tr><th>Part 1 概念</th><th>你的代码里在哪</th><th>生产级系统（如 OpenClaw）加了什么</th></tr>
+<tr><td>Ch01 LAMP 四组件</td><td>Loop=while循环, Action=tools.py, Memory=messages数组, Planning=LLM自己决定</td><td>持久化 Memory、复杂 Planning 策略</td></tr>
+<tr><td>Ch02 ReAct 循环</td><td>engine.py 的 while 循环</td><td>+ Checkpoint/Resume、并发控制</td></tr>
+<tr><td>Ch03 Tool Calling</td><td>tools.py + TOOL_SCHEMAS</td><td>+ MCP 远程工具、动态工具列表</td></tr>
+<tr><td>Ch04 System Prompt</td><td>SYSTEM_PROMPT 常量</td><td>+ SOUL.md/AGENTS.md/Skills 注入</td></tr>
+<tr><td>Ch05 记忆</td><td>messages 数组（短期记忆）</td><td>+ 长期记忆(MEMORY.md)、RAG 检索</td></tr>
+<tr><td>Ch08 可观测性</td><td>_log() 方法</td><td>+ 结构化日志、Session 存储、审计</td></tr>
+</table>
+
+<h3>你的 Agent 还缺什么？</h3>
+
+<p>你的 mini Agent 能跑，但离生产级还差很多。这正是后面几章要讲的：</p>
+
+<table class="compare-table">
+<tr><th>缺失的能力</th><th>在哪补</th></tr>
+<tr><td>Streaming（实时输出，不用等全部生成完）</td><td>Part 2 · Ch10 SSE/Streaming</td></tr>
+<tr><td>Context Window 管理（对话太长怎么办）</td><td>Part 2 · Ch12 KV Cache + 压缩</td></tr>
+<tr><td>Session 持久化（关掉终端历史就没了）</td><td>Part 2 · Ch13 Session 管理</td></tr>
+<tr><td>长期记忆（跨对话记住信息）</td><td>Ch05 记忆系统</td></tr>
+<tr><td>多用户隔离（多人同时用）</td><td>Part 3 · Ch14-16 Gateway/路由</td></tr>
+<tr><td>Skills 动态加载（按场景加载不同指令）</td><td>Part 3 · Ch18 Skills 系统</td></tr>
+</table>
+
+<div class="insight-box">
+<div class="insight-box-title">💡 从 Mini Agent 到 OpenClaw</div>
+<div class="insight-box-content">
+你刚才用 200 行 Python 搭的东西，本质上就是 OpenClaw 的极简版。当你在 Part 3 读到 OpenClaw 源码时，你会发现：<br><br>
+• 你的 <code>engine.py</code> = OpenClaw 的 Agent Loop<br>
+• 你的 <code>llm.py</code> = OpenClaw 的 LLM Provider<br>
+• 你的 <code>tools.py</code> = OpenClaw 的 Tool Registry + MCP Client<br>
+• 你的 <code>types_.py</code> = OpenClaw 的消息类型系统<br>
+• 你的 <code>main.py</code> = OpenClaw 的 Channel (飞书/Telegram/Web)<br><br>
+<strong>你先自己搭了一个最小的，再去看别人怎么做到生产级的。</strong>这是理解大型系统最有效的学习路径。
+</div>
+</div>
+
+<h3>完整代码获取</h3>
+
+<p>本章所有代码可以直接从上面复制。文件清单：</p>
+<ol>
+<li><code>types_.py</code> — 12 行（数据结构 + 状态机枚举）</li>
+<li><code>llm.py</code> — 25 行（统一 LLM 接口）</li>
+<li><code>tools.py</code> — 75 行（3 个真实工具 + 注册表 + Schema）</li>
+<li><code>engine.py</code> — 80 行（ReAct 循环 + 状态机 + 循环检测）</li>
+<li><code>main.py</code> — 15 行（终端交互入口）</li>
+</ol>
+<p><strong>总计 ~207 行。</strong>全部是标准 Python，唯一外部依赖是 <code>openai</code> SDK。</p>
+
+<div class="interview-box">
+<div class="interview-box-title">🎯 面试加分</div>
+<div class="interview-box-content">
+如果面试官问"你做过 Agent 相关的项目吗？"，你可以说：<br><br>
+"我从零搭过一个 mini Agent Runtime——包含 ReAct 引擎、工具注册表、状态机和循环检测。虽然只有 200 行，但它让我理解了 Agent Runtime 的核心架构。然后我对照着读了 OpenClaw 的源码，发现工业级系统在这个基础上加了 Streaming、Context 压缩、Session 持久化、MCP 远程工具等模块。"<br><br>
+这比"我用过 LangChain"有说服力得多——你知道底层是怎么回事。
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- ════════════════ Prev/Next ════════════════ -->
 <div style="display:flex;justify-content:space-between;margin:64px 0 32px;padding:24px 0;border-top:2px solid #e8e8e8;">
     <div><a href="agent-dev-v3-p1.html" style="color:#1890ff;text-decoration:none;">← Part 1: Agent 原理</a></div>
     <div><a href="agent-dev-v3-p2.html" style="color:#1890ff;text-decoration:none;">Part 2: 工程基础 →</a></div>
 </div>
-
 
 </main>
 </div>
@@ -131,7 +906,7 @@ const observer = new IntersectionObserver((entries) => {
         if (entry.isIntersecting) {
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
             const id = entry.target.id;
-            const link = document.querySelector(`a[href="$#${id}"]`);
+            const link = document.querySelector(`a[href="#${id}"]`);
             if (link) link.classList.add('active');
         }
     });
