@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>幸存者偏差 — 四框架对比</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, system-ui, sans-serif; padding: 2rem; }
+  h1 { text-align: center; font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px; margin: 0 auto; }
+  .card { background: #151515; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
+  .card video { width: 100%; display: block; }
+  .card-info { padding: 1rem 1.2rem; }
+  .card-info h2 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+  .card-info .meta { color: #888; font-size: 0.85rem; line-height: 1.6; }
+  .tag { display: inline-block; background: #222; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; margin-right: 4px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>🎯 幸存者偏差 — 四框架对比</h1>
+<p class="subtitle">统一主题「幸存者偏差」· 1920×1080 · 卡通风格 · 纯代码生成</p>
+
+<div class="grid">
+  <div class="card">
+    <video controls preload="metadata"><source src="remotion.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>⚓ Remotion <span class="tag">React</span></h2>
+      <div class="meta">2:00 · 7.6MB · Spring弹出 + SVG简笔画 + 渐变暖背景</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <video controls preload="metadata"><source src="motion-canvas.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>🎨 Motion Canvas <span class="tag">TypeScript</span></h2>
+      <div class="meta">2:19 · 1.7MB · Generator动画 + 米色背景 + easeOutBack</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <video controls preload="metadata"><source src="manim.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>✍️ Manim <span class="tag">Python</span></h2>
+      <div class="meta">1:25 · 3.9MB · 浅米背景 + bounce动画 + 93个动画片段</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <video controls preload="metadata"><source src="revideo.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>📚 Revideo <span class="tag">Remotion Fork</span></h2>
+      <div class="meta">2:00 · 5.3MB · headless渲染 + 圆点筛选动画</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
