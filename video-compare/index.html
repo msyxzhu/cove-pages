@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代码生视频框架对比 — 地球的大小</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, system-ui, sans-serif; padding: 2rem; }
+  h1 { text-align: center; font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px; margin: 0 auto; }
+  .card { background: #151515; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
+  .card video { width: 100%; display: block; }
+  .card-info { padding: 1rem 1.2rem; }
+  .card-info h2 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+  .card-info .meta { color: #888; font-size: 0.85rem; line-height: 1.6; }
+  .card-info .tag { display: inline-block; background: #222; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; margin-right: 4px; }
+  .pros { color: #4ade80; }
+  .cons { color: #f87171; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>🌍 代码生视频框架对比</h1>
+<p class="subtitle">统一主题「地球的大小」· 1920×1080 · 纯代码生成 · 无视频/图片模型</p>
+
+<div class="grid">
+  <div class="card">
+    <video controls preload="metadata"><source src="remotion.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>⚓ Remotion <span class="tag">React</span></h2>
+      <div class="meta">
+        30s · 3.5MB · 星空背景 + Spring弹出 + 渐变球体<br>
+        <span class="pros">✓ React生态 · interpolate/spring API · 渲染快</span><br>
+        <span class="cons">✗ 初始化不够CI友好 · 首次需下载Chrome Headless</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <video controls preload="metadata"><source src="motion-canvas.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>🎨 Motion Canvas <span class="tag">TypeScript</span></h2>
+      <div class="meta">
+        58s · 668KB · Generator动画 + 矢量图形<br>
+        <span class="pros">✓ yield*时序控制优雅 · API设计好 · 适合教学动画</span><br>
+        <span class="cons">✗ 无headless渲染 · 需Puppeteer辅助 · CI不友好</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <video controls preload="metadata"><source src="manim.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>✍️ Manim <span class="tag">Python</span></h2>
+      <div class="meta">
+        38s · 1.6MB · 数学动画风格 · 经典3B1B美学<br>
+        <span class="pros">✓ Python生态 · 数学可视化强 · 社区大</span><br>
+        <span class="cons">✗ 非Web技术栈 · 自定义样式有限</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <video controls preload="metadata"><source src="revideo.mp4" type="video/mp4"></video>
+    <div class="card-info">
+      <h2>📚 Revideo <span class="tag">Remotion Fork</span></h2>
+      <div class="meta">
+        30s · 1.5MB · API同Motion Canvas · headless友好<br>
+        <span class="pros">✓ renderVideo()一行渲染 · 15s出片 · 适合批量</span><br>
+        <span class="cons">✗ outFile路径bug · 文档不全 · 中文字体要配</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
